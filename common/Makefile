@@ -113,6 +113,7 @@ obj-$(CONFIG_CMD_FS_GENERIC) += cmd_fs.o
 obj-$(CONFIG_CMD_FUSE) += cmd_fuse.o
 obj-$(CONFIG_CMD_GETTIME) += cmd_gettime.o
 obj-$(CONFIG_CMD_GPIO) += cmd_gpio.o
+obj-$(CONFIG_CMD_ICE40) += cmd_ice40.o
 obj-$(CONFIG_CMD_I2C) += cmd_i2c.o
 obj-$(CONFIG_CMD_IOTRACE) += cmd_iotrace.o
 obj-$(CONFIG_CMD_HASH) += cmd_hash.o
