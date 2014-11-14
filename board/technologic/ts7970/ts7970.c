@@ -452,6 +452,8 @@ int misc_init_r(void)
 	if(sdboot) setenv("jpsdboot", "off");
 	else setenv("jpsdboot", "on");
 
+	setenv("imx_type", CONFIG_IMX_TYPE);
+
 	#ifdef CONFIG_MX6Q
 	setenv("cpu", "q");
 	#else
@@ -465,8 +467,6 @@ void setup_fpga(void)
 {
 	imx_iomux_v3_setup_multiple_pads(fpga_pads, ARRAY_SIZE(fpga_pads));	
 }
-
-
 
 struct i2c_pads_info i2c_pad_info0 = {
 	.scl = {

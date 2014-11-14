@@ -18,8 +18,8 @@
 
 #include <asm/arch/imx-regs.h>
 #include <asm/imx-common/gpio.h>
-#include <asm/sizes.h>
-
+#include <linux/sizes.h>
+ 
 #define CONFIG_CMDLINE_TAG
 #define CONFIG_SETUP_MEMORY_TAGS
 #define CONFIG_INITRD_TAG
@@ -42,8 +42,8 @@
 
 /* I2C Configs */
 #define CONFIG_CMD_I2C
-#define CONFIG_I2C_MULTI_BUS
-#define CONFIG_I2C_MXC
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_MXC
 #define CONFIG_SYS_I2C_SPEED		100000
 
 #define CONFIG_CMD_ICE40
@@ -116,11 +116,12 @@
 #define CONFIG_LIBATA
 #endif
 
+#define CONFIG_RANDOM_MACADDR
 #define CONFIG_CMD_PING
 #define CONFIG_CMD_DHCP
-#define CONFIG_BOOTP_MAY_FAIL
 #define CONFIG_CMD_MII
 #define CONFIG_CMD_NET
+#define CONFIG_LIB_RAND
 #define CONFIG_FEC_MXC
 #define CONFIG_NET_RETRY_COUNT     20
 #define CONFIG_MII
