@@ -135,7 +135,7 @@
 #define CONFIG_MXC_USB_FLAGS	0 
 #define CONFIG_SYS_USB_EVENT_POLL_VIA_CONTROL_EP
 
-/* HDMI  
+/* HDMI */  
 #define CONFIG_VIDEO
 #define CONFIG_VIDEO_IPUV3
 #define CONFIG_CFB_CONSOLE
@@ -143,15 +143,12 @@
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 #define CONFIG_SYS_CONSOLE_OVERWRITE_ROUTINE
 #define CONFIG_VIDEO_BMP_RLE8
-#define CONFIG_SPLASH_SCREEN
-#define CONFIG_SPLASH_SCREEN_ALIGN
 #define CONFIG_BMP_16BPP
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_VIDEO_BMP_LOGO
 #define CONFIG_IPUV3_CLK 260000000
 #define CONFIG_CMD_HDMIDETECT
 #define CONFIG_IMX_HDMI
-#define CONFIG_IMX_VIDEO_SKIP*/
+#define CONFIG_IMX_VIDEO_SKIP
+#define CONFIG_CMD_BMP
 
 /* Miscellaneous commands */
 #define CONFIG_CMD_BMODE
@@ -169,7 +166,7 @@
 
 #define CONFIG_BOOTDELAY	       1
 #define CONFIG_AUTOBOOT_KEYED 1
-#define CONFIG_AUTOBOOT_PROMPT "Press Ctrl+C to abort autoboot in %d second\n", bootdelay
+#define CONFIG_AUTOBOOT_PROMPT "Press Ctrl+C to abort autoboot in %d second(s)\n", bootdelay
 #define CTRL(c) ((c)&0x1F)     
 #define CONFIG_AUTOBOOT_STOP_STR  (char []){CTRL('C'), 0}
 #define CONFIG_PREBOOT                 ""
@@ -213,6 +210,10 @@
 		"sf erase 0x100000 0x2000 && " \
 		"echo restored environment to factory default ; fi\0" \
 	"sdboot=echo Booting from the SD card ...; " \
+		"if load mmc 0:1 ${loadaddr} /boot/boot.ub; " \
+			"then echo Booting from custom /boot/boot.ub; " \
+			"source ${loadaddr}; " \
+		"fi; " \
 		"load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; " \
 		"load mmc 0:1 ${loadaddr} /boot/ts7970-fpga.bin; " \
 		"ice40 ${loadaddr} ${filesize}; " \
@@ -221,6 +222,10 @@
 		"setenv bootargs root=/dev/mmcblk1p1 rootwait rw ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 	"emmcboot=echo Booting from the eMMC ...; " \
+		"if load mmc 1:1 ${loadaddr} /boot/boot.ub; " \
+			"then echo Booting from custom /boot/boot.ub; " \
+			"source ${loadaddr}; " \
+		"fi; " \
 		"load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; " \
 		"load mmc 1:1 ${loadaddr} /boot/ts7970-fpga.bin; " \
 		"ice40 ${loadaddr} ${filesize}; " \
@@ -329,7 +334,6 @@
 #define CONFIG_PCIE_IMX
 #define CONFIG_PCIE_IMX_PERST_GPIO	IMX_GPIO_NR(2, 21)
 #define CONFIG_E1000
-/*#define CONFIG_E1000_FALLBACK_MAC "00d069c0ffee"*/
 #define CONFIG_CMD_E1000
 
 #endif
