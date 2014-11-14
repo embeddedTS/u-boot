@@ -36,8 +36,10 @@ static int do_ice40_load(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv
 
 	for(i = 0; i <= 3000; i++)
 	{
-		if(gpio_get_value(CONFIG_ICE40_FPGA_DONE))
+		if(gpio_get_value(CONFIG_ICE40_FPGA_DONE)){
+			printf("ICE40 FPGA reloaded successfully\n");
 			break;
+		}
 		if(i == 3000){ 
 			printf("FPGA_DONE never asserted\n");
 			ret_val = 1;
