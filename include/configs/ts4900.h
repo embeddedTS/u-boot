@@ -9,6 +9,7 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
+#include "mx6_common.h"
 #define CONFIG_MX6
 #define CONFIG_DISPLAY_CPUINFO
 #define CONFIG_DISPLAY_BOARDINFO
@@ -23,15 +24,13 @@
 #define CONFIG_SETUP_MEMORY_TAGS
 #define CONFIG_INITRD_TAG
 #define CONFIG_REVISION_TAG
+#define CONFIG_SYS_GENERIC_BOARD
 
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		(10 * SZ_1M)
 
 #define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_MXC_GPIO
-
-#define CONFIG_CMD_FUSE
-#define CONFIG_MXC_OCOTP
 
 #define CONFIG_MXC_UART
 #define CONFIG_MXC_UART_BASE	       UART1_BASE
@@ -162,7 +161,7 @@
 
 #define CONFIG_BOOTDELAY	       1
 #define CONFIG_AUTOBOOT_KEYED 1
-#define CONFIG_AUTOBOOT_PROMPT "Press Ctrl+C to abort autoboot in %d second\n", bootdelay
+#define CONFIG_AUTOBOOT_PROMPT "Press Ctrl+C to abort autoboot in %d second(s)\n", bootdelay
 #define CTRL(c) ((c)&0x1F)     
 #define CONFIG_AUTOBOOT_STOP_STR  (char []){CTRL('C'), 0}
 #define CONFIG_PREBOOT                 ""
@@ -202,7 +201,8 @@
 	"sdboot=echo Booting from the SD card ...; " \
 		"bbdetect; " \
 		"if load mmc 0:1 ${loadaddr} /boot/boot.ub; " \
-			"then source ${loadaddr}; " \
+			"then echo Booting from custom /boot/boot.ub; " \
+			"source ${loadaddr}; " \
 		"fi; " \
 		"if load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
 			"then echo $baseboardid detected; " \
@@ -218,7 +218,8 @@
 	"emmcboot=echo Booting from the eMMC ...; " \
 		"bbdetect; " \
 		"if load mmc 1:1 ${loadaddr} /boot/boot.ub; " \
-			"then source ${loadaddr}; " \
+			"then echo Booting from custom /boot/boot.ub; " \
+			"source ${loadaddr}; " \
 		"fi; " \
 		"if load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
 			"then echo $baseboardid detected; " \
@@ -310,9 +311,10 @@
 #define CONFIG_ENV_OFFSET		0x100000
 #define CONFIG_ENV_SECT_SIZE	(4 * 1024)
 #define CONFIG_SF_DEFAULT_BUS  0
-#define CONFIG_SF_DEFAULT_CS   (0|(IMX_GPIO_NR(3, 19)<<8))
+#define CONFIG_SF_DEFAULT_CS   0
 #define CONFIG_SF_DEFAULT_SPEED 15000000
 #define CONFIG_SF_DEFAULT_MODE (SPI_MODE_0)
+
 #define CONFIG_ENV_SPI_BUS		CONFIG_SF_DEFAULT_BUS
 #define CONFIG_ENV_SPI_CS		CONFIG_SF_DEFAULT_CS
 #define CONFIG_ENV_SPI_MODE		CONFIG_SF_DEFAULT_MODE
