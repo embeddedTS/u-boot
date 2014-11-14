@@ -143,7 +143,6 @@ static void do_enable_hdmi(struct display_info_t const *dev)
 
 static int detect_i2c(struct display_info_t const *dev)
 {
-	printf("TEST %d, %s, %s\n", __LINE__, __func__, __FILE__);
 	return ((0 == i2c_set_bus_num(dev->bus))
 		&&
 		(0 == i2c_probe(dev->addr))); 
