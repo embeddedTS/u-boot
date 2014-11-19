@@ -71,6 +71,11 @@ iomux_v3_cfg_t const misc_pads[] = {
 	MX6_PAD_EIM_OE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL), // BD_ID_DATA
 };
 
+int board_spi_cs_gpio(unsigned bus, unsigned cs)
+{
+	return (bus == 0 && cs == 0) ? (IMX_GPIO_NR(3, 19)) : -1;
+}
+
 void setup_spi(void)
 {
 	imx_iomux_v3_setup_multiple_pads(ecspi1_pads,
@@ -173,7 +178,7 @@ iomux_v3_cfg_t const usdhc2_pads[] = {
 	MX6_PAD_SD2_DAT1__SD2_DATA1	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD2_DAT2__SD2_DATA2	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD2_DAT3__SD2_DATA3	| MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	MX6_PAD_EIM_EB0__GPIO2_IO28     	| MUX_PAD_CTRL(NO_PAD_CTRL), // EN_SD_POWER
+	MX6_PAD_EIM_EB0__GPIO2_IO28 | MUX_PAD_CTRL(NO_PAD_CTRL), // EN_SD_POWER
 };
 
 /* MMC */
@@ -184,7 +189,7 @@ iomux_v3_cfg_t const usdhc3_pads[] = {
 	MX6_PAD_SD3_DAT1__SD3_DATA1 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD3_DAT2__SD3_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD3_DAT3__SD3_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
-	MX6_PAD_SD3_RST__GPIO7_IO08     | MUX_PAD_CTRL(NO_PAD_CTRL),
+	MX6_PAD_SD3_RST__GPIO7_IO08 | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
 static void setup_iomux_uart(void)
@@ -206,7 +211,6 @@ int board_mmc_getcd(struct mmc *mmc)
 	switch (cfg->esdhc_base) {
 	case USDHC2_BASE_ADDR: // SD
 		ret = 1;
-		// TODO: Implement polling mechanism?
 		break;
 	case USDHC3_BASE_ADDR: // MMC
 		ret = 1;
@@ -380,6 +384,9 @@ int board_init(void)
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 	setup_spi();
 	setup_fpga();
+
+	// EN_USB_5V should be turned on by default
+	gpio_direction_output(IMX_GPIO_NR(2, 22), 1);
 
 	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info0);
 
