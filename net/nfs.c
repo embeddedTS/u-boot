@@ -641,10 +641,7 @@ NfsHandler(uchar *pkt, unsigned dest, IPaddr_t sip, unsigned src, unsigned len)
 		reply = nfs_umountall_reply(pkt, len);
 		if (reply == -NFS_RPC_DROP)
 			break;
-		else if (reply == -NFS_RPC_ERR) {
-			puts("*** ERROR: Cannot umount\n");
-			net_set_state(NETLOOP_FAIL);
-		} else {
+		else {
 			puts("\ndone\n");
 			net_set_state(nfs_download_state);
 		}
