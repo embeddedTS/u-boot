@@ -69,7 +69,22 @@ iomux_v3_cfg_t const misc_pads[] = {
 	MX6_PAD_EIM_CS1__GPIO2_IO24 | MUX_PAD_CTRL(NO_PAD_CTRL), // Green LED
 	MX6_PAD_EIM_RW__GPIO2_IO26 | MUX_PAD_CTRL(NO_PAD_CTRL), // MODE2
 	MX6_PAD_EIM_OE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL), // BD_ID_DATA
+	MX6_PAD_SD4_DAT3__GPIO2_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL), // Rev A/C strap
 };
+
+char *board_rev(void)
+{
+	static int dat = -1;	
+
+	if(dat == -1) {
+		// Read REV strapping pin
+		gpio_direction_input(IMX_GPIO_NR(2, 11));
+		dat = gpio_get_value(IMX_GPIO_NR(2, 11));
+	}
+
+	if(dat) return "A";
+	else return "C";
+}
 
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
 {
@@ -335,7 +350,7 @@ int board_early_init_f(void)
 
 int misc_init_r(void)
 {
-	int sdboot = 0;
+	int sdboot;
 
 	imx_iomux_v3_setup_multiple_pads(misc_pads, ARRAY_SIZE(misc_pads));
 
@@ -359,8 +374,8 @@ int misc_init_r(void)
 	#endif
 
 	setenv("model", "4900");
-
 	setenv("rcause", get_reset_cause(1));
+	setenv("rev", board_rev());
 
 	return 0;
 }
@@ -418,5 +433,7 @@ int board_late_init(void)
 int checkboard(void)
 {
 	puts("Board: TS-4900\n");
+	printf("Revision: %s\n", board_rev());
+
 	return 0;
 }
