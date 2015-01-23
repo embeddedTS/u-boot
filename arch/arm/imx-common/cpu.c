@@ -22,13 +22,13 @@
 #include <fsl_esdhc.h>
 #endif
 
-char *get_reset_cause(void)
+char *get_reset_cause(int clr)
 {
 	u32 cause;
 	struct src *src_regs = (struct src *)SRC_BASE_ADDR;
 
 	cause = readl(&src_regs->srsr);
-	writel(cause, &src_regs->srsr);
+	if(clr) writel(cause, &src_regs->srsr);
 
 	switch (cause) {
 	case 0x00001:
@@ -141,7 +141,7 @@ int print_cpuinfo(void)
 		(cpurev & 0x000F0) >> 4,
 		(cpurev & 0x0000F) >> 0,
 		mxc_get_clock(MXC_ARM_CLK) / 1000000);
-	printf("Reset cause: %s\n", get_reset_cause());
+	printf("Reset cause: %s\n", get_reset_cause(0));
 	return 0;
 }
 #endif

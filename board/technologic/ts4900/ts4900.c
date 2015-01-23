@@ -357,6 +357,11 @@ int misc_init_r(void)
 	#else
 	setenv("cpu", "dl");
 	#endif
+
+	setenv("model", "4900");
+
+	setenv("rcause", get_reset_cause(1));
+
 	return 0;
 }
 

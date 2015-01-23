@@ -460,6 +460,9 @@ int misc_init_r(void)
 	setenv("cpu", "dl");
 	#endif
 
+	setenv("model", "7970");
+	setenv("rcause", get_reset_cause(1));
+
 	return 0;
 }
 
