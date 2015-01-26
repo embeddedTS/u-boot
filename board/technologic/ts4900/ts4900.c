@@ -71,6 +71,7 @@ iomux_v3_cfg_t const misc_pads[] = {
 	MX6_PAD_EIM_OE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL), // BD_ID_DATA
 	MX6_PAD_SD4_DAT3__GPIO2_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL), // Rev A/C strap
 	MX6_PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL), // EN_RTC
+	MX6_PAD_EIM_A16__GPIO2_IO22 | MUX_PAD_CTRL(NO_PAD_CTRL), // EN_USB_5V
 };
 
 char *board_rev(void)
@@ -406,7 +407,9 @@ int board_init(void)
 	setup_spi();
 	setup_fpga();
 
-	// EN_USB_5V should be turned on by default
+	// Pulse EN_USB_5V
+	gpio_direction_output(IMX_GPIO_NR(2, 22), 0);
+	udelay(1000 * 100); // 100ms
 	gpio_direction_output(IMX_GPIO_NR(2, 22), 1);
 
 	// Enable RTC FET
