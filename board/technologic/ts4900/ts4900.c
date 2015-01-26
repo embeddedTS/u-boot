@@ -359,10 +359,16 @@ int misc_init_r(void)
 	// Set OFF_BD_RESET low and check if the SD boot jumper is on
 	gpio_direction_output(IMX_GPIO_NR(2, 21), 0);
 	gpio_direction_input(IMX_GPIO_NR(2, 26));
+	gpio_direction_output(IMX_GPIO_NR(2, 22), 0); // EN_USB_5V
 	udelay(1000);
 	sdboot = gpio_get_value(IMX_GPIO_NR(2, 26));
 	// OFF_BD_RESET should be left high to diable reset of offboard peripherals
 	gpio_direction_output(IMX_GPIO_NR(2, 21), 1);
+
+	// Pulse EN_USB_5V - allow time for usb hubs coming out 
+	// of reset from off_bd_reset
+	udelay(1000 * 100); // 100ms
+	gpio_direction_output(IMX_GPIO_NR(2, 22), 1);
 
 	if(sdboot) setenv("jpsdboot", "off");
 	else setenv("jpsdboot", "on");
@@ -406,11 +412,6 @@ int board_init(void)
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 	setup_spi();
 	setup_fpga();
-
-	// Pulse EN_USB_5V
-	gpio_direction_output(IMX_GPIO_NR(2, 22), 0);
-	udelay(1000 * 100); // 100ms
-	gpio_direction_output(IMX_GPIO_NR(2, 22), 1);
 
 	// Enable RTC FET
 	gpio_direction_output(IMX_GPIO_NR(3, 23), 0);
