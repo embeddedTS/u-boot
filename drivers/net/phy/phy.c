@@ -247,7 +247,7 @@ int genphy_update_link(struct phy_device *phydev)
 			udelay(1000);	/* 1 ms */
 			mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMSR);
 		}
-		printf(" done\n");
+		printf(" done (%dms)\n", i);
 		phydev->link = 1;
 	} else {
 		/* Read the link a second time to clear the latched state */
