@@ -396,15 +396,16 @@ int genphy_config(struct phy_device *phydev)
 
 		if (val < 0)
 			return val;
-
-		if (val & ESTATUS_1000_TFULL)
-			features |= SUPPORTED_1000baseT_Full;
-		if (val & ESTATUS_1000_THALF)
-			features |= SUPPORTED_1000baseT_Half;
-		if (val & ESTATUS_1000_XFULL)
-			features |= SUPPORTED_1000baseX_Full;
-		if (val & ESTATUS_1000_XHALF)
-			features |= SUPPORTED_1000baseX_Half;
+		if (getenv("disable_giga")) {
+			if (val & ESTATUS_1000_TFULL)
+				features |= SUPPORTED_1000baseT_Full;
+			if (val & ESTATUS_1000_THALF)
+				features |= SUPPORTED_1000baseT_Half;
+			if (val & ESTATUS_1000_XFULL)
+				features |= SUPPORTED_1000baseX_Full;
+			if (val & ESTATUS_1000_XHALF)
+				features |= SUPPORTED_1000baseX_Half;
+		}
 	}
 
 	phydev->supported = features;

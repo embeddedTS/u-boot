@@ -123,7 +123,7 @@
 #define CONFIG_CMD_NET
 #define CONFIG_LIB_RAND
 #define CONFIG_FEC_MXC
-#define CONFIG_NET_RETRY_COUNT     20
+#define CONFIG_NET_RETRY_COUNT     5
 #define CONFIG_MII
 #define IMX_FEC_BASE			ENET_BASE_ADDR
 #define CONFIG_FEC_XCV_TYPE		RGMII
@@ -131,7 +131,7 @@
 #define CONFIG_FEC_MXC_PHYADDR		7
 #define CONFIG_PHYLIB
 #define CONFIG_PHY_MICREL
-#define PHY_ANEG_TIMEOUT 8000
+#define PHY_ANEG_TIMEOUT 50000
 
 /* USB Configs */ 
 #define CONFIG_CMD_USB
@@ -211,6 +211,7 @@
 	"serverip=192.168.0.11\0" \
 	"nfsroot=/u/x/ts4900/rootfs/\0" \
 	"autoload=no\0" \
+	"disable_giga=1\0" \
 	"cmdline_append=console=ttymxc0,115200 ro init=/sbin/init enable_wait_mode=off\0" \
 	"clearenv=if sf probe; then " \
 		"sf erase 0x100000 0x2000 && " \
