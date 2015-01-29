@@ -410,29 +410,33 @@ struct i2c_pads_info i2c_pad_info0 = {
 int board_init(void)
 {
 	int i;
+	char *rev;
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 	setup_spi();
 	setup_fpga();
 
-	// EN RTC fet
-	gpio_direction_output(IMX_GPIO_NR(3, 23), 0);
-	udelay(1000*2); // 2ms to turn on
+	rev = board_rev();
 
-	for (i = 0; i < 5; ++i)
-	{
-		if (force_idle_bus(&i2c_pad_info0) == 0);
-			break;
-		puts("Attempting to reset RTC\n");
-		// Enable RTC FET
-		gpio_direction_output(IMX_GPIO_NR(3, 23), 1);
-		udelay(1000*140); // 140ms to discharge
+	if(rev[0] != 'A') {
+		// EN RTC fet
 		gpio_direction_output(IMX_GPIO_NR(3, 23), 0);
 		udelay(1000*2); // 2ms to turn on
-		if(i == 4) puts ("Not able to force bus idle.  Giving up.\n");
-	}
-	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info0);
 
+		for (i = 0; i < 5; ++i)
+		{
+			if (force_idle_bus(&i2c_pad_info0) == 0);
+				break;
+			puts("Attempting to reset RTC\n");
+			// Enable RTC FET
+			gpio_direction_output(IMX_GPIO_NR(3, 23), 1);
+			udelay(1000*140); // 140ms to discharge
+			gpio_direction_output(IMX_GPIO_NR(3, 23), 0);
+			udelay(1000*2); // 2ms to turn on
+			if(i == 4) puts ("Not able to force bus idle.  Giving up.\n");
+		}
+		setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info0);
+	}
 
 	return 0;
 }
