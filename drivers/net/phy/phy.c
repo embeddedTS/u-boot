@@ -69,7 +69,6 @@ static int genphy_config_advert(struct phy_device *phydev)
 
 	if(getenv("disable_giga")) {
 		adv &= ~(ADVERTISE_1000XHALF | ADVERTISE_1000XFULL);
-		printf("Disabling gigabit\n");
 	}
 
 	if (adv != oldadv) {
