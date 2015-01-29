@@ -67,6 +67,11 @@ static int genphy_config_advert(struct phy_device *phydev)
 	if (advertise & ADVERTISED_1000baseX_Full)
 		adv |= ADVERTISE_1000XFULL;
 
+	if(getenv("disable_giga")) {
+		adv &= ~(ADVERTISE_1000XHALF | ADVERTISE_1000XFULL);
+		printf("Disabling gigabit\n");
+	}
+
 	if (adv != oldadv) {
 		err = phy_write(phydev, MDIO_DEVAD_NONE, MII_ADVERTISE, adv);
 
@@ -84,10 +89,12 @@ static int genphy_config_advert(struct phy_device *phydev)
 			return adv;
 
 		adv &= ~(ADVERTISE_1000FULL | ADVERTISE_1000HALF);
-		if (advertise & SUPPORTED_1000baseT_Half)
-			adv |= ADVERTISE_1000HALF;
-		if (advertise & SUPPORTED_1000baseT_Full)
-			adv |= ADVERTISE_1000FULL;
+		if(!getenv("disable_giga")) {
+			if (advertise & SUPPORTED_1000baseT_Half)
+				adv |= ADVERTISE_1000HALF;
+			if (advertise & SUPPORTED_1000baseT_Full)
+				adv |= ADVERTISE_1000FULL;
+		}
 
 		if (adv != oldadv) {
 			err = phy_write(phydev, MDIO_DEVAD_NONE, MII_CTRL1000,
@@ -396,16 +403,15 @@ int genphy_config(struct phy_device *phydev)
 
 		if (val < 0)
 			return val;
-		if (getenv("disable_giga")) {
-			if (val & ESTATUS_1000_TFULL)
-				features |= SUPPORTED_1000baseT_Full;
-			if (val & ESTATUS_1000_THALF)
-				features |= SUPPORTED_1000baseT_Half;
-			if (val & ESTATUS_1000_XFULL)
-				features |= SUPPORTED_1000baseX_Full;
-			if (val & ESTATUS_1000_XHALF)
-				features |= SUPPORTED_1000baseX_Half;
-		}
+
+		if (val & ESTATUS_1000_TFULL)
+			features |= SUPPORTED_1000baseT_Full;
+		if (val & ESTATUS_1000_THALF)
+			features |= SUPPORTED_1000baseT_Half;
+		if (val & ESTATUS_1000_XFULL)
+			features |= SUPPORTED_1000baseX_Full;
+		if (val & ESTATUS_1000_XHALF)
+			features |= SUPPORTED_1000baseX_Half;
 	}
 
 	phydev->supported = features;
