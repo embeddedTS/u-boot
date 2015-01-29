@@ -287,7 +287,7 @@ int board_mmc_init(bd_t *bis)
 
 int board_phy_config(struct phy_device *phydev)
 {
-	ksz9031_phy_extended_write(phydev, 0x2, 0x8, 0x8000, 0x3f30);
+	ksz9031_phy_extended_write(phydev, 0x2, 0x8, 0x8000, 0x330);
 
 	if (phydev->drv->config)
 		phydev->drv->config(phydev); 
@@ -423,7 +423,7 @@ int board_init(void)
 		gpio_direction_output(IMX_GPIO_NR(3, 23), 0);
 		udelay(1000*2); // 2ms to turn on
 
-		for (i = 0; i < 5; ++i)
+		for (i = 0; i < 5; i++)
 		{
 			if (force_idle_bus(&i2c_pad_info0) == 0);
 				break;
@@ -435,8 +435,8 @@ int board_init(void)
 			udelay(1000*2); // 2ms to turn on
 			if(i == 4) puts ("Not able to force bus idle.  Giving up.\n");
 		}
-		setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info0);
 	}
+	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info0);
 
 	return 0;
 }
