@@ -12,7 +12,7 @@
 #include <asm/imx-common/mxc_i2c.h>
 #include <watchdog.h>
 
-static int force_idle_bus(void *priv)
+int force_idle_bus(void *priv)
 {
 	int i;
 	int sda, scl;

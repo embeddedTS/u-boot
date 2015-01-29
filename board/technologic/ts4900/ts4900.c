@@ -14,6 +14,7 @@
 #include <asm/errno.h>
 #include <asm/gpio.h>
 #include <asm/imx-common/iomux-v3.h>
+#include <asm/imx-common/mxc_i2c.h>
 #include <asm/imx-common/boot_mode.h>
 #include <asm/imx-common/sata.h>
 #include <mmc.h>
@@ -408,15 +409,30 @@ struct i2c_pads_info i2c_pad_info0 = {
 
 int board_init(void)
 {
+	int i;
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 	setup_spi();
 	setup_fpga();
 
-	// Enable RTC FET
+	// EN RTC fet
 	gpio_direction_output(IMX_GPIO_NR(3, 23), 0);
+	udelay(1000*2); // 2ms to turn on
 
+	for (i = 0; i < 5; ++i)
+	{
+		if (force_idle_bus(&i2c_pad_info0) == 0);
+			break;
+		puts("Attempting to reset RTC\n");
+		// Enable RTC FET
+		gpio_direction_output(IMX_GPIO_NR(3, 23), 1);
+		udelay(1000*140); // 140ms to discharge
+		gpio_direction_output(IMX_GPIO_NR(3, 23), 0);
+		udelay(1000*2); // 2ms to turn on
+		if(i == 4) puts ("Not able to force bus idle.  Giving up.\n");
+	}
 	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info0);
+
 
 	return 0;
 }

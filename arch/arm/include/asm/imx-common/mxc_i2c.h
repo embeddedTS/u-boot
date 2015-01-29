@@ -60,4 +60,6 @@ int bus_i2c_read(void *base, uchar chip, uint addr, int alen, uchar *buf,
 		int len);
 int bus_i2c_write(void *base, uchar chip, uint addr, int alen,
 		const uchar *buf, int len);
+
+int force_idle_bus(void *priv);
 #endif
