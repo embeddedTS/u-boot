@@ -440,6 +440,10 @@ int board_init(void)
 	}
 	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info0);
 
+	#ifdef CONFIG_CMD_SATA
+	setup_sata();
+	#endif
+
 	return 0;
 }
 
