@@ -79,12 +79,14 @@
 #define CONFIG_GENERIC_MMC
 #define CONFIG_BOUNCE_BUFFER
 #define CONFIG_CMD_EXT2
+#define CONFIG_CMD_EXT2_WRITE
 #define CONFIG_CMD_EXT4
+#define CONFIG_CMD_EXT4_WRITE
 #define CONFIG_CMD_FS_GENERIC
-#define CONFIG_CMD_GPIO
 #define CONFIG_CMD_FAT
+#define CONFIG_FAT_WRITE
 #define CONFIG_DOS_PARTITION
-
+#define CONFIG_CMD_GPIO
 
 #define CONFIG_BOARD_SPECIFIC_LED
 #define CONFIG_STATUS_LED
@@ -212,6 +214,7 @@
 	"nfsroot=/u/x/ts4900/rootfs/\0" \
 	"autoload=no\0" \
 	"disable_giga=1\0" \
+	"initrd_addr=0x10800000"
 	"cmdline_append=console=ttymxc0,115200 ro init=/sbin/init enable_wait_mode=off\0" \
 	"clearenv=if sf probe; then " \
 		"sf erase 0x100000 0x2000 && " \
@@ -249,7 +252,7 @@
 		"ice40 ${loadaddr} ${filesize}; " \
 		"load mmc 1:1 ${loadaddr} ${uimage}; " \
 		"setenv bootargs root=/dev/mmcblk2p1 rootwait rw ${cmdline_append}; " \
-		"bootm ${loadaddr} - ${fdtaddr}; \0" \
+		"bootm ${loadaddr} - ${fdtaddr}; \0" \z
 	"usbprod=usb start; " \
 		"if usb storage; " \
 			"then echo Checking USB storage for updates; " \
@@ -351,6 +354,5 @@
 
 #define CONFIG_CMD_BOOTZ
 #define CONFIG_SUPPORT_RAW_INITRD
-#define CONFIG_CMD_FS_GENERIC
 
 #endif
