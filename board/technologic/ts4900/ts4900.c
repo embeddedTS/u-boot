@@ -427,7 +427,7 @@ int board_init(void)
 
 		for (i = 0; i < 5; i++)
 		{
-			if (force_idle_bus(&i2c_pad_info0) == 0);
+			if (force_idle_bus(&i2c_pad_info0) == 0)
 				break;
 			puts("Attempting to reset RTC\n");
 			// Enable RTC FET
