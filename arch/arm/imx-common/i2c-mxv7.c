@@ -55,6 +55,7 @@ int force_idle_bus(void *priv)
 			break;
 		}
 	}
+	ret = 1;
 exit:
 	imx_iomux_v3_setup_pad(p->sda.i2c_mode);
 	imx_iomux_v3_setup_pad(p->scl.i2c_mode);
