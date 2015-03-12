@@ -252,7 +252,7 @@
 		"ice40 ${loadaddr} ${filesize}; " \
 		"load mmc 1:1 ${loadaddr} ${uimage}; " \
 		"setenv bootargs root=/dev/mmcblk2p1 rootwait rw ${cmdline_append}; " \
-		"bootm ${loadaddr} - ${fdtaddr}; \0" \z
+		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 	"usbprod=usb start; " \
 		"if usb storage; " \
 			"then echo Checking USB storage for updates; " \
