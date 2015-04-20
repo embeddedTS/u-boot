@@ -72,6 +72,7 @@ int misc_init_r(void)
 	  ((CONFIG_SYS_TEXT_BASE - sizeof(struct mxs_spl_data)) & ~0xf);
 
 	setenv_hex("bootmode", mxs_boot_modes[data->boot_mode_idx].boot_pads);
+	setenv("model", "7680");
 }
 
 
