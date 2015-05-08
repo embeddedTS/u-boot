@@ -165,7 +165,6 @@
 #define CONFIG_ANDROID_BOOT_IMAGE
 
 /* Miscellaneous commands */
-#define CONFIG_CMD_BMODE
 #define CONFIG_CMD_SETEXPR
 
 /* allow to overwrite serial and ethaddr */
@@ -187,20 +186,6 @@
 #define CONFIG_LOADADDR			       0x12000000
 #define CONFIG_SYS_TEXT_BASE	       0x17800000
 #define CONFIG_MISC_INIT_R
-
-#ifdef CONFIG_CMD_SATA
-#define CONFIG_DRIVE_SATA "sata "
-#else
-#define CONFIG_DRIVE_SATA
-#endif
-
-#ifdef CONFIG_CMD_MMC
-#define CONFIG_DRIVE_MMC "mmc "
-#else
-#define CONFIG_DRIVE_MMC
-#endif
-
-#define CONFIG_DRIVE_TYPES CONFIG_DRIVE_SATA CONFIG_DRIVE_MMC
 
 #define CONFIG_NFS_TIMEOUT 10000UL
 
