@@ -12,9 +12,10 @@ static unsigned int saved_state[4] = {STATUS_LED_OFF,
 	STATUS_LED_OFF, STATUS_LED_OFF, STATUS_LED_OFF};
 
 iomux_v3_cfg_t const led_pads[] = {
-	MX6_PAD_EIM_D27__GPIO3_IO27     | MUX_PAD_CTRL(NO_PAD_CTRL), // Green
+	MX6_PAD_EIM_D27__GPIO3_IO27    | MUX_PAD_CTRL(NO_PAD_CTRL), // Green
 	MX6_PAD_GPIO_2__GPIO1_IO02     | MUX_PAD_CTRL(NO_PAD_CTRL), // Red
 	MX6_PAD_GPIO_9__GPIO1_IO09     | MUX_PAD_CTRL(NO_PAD_CTRL), // Yellow
+	MX6_PAD_DISP0_DAT4__GPIO4_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL), // Blue
 };
 
 void coloured_LED_init(void)
