@@ -25,6 +25,14 @@ else
 	let FAIL=FAIL+1
 fi
 
+make ts4900-s-1g-1000mhz-c-2_defconfig
+make -j9 u-boot.imx
+if [ $? -eq 0 ]; then
+	cp u-boot.imx out/ts4900-s-1g-1000mhz-c-2-"$DATE".imx
+else
+	let FAIL=FAIL+1
+fi
+
 make ts4900-s-1g-800mhz-i_defconfig
 make -j9 u-boot.imx
 if [ $? -eq 0 ]; then
