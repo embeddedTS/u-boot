@@ -61,8 +61,6 @@ Lattice_desc ts7970_fpga = {
 
 int ts7970_fpga_init(void)
 {
-	int i;
-
 	fpga_init();
 	fpga_add(fpga_lattice, &ts7970_fpga);
 
