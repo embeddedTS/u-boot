@@ -35,6 +35,23 @@
 #include <asm/io.h>
 #include <asm/arch/sys_proto.h>
 
+#define TS4900_EN_5V		IMX_GPIO_NR(2, 22)
+#define TS4900_OFFBD_RST	IMX_GPIO_NR(2, 21)
+#define TS4900_SDBOOT		IMX_GPIO_NR(2, 26)
+#define TS4900_SCL			IMX_GPIO_NR(3, 21)
+#define TS4900_SDA			IMX_GPIO_NR(3, 28)
+#define TS4900_ENRTC		IMX_GPIO_NR(3, 23)
+#define TS4900_REVSTRAP		IMX_GPIO_NR(2, 11)
+#define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
+#define TS4900_PHY_RST		IMX_GPIO_NR(4, 20)
+#define TS4900_RGMII_RXC	IMX_GPIO_NR(6, 30)
+#define TS4900_RGMII_RD0	IMX_GPIO_NR(6, 25)
+#define TS4900_RGMII_RD1	IMX_GPIO_NR(6, 27)
+#define TS4900_RGMII_RD2	IMX_GPIO_NR(6, 28)
+#define TS4900_RGMII_RD3	IMX_GPIO_NR(6, 29)
+#define TS4900_RGMII_RX_CTL	IMX_GPIO_NR(6, 24)
+#define TS4900_EN_SDPWR		IMX_GPIO_NR(2, 28)
+
 DECLARE_GLOBAL_DATA_PTR;
 int random_mac = 0;
 
@@ -82,8 +99,8 @@ char *board_rev(void)
 
 	if(dat == -1) {
 		// Read REV strapping pin
-		gpio_direction_input(IMX_GPIO_NR(2, 11));
-		dat = gpio_get_value(IMX_GPIO_NR(2, 11));
+		gpio_direction_input(TS4900_REVSTRAP);
+		dat = gpio_get_value(TS4900_REVSTRAP);
 	}
 
 	if(dat) return "A";
@@ -92,7 +109,7 @@ char *board_rev(void)
 
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
 {
-	return (bus == 0 && cs == 0) ? (IMX_GPIO_NR(3, 19)) : -1;
+	return (bus == 0 && cs == 0) ? (TS4900_SPI_CS) : -1;
 }
 
 void setup_spi(void)
@@ -153,26 +170,25 @@ iomux_v3_cfg_t const enet_pads2[] = {
 
 static void setup_iomux_enet(void)
 {
-	imx_iomux_v3_setup_multiple_pads(enet_pads1, ARRAY_SIZE(enet_pads1));
-    udelay(20);
 	// Assert reset
-	gpio_direction_output(IMX_GPIO_NR(4, 20), 1);
-
-	gpio_direction_output(IMX_GPIO_NR(6, 30), 1); // MX6_PAD_RGMII_RXC
-	gpio_direction_output(IMX_GPIO_NR(6, 25), 1); // MX6_PAD_RGMII_RD0
-	gpio_direction_output(IMX_GPIO_NR(6, 27), 1); // MX6_PAD_RGMII_RD1
-	gpio_direction_output(IMX_GPIO_NR(6, 28), 1); // MX6_PAD_RGMII_RD2
-	gpio_direction_output(IMX_GPIO_NR(6, 29), 1); // MX6_PAD_RGMII_RD3
+	gpio_direction_output(TS4900_PHY_RST, 1);
 	imx_iomux_v3_setup_multiple_pads(enet_pads1, ARRAY_SIZE(enet_pads1));
-	gpio_direction_output(IMX_GPIO_NR(6, 24), 1); // MX6_PAD_RGMII_RX_CTL
 
-	/* Need delay 10ms according to KSZ9031 spec */
-	udelay(1000 * 15);
+	gpio_direction_output(TS4900_RGMII_RXC, 1);
+	gpio_direction_output(TS4900_RGMII_RD0, 1);
+	gpio_direction_output(TS4900_RGMII_RD1, 1);
+	gpio_direction_output(TS4900_RGMII_RD2, 1);
+	gpio_direction_output(TS4900_RGMII_RD3, 1);
+	imx_iomux_v3_setup_multiple_pads(enet_pads1, ARRAY_SIZE(enet_pads1));
+	gpio_direction_output(TS4900_RGMII_RX_CTL, 1);
+
+	/* Need delay at least 10ms according to KSZ9031 spec */
+	udelay(1000 * 100);
 
 	// De-assert reset
-	gpio_direction_output(IMX_GPIO_NR(4, 20), 0);
+	gpio_direction_output(TS4900_PHY_RST, 0);
 
-	/* Need 100ms delay to exit from reset. */
+	/* Need 100us delay to exit from reset. */
 	udelay(1000 * 100);
 
 	imx_iomux_v3_setup_multiple_pads(enet_pads2, ARRAY_SIZE(enet_pads2));
@@ -249,12 +265,9 @@ int board_mmc_init(bd_t *bis)
 	imx_iomux_v3_setup_multiple_pads(usdhc3_pads, 
 		ARRAY_SIZE(usdhc3_pads));
 
-	gpio_direction_output(IMX_GPIO_NR(2, 28), 1); // EN_SD_POWER#
-	gpio_direction_output(IMX_GPIO_NR(7, 8), 0); // EMMC_RESET#
+	gpio_direction_output(TS4900_EN_SDPWR, 1); // EN_SD_POWER#
 	udelay(1000);
-	gpio_direction_output(IMX_GPIO_NR(2, 28), 0);
-	gpio_direction_output(IMX_GPIO_NR(7, 8), 1);
-
+	gpio_direction_output(TS4900_EN_SDPWR, 0);
 	/*
 	 * According to the board_mmc_init() the following map is done:
 	 * (U-boot device node)    (Physical Port)
@@ -360,18 +373,18 @@ int misc_init_r(void)
 	imx_iomux_v3_setup_multiple_pads(misc_pads, ARRAY_SIZE(misc_pads));
 
 	// Set OFF_BD_RESET low and check if the SD boot jumper is on
-	gpio_direction_output(IMX_GPIO_NR(2, 21), 0);
-	gpio_direction_input(IMX_GPIO_NR(2, 26));
-	gpio_direction_output(IMX_GPIO_NR(2, 22), 0); // EN_USB_5V
+	gpio_direction_output(TS4900_OFFBD_RST, 0);
+	gpio_direction_input(TS4900_SDBOOT);
+	gpio_direction_output(TS4900_EN_5V, 0); // EN_USB_5V
 	udelay(1000);
-	sdboot = gpio_get_value(IMX_GPIO_NR(2, 26));
+	sdboot = gpio_get_value(TS4900_SDBOOT);
 	// OFF_BD_RESET should be left high to diable reset of offboard peripherals
-	gpio_direction_output(IMX_GPIO_NR(2, 21), 1);
+	gpio_direction_output(TS4900_OFFBD_RST, 1);
 
 	// Pulse EN_USB_5V - allow time for usb hubs coming out 
 	// of reset from off_bd_reset
 	udelay(1000 * 100); // 100ms
-	gpio_direction_output(IMX_GPIO_NR(2, 22), 1);
+	gpio_direction_output(TS4900_EN_5V, 1);
 
 	if(sdboot) setenv("jpsdboot", "off");
 	else setenv("jpsdboot", "on");
@@ -400,12 +413,12 @@ struct i2c_pads_info i2c_pad_info0 = {
 	.scl = {
 		.i2c_mode  = MX6_PAD_EIM_D21__I2C1_SCL | MUX_PAD_CTRL(I2C_PAD_CTRL),
 		.gpio_mode = MX6_PAD_EIM_D21__GPIO3_IO21 | MUX_PAD_CTRL(I2C_PAD_CTRL),
-		.gp = IMX_GPIO_NR(3, 21)
+		.gp = TS4900_SCL
 	},
 	.sda = {
 		.i2c_mode = MX6_PAD_EIM_D28__I2C1_SDA | MUX_PAD_CTRL(I2C_PAD_CTRL),
 		.gpio_mode = MX6_PAD_EIM_D28__GPIO3_IO28 | MUX_PAD_CTRL(I2C_PAD_CTRL),
-		.gp = IMX_GPIO_NR(3, 28)
+		.gp = TS4900_SDA
 	}
 };
 
@@ -422,7 +435,7 @@ int board_init(void)
 
 	if(rev[0] != 'A') {
 		// EN RTC fet
-		gpio_direction_output(IMX_GPIO_NR(3, 23), 0);
+		gpio_direction_output(TS4900_ENRTC, 0);
 		udelay(1000*2); // 2ms to turn on
 
 		for (i = 0; i < 5; i++)
@@ -431,9 +444,9 @@ int board_init(void)
 				break;
 			puts("Attempting to reset RTC\n");
 			// Enable RTC FET
-			gpio_direction_output(IMX_GPIO_NR(3, 23), 1);
+			gpio_direction_output(TS4900_ENRTC, 1);
 			udelay(1000*140); // 140ms to discharge
-			gpio_direction_output(IMX_GPIO_NR(3, 23), 0);
+			gpio_direction_output(TS4900_ENRTC, 0);
 			udelay(1000*2); // 2ms to turn on
 			if(i == 4) puts ("Not able to force bus idle.  Giving up.\n");
 		}
@@ -447,20 +460,8 @@ int board_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_CMD_BMODE
-static const struct boot_mode board_boot_modes[] = {
-	/* 4 bit bus width */
-	{"sd2",	 MAKE_CFGVAL(0x40, 0x28, 0x00, 0x00)},
-	{"sd3",	 MAKE_CFGVAL(0x40, 0x30, 0x00, 0x00)},
-	{NULL,	 0},
-};
-#endif
-
 int board_late_init(void)
 {
-#ifdef CONFIG_CMD_BMODE
-	add_board_boot_modes(board_boot_modes);
-#endif
 	return 0;
 }
 
