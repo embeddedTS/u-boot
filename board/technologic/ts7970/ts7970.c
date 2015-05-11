@@ -35,6 +35,20 @@
 #include <asm/io.h>
 #include <asm/arch/sys_proto.h>
 
+#define TS7970_HUB_RESETN	IMX_GPIO_NR(2, 11)
+#define TS7970_EN_5V		IMX_GPIO_NR(2, 22)
+#define TS7970_SEL_DC		IMX_GPIO_NR(5, 17)
+#define TS7970_SDBOOT		IMX_GPIO_NR(5, 17)
+#define TS7970_SPI_CS		IMX_GPIO_NR(3, 19)
+#define TS7970_PHY_RST		IMX_GPIO_NR(4, 20)
+#define TS7970_RGMII_RXC	IMX_GPIO_NR(6, 30)
+#define TS7970_RGMII_RD0	IMX_GPIO_NR(6, 25)
+#define TS7970_RGMII_RD1	IMX_GPIO_NR(6, 27)
+#define TS7970_RGMII_RD2	IMX_GPIO_NR(6, 28)
+#define TS7970_RGMII_RD3	IMX_GPIO_NR(6, 29)
+#define TS7970_RGMII_RX_CTL	IMX_GPIO_NR(6, 24)
+#define TS7970_EN_SDPWR		IMX_GPIO_NR(2, 28)
+
 DECLARE_GLOBAL_DATA_PTR;
 int random_mac = 0;
 
@@ -128,10 +142,9 @@ iomux_v3_cfg_t const enet_pads2[] = {
 	MX6_PAD_RGMII_RX_CTL__RGMII_RX_CTL	| MUX_PAD_CTRL(ENET_PAD_CTRL),
 };
 
-
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
 {
-	return (bus == 0 && cs == 0) ? (IMX_GPIO_NR(3, 19)) : -1;
+	return (bus == 0 && cs == 0) ? (TS7970_SPI_CS) : -1;
 }
 
 void setup_spi(void)
@@ -152,22 +165,22 @@ int dram_init(void)
 static void setup_iomux_enet(void)
 {
 	// Assert reset
-	gpio_direction_output(IMX_GPIO_NR(4, 20), 1);
+	gpio_direction_output(TS7970_PHY_RST, 1);
 	imx_iomux_v3_setup_multiple_pads(enet_pads1, ARRAY_SIZE(enet_pads1));
 
-	gpio_direction_output(IMX_GPIO_NR(6, 30), 1); // MX6_PAD_RGMII_RXC
-	gpio_direction_output(IMX_GPIO_NR(6, 25), 1); // MX6_PAD_RGMII_RD0
-	gpio_direction_output(IMX_GPIO_NR(6, 27), 1); // MX6_PAD_RGMII_RD1
-	gpio_direction_output(IMX_GPIO_NR(6, 28), 1); // MX6_PAD_RGMII_RD2
-	gpio_direction_output(IMX_GPIO_NR(6, 29), 1); // MX6_PAD_RGMII_RD3
+	gpio_direction_output(TS7970_RGMII_RXC, 1);
+	gpio_direction_output(TS7970_RGMII_RD0, 1);
+	gpio_direction_output(TS7970_RGMII_RD1, 1);
+	gpio_direction_output(TS7970_RGMII_RD2, 1);
+	gpio_direction_output(TS7970_RGMII_RD3, 1);
 	imx_iomux_v3_setup_multiple_pads(enet_pads1, ARRAY_SIZE(enet_pads1));
-	gpio_direction_output(IMX_GPIO_NR(6, 24), 1); // MX6_PAD_RGMII_RX_CTL
+	gpio_direction_output(TS7970_RGMII_RX_CTL, 1);
 
 	/* Need delay at least 10ms according to KSZ9031 spec */
 	udelay(1000 * 100);
 
 	// De-assert reset
-	gpio_direction_output(IMX_GPIO_NR(4, 20), 0);
+	gpio_direction_output(TS7970_PHY_RST, 0);
 
 	/* Need 100us delay to exit from reset. */
 	udelay(1000 * 100);
@@ -212,9 +225,9 @@ int board_mmc_init(bd_t *bis)
 	imx_iomux_v3_setup_multiple_pads(usdhc3_pads, 
 		ARRAY_SIZE(usdhc3_pads));
 
-	gpio_direction_output(IMX_GPIO_NR(2, 28), 1); // EN_SD_POWER#
+	gpio_direction_output(TS7970_EN_SDPWR, 1); // EN_SD_POWER#
 	udelay(1000);
-	gpio_direction_output(IMX_GPIO_NR(2, 28), 0);
+	gpio_direction_output(TS7970_EN_SDPWR, 0);
 
 	/*
 	 * According to the board_mmc_init() the following map is done:
@@ -320,14 +333,22 @@ int misc_init_r(void)
 
 	imx_iomux_v3_setup_multiple_pads(misc_pads, ARRAY_SIZE(misc_pads));
 
-	// Reset both the hub & usb 5V for 1ms
-	gpio_direction_output(IMX_GPIO_NR(2, 11), 0); // hub only needs 1us
-	gpio_direction_output(IMX_GPIO_NR(2, 22), 0); // en-usb-5v
-	gpio_direction_input(IMX_GPIO_NR(2, 26));
-	udelay(1000);
-	sdboot = gpio_get_value(IMX_GPIO_NR(2, 26));
-	gpio_set_value(IMX_GPIO_NR(2, 11), 1);
-	gpio_set_value(IMX_GPIO_NR(2, 22), 1);
+	// Turn off USB hub until hub is reset
+	// Set DC_SEL_USB to use usb on the standard header
+	gpio_direction_input(TS7970_SDBOOT);
+	gpio_direction_output(TS7970_EN_5V, 0);
+	gpio_direction_output(TS7970_SEL_DC, 0); // 0=USB A conn, 1=HD1
+	gpio_direction_output(TS7970_HUB_RESETN, 0); // hub only needs 1us
+	udelay(1);
+	gpio_set_value(TS7970_HUB_RESETN, 1);
+
+	// Magic number for usb power on reset
+	// bad things happen with most devices if the hub
+	// gets a reset and power doesn't.  This *might* not be
+	// enough for some devices
+	udelay(10000); 
+	gpio_set_value(TS7970_EN_5V, 1);
+	sdboot = gpio_get_value(TS7970_SDBOOT);
 
 	if(sdboot) setenv("jpsdboot", "off");
 	else setenv("jpsdboot", "on");
