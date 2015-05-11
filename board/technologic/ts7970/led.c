@@ -37,13 +37,13 @@ void red_led_off(void)
 
 void blue_led_on(void)
 {
-	gpio_direction_output(CONFIG_BLUE_LED, 0);
+	gpio_direction_output(CONFIG_BLUE_LED, 1);
 	saved_state[STATUS_LED_BLUE] = STATUS_LED_ON;
 }
 
 void blue_led_off(void)
 {
-	gpio_direction_output(CONFIG_BLUE_LED, 1);
+	gpio_direction_output(CONFIG_BLUE_LED, 0);
 	saved_state[STATUS_LED_BLUE] = STATUS_LED_OFF;
 }
 
