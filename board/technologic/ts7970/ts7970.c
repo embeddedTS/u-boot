@@ -34,6 +34,8 @@
 #include <ipu_pixfmt.h>
 #include <asm/io.h>
 #include <asm/arch/sys_proto.h>
+#include <fpga.h>
+#include <lattice.h>
 
 #define TS7970_HUB_RESETN	IMX_GPIO_NR(2, 11)
 #define TS7970_EN_5V		IMX_GPIO_NR(2, 22)
@@ -141,6 +143,61 @@ iomux_v3_cfg_t const enet_pads2[] = {
 	MX6_PAD_RGMII_RD3__RGMII_RD3	| MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_RGMII_RX_CTL__RGMII_RX_CTL	| MUX_PAD_CTRL(ENET_PAD_CTRL),
 };
+
+#if defined(CONFIG_FPGA)
+
+static void ts7970_jtag_init(void)
+{
+	return;
+}
+
+static void ts7970_fpga_jtag_set_tdi(int value)
+{
+	gpio_set_value(CONFIG_FPGA_TDI, value);
+}
+
+static void ts7970_fpga_jtag_set_tms(int value)
+{
+	gpio_set_value(CONFIG_FPGA_TMS, value);
+}
+
+static void ts7970_fpga_jtag_set_tck(int value)
+{
+	gpio_set_value(CONFIG_FPGA_TCK, value);
+}
+
+static int ts7970_fpga_jtag_get_tdo(void)
+{
+	return gpio_get_value(CONFIG_FPGA_TDO);
+}
+
+lattice_board_specific_func ts7970_fpga_fns = {
+	ts7970_jtag_init,
+	ts7970_fpga_jtag_set_tdi,
+	ts7970_fpga_jtag_set_tms,
+	ts7970_fpga_jtag_set_tck,
+	ts7970_fpga_jtag_get_tdo
+};
+
+Lattice_desc ts7970_fpga = {
+	Lattice_XP2,
+	lattice_jtag_mode,
+	127500,
+	(void *) &ts7970_fpga_fns,
+	NULL,
+	0,
+	"machxo_2_cb132"
+};
+
+int ts7970_fpga_init(void)
+{
+	fpga_init();
+	fpga_add(fpga_lattice, &ts7970_fpga);
+
+	return 0;
+}
+
+#endif
 
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
 {
@@ -376,6 +433,8 @@ int board_init(void)
 	#ifdef CONFIG_CMD_SATA
 	setup_sata();
 	#endif
+
+	ts7970_fpga_init();
 
 	return 0;
 }
