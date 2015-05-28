@@ -157,7 +157,7 @@
 	"fdt_high=0xffffffff\0" \
 	"autoload=no\0" \
 	"disable_giga=1\0" \
-	"cmdline_append=video=mxcfb0:dev=hdmi,1920x1080M@60,bpp=24 console=ttymxc0,115200 ro init=/sbin/init enable_wait_mode=off\0" \
+	"cmdline_append=video=mxcfb0:dev=hdmi,1920x1080M@60,bpp=24 console=ttymxc0,115200 ro init=/sbin/init\0" \
 	"clearenv=if sf probe; then " \
 		"sf erase 0x100000 0x2000 && " \
 		"echo restored environment to factory default ; fi\0" \

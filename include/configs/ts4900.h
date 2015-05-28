@@ -200,7 +200,7 @@
 	"autoload=no\0" \
 	"disable_giga=1\0" \
 	"initrd_addr=0x10800000\0 " \
-	"cmdline_append=console=ttymxc0,115200 ro init=/sbin/init enable_wait_mode=off\0" \
+	"cmdline_append=console=ttymxc0,115200 ro init=/sbin/init\0" \
 	"clearenv=if sf probe; then " \
 		"sf erase 0x100000 0x2000 && " \
 		"echo restored environment to factory default ; fi\0" \
