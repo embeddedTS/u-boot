@@ -38,6 +38,9 @@
 #include <lattice.h>
 
 #define TS7970_HUB_RESETN	IMX_GPIO_NR(2, 11)
+#define TS7970_EN_RTC		IMX_GPIO_NR(3, 23)
+#define TS7970_SCL			IMX_GPIO_NR(3, 21)
+#define TS7970_SDA			IMX_GPIO_NR(3, 28)
 #define TS7970_EN_5V		IMX_GPIO_NR(2, 22)
 #define TS7970_SEL_DC		IMX_GPIO_NR(5, 17)
 #define TS7970_SDBOOT		IMX_GPIO_NR(5, 17)
@@ -68,6 +71,10 @@ int random_mac = 0;
 #define SPI_PAD_CTRL (PAD_CTL_HYS | PAD_CTL_SPEED_MED |		\
 	PAD_CTL_DSE_40ohm     | PAD_CTL_SRE_FAST)
 
+#define I2C_PAD_CTRL (PAD_CTL_PUS_100K_UP |                  \
+	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS |   \
+	PAD_CTL_ODE | PAD_CTL_SRE_FAST)
+
 iomux_v3_cfg_t const ecspi1_pads[] = {
 	MX6_PAD_EIM_D19__GPIO3_IO19 | MUX_PAD_CTRL(SPI_PAD_CTRL),
 	MX6_PAD_EIM_D17__ECSPI1_MISO | MUX_PAD_CTRL(SPI_PAD_CTRL),
@@ -76,10 +83,11 @@ iomux_v3_cfg_t const ecspi1_pads[] = {
 };
 
 iomux_v3_cfg_t const misc_pads[] = {
-	MX6_PAD_SD4_DAT3__GPIO2_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// USB_HUB_RESET#
-	MX6_PAD_EIM_A16__GPIO2_IO22 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// EN_USB_5V
-	MX6_PAD_EIM_RW__GPIO2_IO26 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// JP_SD_BOOT#
+	MX6_PAD_SD4_DAT3__GPIO2_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL), 		// USB_HUB_RESET#
+	MX6_PAD_EIM_A16__GPIO2_IO22 | MUX_PAD_CTRL(NO_PAD_CTRL), 		// EN_USB_5V
+	MX6_PAD_EIM_RW__GPIO2_IO26 | MUX_PAD_CTRL(NO_PAD_CTRL), 		// JP_SD_BOOT#
 	MX6_PAD_DISP0_DAT23__GPIO5_IO17 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// SEL_DC_USB#
+	MX6_PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL), 		// EN_RTC_PWR#
 };
 
 /* SD card */
@@ -142,6 +150,20 @@ iomux_v3_cfg_t const enet_pads2[] = {
 	MX6_PAD_RGMII_RD2__RGMII_RD2	| MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_RGMII_RD3__RGMII_RD3	| MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_RGMII_RX_CTL__RGMII_RX_CTL	| MUX_PAD_CTRL(ENET_PAD_CTRL),
+};
+
+
+struct i2c_pads_info i2c_pad_info0 = {
+	.scl = {
+		.i2c_mode  = MX6_PAD_EIM_D21__I2C1_SCL | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gpio_mode = MX6_PAD_EIM_D21__GPIO3_IO21 | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gp = TS7970_SCL
+	},
+	.sda = {
+		.i2c_mode = MX6_PAD_EIM_D28__I2C1_SDA | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gpio_mode = MX6_PAD_EIM_D28__GPIO3_IO28 | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gp = TS7970_SDA
+	}
 };
 
 #if defined(CONFIG_FPGA)
@@ -426,14 +448,34 @@ int misc_init_r(void)
 
 int board_init(void)
 {
+	int i;
+
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
+
 	setup_spi();
 
 	#ifdef CONFIG_CMD_SATA
 	setup_sata();
 	#endif
 
+	// EN RTC fet
+	gpio_direction_output(TS7970_EN_RTC, 0);
+	udelay(1000*2); // 2ms to turn on
+
+	for (i = 0; i < 5; i++)
+	{
+		if (force_idle_bus(&i2c_pad_info0) == 0)
+			break;
+		puts("Attempting to reset RTC\n");
+		// Enable RTC FET
+		gpio_direction_output(TS7970_EN_RTC, 1);
+		udelay(1000*140); // 140ms to discharge
+		gpio_direction_output(TS7970_EN_RTC, 0);
+		udelay(1000*2); // 2ms to turn on
+		if(i == 4) puts ("Not able to force bus idle.  Giving up.\n");
+	}
+	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info0);
 	ts7970_fpga_init();
 
 	return 0;
