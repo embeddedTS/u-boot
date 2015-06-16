@@ -38,6 +38,12 @@
 #define CONFIG_SPI_FLASH
 #define CONFIG_SPI_FLASH_STMICRO
 #define CONFIG_MXC_SPI
+ 
+/* I2C Configs */
+#define CONFIG_CMD_I2C
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_MXC
+#define CONFIG_SYS_I2C_SPEED		100000
 
 /* MMC Configs */
 #define CONFIG_FSL_ESDHC
@@ -178,6 +184,16 @@
 		"load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; " \
 		"load mmc 1:1 ${loadaddr} ${uimage}; " \
 		"setenv bootargs root=/dev/mmcblk2p1 rootwait rw ${cmdline_append}; " \
+		"bootm ${loadaddr} - ${fdtaddr}; \0" \
+	"sataboot=echo Booting from SATA ...; " \
+		"sata init; " \
+		"if load sata 0:1 ${loadaddr} /boot/boot.ub; " \
+			"then echo Booting from custom /boot/boot.ub; " \
+			"source ${loadaddr}; " \
+		"fi; " \
+		"load sata 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; " \
+		"load sata 0:1 ${loadaddr} ${uimage}; " \
+		"setenv bootargs root=/dev/sda1 rootwait rw ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 	"usbprod=usb start; " \
 		"if usb storage; " \
