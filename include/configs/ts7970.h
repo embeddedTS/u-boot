@@ -11,8 +11,6 @@
 
 #include "mx6_common.h"
 #define CONFIG_MX6
-#define CONFIG_DISPLAY_CPUINFO
-#define CONFIG_DISPLAY_BOARDINFO
 
 #include <asm/arch/imx-regs.h>
 #include <asm/imx-common/gpio.h>
@@ -38,12 +36,6 @@
 #define CONFIG_SPI_FLASH
 #define CONFIG_SPI_FLASH_STMICRO
 #define CONFIG_MXC_SPI
- 
-/* I2C Configs */
-#define CONFIG_CMD_I2C
-#define CONFIG_SYS_I2C
-#define CONFIG_SYS_I2C_MXC
-#define CONFIG_SYS_I2C_SPEED		100000
 
 /* MMC Configs */
 #define CONFIG_FSL_ESDHC
@@ -123,8 +115,6 @@
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_MX6
 #define CONFIG_USB_STORAGE
-#define CONFIG_USB_GADGET_DUALSPEED
-#define CONFIG_USBD_HS
 #define CONFIG_USB_MAX_CONTROLLER_COUNT           2
 #define CONFIG_MXC_USB_PORT	                      1
 #define CONFIG_MXC_USB_PORTSC	                  (PORT_PTS_UTMI | PORT_PTS_PTW)
@@ -148,12 +138,18 @@
 #define CONFIG_AUTOBOOT_PROMPT         "Press Ctrl+C to abort autoboot in %d second(s)\n", bootdelay
 #define CTRL(c) ((c)&0x1F)     
 #define CONFIG_AUTOBOOT_STOP_STR       (char []){CTRL('C'), 0}
-#define CONFIG_PREBOOT                 ""
 #define CONFIG_LOADADDR			       0x12000000
 #define CONFIG_SYS_TEXT_BASE	       0x17800000
 #define CONFIG_MISC_INIT_R
-
 #define CONFIG_NFS_TIMEOUT             10000UL
+
+#define CONFIG_PREBOOT \
+	"if gpio input 4; then " \
+		" setenv bootdelay -1; " \
+		" run usbprod; " \
+	" else " \
+		" setenv bootdelay 0; " \
+	"fi" 
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"uimage=/boot/uImage\0" \
@@ -214,7 +210,6 @@
 		"bootm ${loadaddr} - ${fdtaddr}; \0"
 
 #define CONFIG_BOOTCOMMAND \
-	"run usbprod; " \
 	"if test ${jpsdboot} = 'on' ; " \
 		"then run sdboot; " \
 		"else run emmcboot; " \
