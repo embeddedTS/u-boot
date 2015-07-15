@@ -635,6 +635,10 @@ config TARGET_TS7970
 	bool "Support TS-7970"
 	select CPU_V7
 
+config TARGET_TS7990
+	bool "Support TS-7990"
+	select CPU_V7
+
 config TARGET_GW_VENTANA
 	bool "Support gw_ventana"
 	select CPU_V7
@@ -971,6 +975,7 @@ source "board/syteco/zmx25/Kconfig"
 source "board/taskit/stamp9g20/Kconfig"
 source "board/technologic/ts4900/Kconfig"
 source "board/technologic/ts7970/Kconfig"
+source "board/technologic/ts7990/Kconfig"
 source "board/ti/am335x/Kconfig"
 source "board/ti/am43xx/Kconfig"
 source "board/ti/ti814x/Kconfig"
