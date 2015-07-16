@@ -65,6 +65,14 @@ else
 	let FAIL=FAIL+1
 fi
 
+make ts7970-s-512m-1000mhz-c_defconfig
+make -j9 u-boot.imx
+if [ $? -eq 0 ]; then
+	cp u-boot.imx out/ts7970-s-512m-1000mhz-c-"$DATE".imx
+else
+	let FAIL=FAIL+1
+fi
+
 if [ $FAIL != 0 ]; then
 	echo "$FAIL BUILDS FAILED.  DO NOT RELEASE"
 fi
