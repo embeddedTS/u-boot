@@ -405,6 +405,7 @@ int board_early_init_f(void)
 int misc_init_r(void)
 {
 	int sdboot = 0;
+	struct iomuxc *iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
 
 	imx_iomux_v3_setup_multiple_pads(misc_pads, ARRAY_SIZE(misc_pads));
 
