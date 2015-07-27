@@ -369,7 +369,8 @@ int board_early_init_f(void)
 int misc_init_r(void)
 {
 	int sdboot;
-
+	struct iomuxc *iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
+	
 	imx_iomux_v3_setup_multiple_pads(misc_pads, ARRAY_SIZE(misc_pads));
 
 	// Set OFF_BD_RESET low and check if the SD boot jumper is on
@@ -400,6 +401,11 @@ int misc_init_r(void)
 	setenv("model", "4900");
 	setenv("rcause", get_reset_cause(1));
 	setenv("rev", board_rev());
+
+	/* PCIE does not get properly disabled from a watchdog reset.  This prevents 
+	 * a hang in the kernel if pcie was enabled in a previous boot. */
+	setbits_le32(&iomuxc_regs->gpr[1], IOMUXC_GPR1_TEST_POWERDOWN);
+	clrbits_le32(&iomuxc_regs->gpr[1], IOMUXC_GPR1_REF_SSP_EN);
 
 	return 0;
 }
