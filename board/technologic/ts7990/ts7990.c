@@ -49,6 +49,9 @@
 #define TS7990_RGMII_RD3	IMX_GPIO_NR(6, 29)
 #define TS7990_RGMII_RX_CTL	IMX_GPIO_NR(6, 24)
 #define TS7990_EN_SDPWR		IMX_GPIO_NR(2, 28)
+#define TS7990_EN_RTC		IMX_GPIO_NR(3, 23)
+#define TS7990_SCL			IMX_GPIO_NR(3, 21)
+#define TS7990_SDA			IMX_GPIO_NR(3, 28)
 
 DECLARE_GLOBAL_DATA_PTR;
 int random_mac = 0;
@@ -70,6 +73,10 @@ int random_mac = 0;
 #define SPI_PAD_CTRL (PAD_CTL_HYS | PAD_CTL_SPEED_MED |		\
 	PAD_CTL_DSE_40ohm     | PAD_CTL_SRE_FAST)
 
+#define I2C_PAD_CTRL (PAD_CTL_PUS_100K_UP |                  \
+	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS |   \
+	PAD_CTL_ODE | PAD_CTL_SRE_FAST)
+
 iomux_v3_cfg_t const ecspi1_pads[] = {
 	MX6_PAD_EIM_D19__GPIO3_IO19 | MUX_PAD_CTRL(SPI_PAD_CTRL),
 	MX6_PAD_EIM_D17__ECSPI1_MISO | MUX_PAD_CTRL(SPI_PAD_CTRL),
@@ -81,6 +88,7 @@ iomux_v3_cfg_t const misc_pads[] = {
 	MX6_PAD_SD4_DAT3__GPIO2_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// USB_HUB_RESET#
 	MX6_PAD_EIM_A16__GPIO2_IO22 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// EN_USB_5V
 	MX6_PAD_EIM_RW__GPIO2_IO26 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// JP_SD_BOOT#
+	MX6_PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// EN_RTC_PWR#
 };
 
 /* SD card */
@@ -177,6 +185,11 @@ iomux_v3_cfg_t const fpga_pads[] = {
 	MX6_PAD_GPIO_17__GPIO7_IO12		| MUX_PAD_CTRL(NO_PAD_CTRL),
 	MX6_PAD_GPIO_5__GPIO1_IO05		| MUX_PAD_CTRL(NO_PAD_CTRL),
 	MX6_PAD_GPIO_16__GPIO7_IO11		| MUX_PAD_CTRL(NO_PAD_CTRL),
+};
+
+iomux_v3_cfg_t const i2c_pads[] = {
+	MX6_PAD_EIM_D21__GPIO3_IO21	| MUX_PAD_CTRL(I2C_PAD_CTRL),
+	MX6_PAD_EIM_D28__GPIO3_IO28	| MUX_PAD_CTRL(I2C_PAD_CTRL),
 };
 
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
@@ -411,6 +424,32 @@ int misc_init_r(void)
 
 int board_init(void)
 {
+	int i;
+
+	imx_iomux_v3_setup_multiple_pads(i2c_pads, ARRAY_SIZE(i2c_pads));
+
+	// EN RTC fet
+	gpio_direction_output(TS7990_EN_RTC, 0);
+	gpio_direction_input(TS7990_SCL);
+	gpio_direction_input(TS7990_SDA);
+
+	// On rare occasions the RTC misbehaves and drives the pins
+	// on i2c.  Turning off the fet prevents this condition
+	udelay(1000*2); // 2ms to turn on fet
+	for (i = 0; i < 5; i++)
+	{
+		if (gpio_get_value(TS7990_SCL) == 1 &&
+			gpio_get_value(TS7990_SDA) == 1)
+			break;
+		puts("Attempting to reset RTC\n");
+		// Enable RTC FET
+		gpio_direction_output(TS7990_EN_RTC, 1);
+		udelay(1000*200); // at least 140ms to discharge
+		gpio_direction_output(TS7990_EN_RTC, 0);
+		udelay(1000*2); // 2ms to turn on
+		if(i == 4) puts ("Not able to force bus idle.  Giving up.\n");
+	}
+
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 	setup_spi();
