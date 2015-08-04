@@ -52,13 +52,6 @@
 #define CONFIG_ICE40_FPGA_RESET		IMX_GPIO_NR(5, 21)
 #define CONFIG_ICE40_CS				IMX_GPIO_NR(6, 2)
 
-#define CONFIG_CMD_BBDETECT
-#define CONFIG_BB_S0		IMX_GPIO_NR(1, 2)
-#define CONFIG_BB_S1		IMX_GPIO_NR(2, 24)
-#define CONFIG_BB_S2		IMX_GPIO_NR(2, 26)
-#define CONFIG_BB_IN		IMX_GPIO_NR(2, 25)
-#define CONFIG_BB_USDLY		1000
-
 /* OCOTP Configs */
 #define CONFIG_CMD_IMXOTP
 #define CONFIG_IMX_OTP
@@ -196,7 +189,7 @@
 	"fdtaddr=0x18000000\0" \
 	"fdt_high=0xffffffff\0" \
 	"serverip=192.168.0.11\0" \
-	"nfsroot=/u/x/ts4900/rootfs/\0" \
+	"nfsroot=/u/x/ts7990/rootfs/\0" \
 	"autoload=no\0" \
 	"disable_giga=1\0" \
 	"initrd_addr=0x10800000\0 " \
@@ -210,13 +203,19 @@
 			"then echo Booting from custom /boot/boot.ub; " \
 			"source ${loadaddr}; " \
 		"fi; " \
-		"if load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
+		"if load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990.dtb; " \
 			"then echo $baseboardid detected; " \
 		"else " \
 			"echo Booting default device tree; " \
-			"load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb; " \
+			"if load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-lxd.dtb; " \
+			   "then echo Loading lxd device tree; " \
+			"elif load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-microtips.dtb; " \
+			   "then echo Loading microtips device tree; " \
+         "elif load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-okaya.dtb; " \
+			   "then echo Loading okaya device tree; " \
+			"fi; " \
 		"fi; " \
-		"load mmc 0:1 ${loadaddr} /boot/ts4900-fpga.bin; " \
+		"load mmc 0:1 ${loadaddr} /boot/ts7990-fpga.bin; " \
 		"ice40 ${loadaddr} ${filesize}; " \
 		"load mmc 0:1 ${loadaddr} ${uimage}; " \
 		"setenv bootargs root=/dev/mmcblk1p1 rootwait rw ${cmdline_append}; " \
@@ -227,13 +226,19 @@
 			"then echo Booting from custom /boot/boot.ub; " \
 			"source ${loadaddr}; " \
 		"fi; " \
-		"if load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
+		"if load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7990.dtb; " \
 			"then echo $baseboardid detected; " \
 		"else " \
 			"echo Booting default device tree; " \
-			"load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb; " \
+			"if load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-lxd.dtb; " \
+			   "then echo Loading lxd device tree; " \
+			"elif load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-microtips.dtb; " \
+			   "then echo Loading microtips device tree; " \
+         "elif load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-okaya.dtb; " \
+			   "then echo Loading okaya device tree; " \
+			"fi; " \
 		"fi; " \
-		"load mmc 1:1 ${loadaddr} /boot/ts4900-fpga.bin; " \
+		"load mmc 1:1 ${loadaddr} /boot/ts7990-fpga.bin; " \
 		"ice40 ${loadaddr} ${filesize}; " \
 		"load mmc 1:1 ${loadaddr} ${uimage}; " \
 		"setenv bootargs root=/dev/mmcblk2p1 rootwait rw ${cmdline_append}; " \
@@ -251,14 +256,14 @@
 	"nfsboot=echo Booting from NFS ...; " \
 		"dhcp ; " \
 		"bbdetect; " \
-		"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
+		"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts7990.dtb; " \
 		"if fdt addr ${fdtaddr}; " \
 			"then echo $baseboardid detected; " \
 		"else " \
 			"echo Booting default device tree; " \
-			"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts4900.dtb; " \
+			"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts7990.dtb; " \
 		"fi; " \
-		"nfs ${loadaddr} ${nfsroot}/boot/ts4900-fpga.bin; " \
+		"nfs ${loadaddr} ${nfsroot}/boot/ts7990-fpga.bin; " \
 		"ice40 ${loadaddr} ${filesize}; " \
 		"nfs ${loadaddr} ${nfsroot}/boot/uImage; " \
 		"setenv bootargs root=/dev/nfs ip=dhcp nfsroot=${serverip}:${nfsroot} " \
