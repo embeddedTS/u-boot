@@ -63,12 +63,10 @@
 #define CONFIG_CMD_SAVEENV
 #define CONFIG_CMD_SETEXPR
 #define CONFIG_CMD_BOOTZ
-#define CONFIG_CMD_NAND
 #define CONFIG_CMD_SF
 #define CONFIG_CMD_SPI
 #define CONFIG_CMD_USB
 #define CONFIG_LIB_RAND
-/*#define CONFIG_CMD_NAND_TRIMFFS*/
 
 /* Memory configuration */
 #define CONFIG_NR_DRAM_BANKS		1		/* 1 bank of DRAM */
@@ -87,16 +85,6 @@
 #define CONFIG_SYS_MMC_ENV_DEV		0
 #endif
 
-/* Environment is in NAND */
-#if defined(CONFIG_CMD_NAND) && defined(CONFIG_ENV_IS_IN_NAND)
-#define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE
-#define CONFIG_ENV_SECT_SIZE		(128 * 1024)
-#define CONFIG_ENV_RANGE		(512 * 1024)
-#define CONFIG_ENV_OFFSET		0x300000
-#define CONFIG_ENV_OFFSET_REDUND	\
-		(CONFIG_ENV_OFFSET + CONFIG_ENV_RANGE)
-#endif
-
 /* Environemnt is in SPI flash */
 #if defined(CONFIG_CMD_SF) && defined(CONFIG_ENV_IS_IN_SPI_FLASH)
 #define CONFIG_SYS_REDUNDAND_ENVIRONMENT
@@ -107,29 +95,6 @@
 #define CONFIG_ENV_SPI_BUS		2
 #define CONFIG_ENV_SPI_MAX_HZ		24000000
 #define CONFIG_ENV_SPI_MODE		SPI_MODE_0
-#endif
-
-/* UBI and NAND partitioning */
-#ifdef CONFIG_CMD_NAND
-#define CONFIG_CMD_UBI
-#define CONFIG_CMD_UBIFS
-#define CONFIG_CMD_MTDPARTS
-#define CONFIG_RBTREE
-#define CONFIG_LZO
-#define CONFIG_MTD_DEVICE
-#define CONFIG_MTD_PARTITIONS
-#define MTDIDS_DEFAULT			"nand0=gpmi-nand"
-#define MTDPARTS_DEFAULT			\
-	"mtdparts=gpmi-nand:"			\
-		"3m(bootloader)ro,"		\
-		"512k(environment),"		\
-		"512k(redundant-environment),"	\
-		"4m(kernel),"			\
-		"1m(fdt),"			\
-		"8m(ramdisk),"			\
-		"3m(reserved),"			\
-		"20m(tsconfig),"		\
-		"-(filesystem)"
 #endif
 
 /* FEC Ethernet on SoC */
@@ -168,10 +133,10 @@
 /* SPI Flash */
 #ifdef CONFIG_CMD_SF
 #define CONFIG_SPI_FLASH
+#define CONFIG_SPI_FLASH_STMICRO
 #define CONFIG_SF_DEFAULT_BUS		2
 #define CONFIG_SF_DEFAULT_CS		0
 /* this may vary and depends on the installed chip */
-#define CONFIG_SPI_FLASH_SST
 #define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
 #define CONFIG_SF_DEFAULT_SPEED		24000000
 #endif
@@ -215,72 +180,10 @@
 	"usb_script=/tsinit.ub\0" \
 	"nfsroot=/nfsroot/\0" \
 	"nfsip=192.168.0.1\0" \
-	"fpga_bitstream=/boot/ts7680-fpga.bin\0" \
 	"fdtaddr=0x41000000\0" \
 	"bootpart=0:2\0" \
 	"bootname=SD card\0" \
 	"cmdline_append=rw rootwait console=null\0" \
-	"update_nand_full_file=/boot/u-boot.nand\0" \
-	"update_nand_firmware_file=/boot/u-boot.nand\0"	\
-	"update_nand_firmware_maxsz=0x100000\0"	\
-	"update_nand_stride=0x40\0"	/* MX28 datasheet ch. 12.12 */ \
-	"update_nand_count=0x4\0"	/* MX28 datasheet ch. 12.12 */ \
-	"update_nand_get_fcb_size="	/* Get size of FCB blocks */ \
-		"nand device 0 ; " \
-		"nand info ; " \
-		"setexpr fcb_sz ${update_nand_stride} * ${update_nand_count};" \
-		"setexpr update_nand_fcb ${fcb_sz} * ${nand_writesize}\0" \
-	"update_nand_firmware_full=" /* Update FCB, DBBT and FW */ \
-		"if load mmc 0:2 ${loadaddr} ${update_nand_full_file}; then " \
-		"run update_nand_get_fcb_size ; " \
-		"nand scrub -y 0x0 ${filesize} ; " \
-		"nand write.raw ${loadaddr} 0x0 ${fcb_sz} ; " \
-		"setexpr update_off ${loadaddr} + ${update_nand_fcb} ; " \
-		"setexpr update_sz ${filesize} - ${update_nand_fcb} ; " \
-		"nand write ${update_off} ${update_nand_fcb} ${update_sz} ; " \
-		"fi\0" \
-	"update_nand_firmware="		/* Update only firmware */ \
-		"if load mmc 0:2 ${loadaddr} ${update_nand_firmware_file}; then " \
-		"run update_nand_get_fcb_size ; " \
-		"setexpr fcb_sz ${update_nand_fcb} * 2 ; " /* FCB + DBBT */ \
-		"setexpr fw_sz ${update_nand_firmware_maxsz} * 2 ; " \
-		"setexpr fw_off ${fcb_sz} + ${update_nand_firmware_maxsz};" \
-		"nand erase ${fcb_sz} ${fw_sz} ; " \
-		"nand write ${loadaddr} ${fcb_sz} ${filesize} ; " \
-		"nand write ${loadaddr} ${fw_off} ${filesize} ; " \
-		"fi\0" \
-	"update_nand_kernel="		/* Update kernel */ \
-		"if load mmc 0:2 ${loadaddr} ${uimage}; then " \
-		"mtdparts default; " \
-		"nand erase.part kernel; " \
-		"nand write ${loadaddr} kernel ${filesize}; " \
-		"fi\0" \
-	"update_nand_fdt="		/* Update fdt */ \
-		"if load mmc 0:2 ${loadaddr} /boot/imx28-ts7680.dtb; then " \
-		"mtdparts default; " \
-		"nand erase.part fdt; " \
-		"nand write ${loadaddr} fdt ${filesize}" \
-		"fi\0" \
-	"nandboot=echo Booting from NAND...;" /* Boot from NAND */ \
-		"mtdparts default; " \
-		"ubi part tsconfig ;" \
-		"ubifsmount ubi0:tsconfig ;"\
-		"if ubifsload ${loadaddr} /boot/boot.ub; " \
-			"then source ${loadaddr}; " \
-		"fi; " \
-		"ubifsload ${loadaddr} ${fpga_bitstream} ; " \
-		"ice40 ${loadaddr} ${filesize}; " \
-		"nand read ${loadaddr} kernel 0x00400000; " \
-		"if test ${boot_fdt} = yes; then " \
-			"nand read ${fdtaddr} fdt 0x00080000; " \
-			"bootm ${loadaddr} - ${fdtaddr}; " \
-		"else " \
-			"if test ${boot_fdt} = no; then " \
-				"bootm; " \
-			"else " \
-				"echo \"ERROR: Set boot_fdt to yes or no.\"; " \
-			"fi; " \
-		"fi\0" \
 	"boot_fdt=yes\0" \
 	"ip_dyn=yes\0" \
 	"emmcboot=" \
@@ -293,8 +196,6 @@
 			"then echo Booting from custom ${script}; " \
 			"source ${loadaddr}; " \
 		"fi; " \
-		"load mmc ${bootpart} ${loadaddr} ${fpga_bitstream} ; " \
-		"ice40 ${loadaddr} ${filesize}; " \
 		"load mmc ${bootpart} ${loadaddr} ${uimage}; " \
 		"if load mmc ${bootpart} ${fdtaddr} /boot/imx28-ts7680.dtb; then " \
 			"echo Using device tree; " \
@@ -314,12 +215,8 @@
 			"fi; " \
 		"fi; \0" \
         "nfsboot=echo Booting from NFS ...; " \
-		"load mmc ${bootpart} ${loadaddr} ${fpga_bitstream} ; " \
-		"ice40 ${loadaddr} ${filesize}; " \
 		"dhcp ; " \
 		"env set serverip ${nfsip}; " \
-		"nfs ${loadaddr} ${nfsroot}${fpga_bitstream}; " \
-		"ice40 ${loadaddr} ${filesize}; " \
 		"nfs ${loadaddr} ${nfsroot}${uimage}; " \
 		"setenv bootargs root=/dev/nfs ip=dhcp " \
 		  "nfsroot=${serverip}:${nfsroot},vers=2,nolock ${cmdline_append}; " \
@@ -335,10 +232,7 @@
 #define CONFIG_BOOTCOMMAND \
 	"setenv bootargs root=/dev/mmcblk0p2 ${cmdline_append};" \
 	"run usbprod; "\
-	"if test ${bootmode} = 4; "\
-		"then run nandboot; "\
- 		"else run sdboot; "\
-	"fi ;"
+	"run sdboot;"\
 	
 
 /* The rest of the configuration is shared */
