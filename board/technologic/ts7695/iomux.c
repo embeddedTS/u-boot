@@ -175,9 +175,9 @@ const iomux_cfg_t iomux_setup[] = {
 };
 
 #define HW_DRAM_CTL29	(0x74 >> 2)
-#define CS_MAP		0xf
+#define CS_MAP		0x3
 #define COLUMN_SIZE	0x2
-#define ADDR_PINS	0x1
+#define ADDR_PINS	0x0
 #define APREBIT		0xa
 
 #define HW_DRAM_CTL29_CONFIG	(CS_MAP << 24 | COLUMN_SIZE << 16 | \
