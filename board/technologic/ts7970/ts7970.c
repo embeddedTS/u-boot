@@ -164,8 +164,21 @@ iomux_v3_cfg_t const i2c_pads[] = {
 
 #if defined(CONFIG_FPGA)
 
+iomux_v3_cfg_t const fpga_jtag_pads[] = {
+	MX6_PAD_DISP0_DAT14__GPIO5_IO08 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// JTAG_FPGA_TMS
+	MX6_PAD_DISP0_DAT17__GPIO5_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// JTAG_FPGA_TCK
+	MX6_PAD_DISP0_DAT18__GPIO5_IO12 | MUX_PAD_CTRL(NO_PAD_CTRL),	// JTAG_FPGA_TDO
+	MX6_PAD_DISP0_DAT22__GPIO5_IO16 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// JTAG_FPGA_TDI
+};
+
 static void ts7970_jtag_init(void)
 {
+	imx_iomux_v3_setup_multiple_pads(fpga_jtag_pads,
+					 ARRAY_SIZE(fpga_jtag_pads));
+	gpio_direction_output(CONFIG_FPGA_TDI, 1);
+	gpio_direction_output(CONFIG_FPGA_TCK, 1);
+	gpio_direction_output(CONFIG_FPGA_TMS, 1);
+	gpio_direction_input(CONFIG_FPGA_TDO);
 	return;
 }
 
@@ -200,7 +213,7 @@ lattice_board_specific_func ts7970_fpga_fns = {
 Lattice_desc ts7970_fpga = {
 	Lattice_XP2,
 	lattice_jtag_mode,
-	127500,
+	589012,
 	(void *) &ts7970_fpga_fns,
 	NULL,
 	0,
@@ -485,7 +498,9 @@ int board_init(void)
 	setup_sata();
 	#endif
 
+	#ifdef CONFIG_FPGA
 	ts7970_fpga_init();
+	#endif
 
 	return 0;
 }
