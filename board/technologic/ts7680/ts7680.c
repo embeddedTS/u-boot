@@ -23,6 +23,12 @@
 #include <netdev.h>
 #include <errno.h>
 #include <spi.h>
+#include <fpga.h>
+#include <lattice.h>
+
+#define TS7680_EN_SDPWR     MX28_PAD_PWM3__GPIO_3_28
+#define TS7680_SDBOOT_JP    MX28_PAD_LCD_D11__GPIO_1_11
+
 
 DECLARE_GLOBAL_DATA_PTR;
 int random_mac = 0;
@@ -34,9 +40,65 @@ void mx28_adjust_mac(int dev_id, unsigned char *mac)
 	mac[2] = 0x69;
 }
 
-/*
- * Functions
- */
+#if defined(CONFIG_FPGA)
+
+static void ts7680_jtag_init(void)
+{
+	gpio_direction_output(CONFIG_FPGA_TDI, 1);
+	gpio_direction_output(CONFIG_FPGA_TCK, 1);
+	gpio_direction_output(CONFIG_FPGA_TMS, 1);
+	gpio_direction_input(CONFIG_FPGA_TDO);
+	return;
+}
+
+static void ts7680_fpga_jtag_set_tdi(int value)
+{
+	gpio_set_value(CONFIG_FPGA_TDI, value);
+}
+
+static void ts7680_fpga_jtag_set_tms(int value)
+{
+	gpio_set_value(CONFIG_FPGA_TMS, value);
+}
+
+static void ts7680_fpga_jtag_set_tck(int value)
+{
+	gpio_set_value(CONFIG_FPGA_TCK, value);
+}
+
+static int ts7680_fpga_jtag_get_tdo(void)
+{
+	return gpio_get_value(CONFIG_FPGA_TDO);
+}
+
+lattice_board_specific_func ts7680_fpga_fns = {
+	ts7680_jtag_init,
+	ts7680_fpga_jtag_set_tdi,
+	ts7680_fpga_jtag_set_tms,
+	ts7680_fpga_jtag_set_tck,
+	ts7680_fpga_jtag_get_tdo
+};
+
+Lattice_desc ts7680_fpga = {
+	Lattice_XP2,
+	lattice_jtag_mode,
+	589012,
+	(void *) &ts7680_fpga_fns,
+	NULL,
+	0,
+	"machxo_2_cb132"
+};
+
+int ts7680_fpga_init(void)
+{
+	fpga_init();
+	fpga_add(fpga_lattice, &ts7680_fpga);
+
+	return 0;
+}
+
+#endif // CONFIG_FPGA
+
 int board_early_init_f(void)
 {
 	/* IO0 clock at 480MHz */
@@ -68,13 +130,24 @@ int dram_init(void)
 
 int misc_init_r(void)
 {
-	struct mxs_spl_data *data = (struct mxs_spl_data *)
-	  ((CONFIG_SYS_TEXT_BASE - sizeof(struct mxs_spl_data)) & ~0xf);
+	int sdboot = 0;
 
-	setenv_hex("bootmode", mxs_boot_modes[data->boot_mode_idx].boot_pads);
 	setenv("model", "7680");
-}
 
+	gpio_direction_input(TS7680_SDBOOT_JP);
+	sdboot = gpio_get_value(TS7680_SDBOOT_JP);
+
+	if(sdboot) setenv("jpsdboot", "off");
+	else setenv("jpsdboot", "on");
+
+	printf("jpuboot, %d\n", MX28_PAD_LCD_D11__GPIO_1_11);
+
+#if defined(CONFIG_FPGA)
+	ts7680_fpga_init();
+#endif
+
+	return 0;
+}
 
 int board_init(void)
 {
@@ -84,19 +157,28 @@ int board_init(void)
 	return 0;
 }
 
-#ifdef	CONFIG_CMD_MMC
-static int ts7400_mmc_cd(int id) {
+static int ts7680_mmc_cd(int id) {
 	return 1;
 }
+
 int board_mmc_init(bd_t *bis)
 {
-	/* Configure MMC0 Power Enable */
-	int ret = mxsmmc_initialize(bis, 0, NULL, ts7400_mmc_cd);
-	//if (ret)
-	return ret;
-	//return mxsmmc_initialize(bis, 1, NULL, ts7400_mmc_cd);
+	mxs_iomux_setup_pad(TS7680_EN_SDPWR);
+
+	gpio_direction_output(TS7680_EN_SDPWR, 1); // EN_SD_POWER#
+	udelay(1000);
+	gpio_direction_output(TS7680_EN_SDPWR, 0);
+
+	/* SD card */
+	if(!mxsmmc_initialize(bis, 0, NULL, ts7680_mmc_cd))
+		return 1;
+
+	/* eMMC */
+	if(!mxsmmc_initialize(bis, 2, NULL, ts7680_mmc_cd))
+		return 1;
+
+	return 0;
 }
-#endif
 
 #ifdef	CONFIG_CMD_NET
 
@@ -147,75 +229,3 @@ int board_eth_init(bd_t *bis)
 }
 
 #endif
-
-static int do_ice40_load(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
-{
-        unsigned int len, data;
-        struct spi_slave *slave;
-        int ret_val, i;
-        char zeros[100];
-
-        memset(zeros, 0, 100);
-
-        // Parse image from mkimage
-        data = simple_strtoul(argv[1], NULL, 16);
-        len = simple_strtoul(argv[2], NULL, 16);
-
-        slave = spi_setup_slave(2, 0, 25000000, SPI_MODE_0);
-        if(spi_claim_bus(slave)){
-                printf("Failed to claim the SPI bus\n");
-                return 1;
-        }
-
-	gpio_direction_output(MX28_PAD_LCD_D23__GPIO_1_23, 0); //fabric reset
-        // We need to pulse reset while the clock is high, so set it to a gpio first
-        mxs_iomux_setup_pad(MX28_PAD_SSP2_SCK__GPIO_2_16 | MXS_PAD_3V3 | MXS_PAD_8MA);
-	gpio_direction_input(MX28_PAD_LCD_D16__GPIO_1_16); //fpga_done
-	gpio_direction_output(MX28_PAD_LCD_D17__GPIO_1_17, 0); //reset low
-	gpio_direction_output(MX28_PAD_SSP2_SCK__GPIO_2_16, 1); //spi_clk high
-	gpio_direction_output(MX28_PAD_LCD_D18__GPIO_1_18, 0); // spi_cs# low
-	udelay(1);
-	gpio_set_value(MX28_PAD_LCD_D17__GPIO_1_17, 1); //reset high
-	udelay(801);
-	mxs_iomux_setup_pad(MX28_PAD_SSP2_SCK__SSP2_SCK | MXS_PAD_3V3 | MXS_PAD_4MA | MXS_PAD_PULLUP);
-
-	// Send 8 clocks
-	ret_val = spi_xfer(slave, 8, zeros, NULL, 0);
-
-	// Finally send data
-	ret_val = spi_xfer(slave, len * 8, (void *)data, NULL, 0);
-
-        // FPGA requires additional spi clocks after bitstream
-        ret_val = spi_xfer(slave, 100 * 8, zeros, NULL, 0);
-
-        for(i = 0; i <= 3000; i++)
-        {
-                if(gpio_get_value(MX28_PAD_LCD_D16__GPIO_1_16)) //fpga_done
-                        break;
-                if(i == 3000){
-                        printf("FPGA_DONE never asserted\n");
-                        ret_val = 1;
-                }
-                udelay(1000);
-        }
-
-	/* Issue reset to FPGA fabric */
-	gpio_direction_output(MX28_PAD_LCD_D23__GPIO_1_23, 1);
-	udelay(100); //25 clocks, plenty of time
-	gpio_direction_output(MX28_PAD_LCD_D23__GPIO_1_23, 0);
-
-        spi_release_bus(slave);
-
-	/* Reset FEC PHYs */
-	gpio_direction_output(MX28_PAD_SSP0_DETECT__GPIO_2_9, 0);
-	udelay(15000);
-	gpio_set_value(MX28_PAD_SSP0_DETECT__GPIO_2_9, 1);
-
-        return ret_val;
-}
-
-U_BOOT_CMD(ice40, 3, 0, do_ice40_load,
-        "ICE40 programming support",
-        "[image address] [filesize]\n"
-        "    Image must be in mkimage legacy format\n"
-);

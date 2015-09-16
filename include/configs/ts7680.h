@@ -11,7 +11,6 @@
 
 /* System configurations */
 #define CONFIG_MX28				/* i.MX28 SoC */
-#define CONFIG_MACH_TYPE	MACH_TYPE_MX28EVK
 
 /* U-Boot Commands */
 #define CONFIG_SYS_NO_FLASH
@@ -46,9 +45,14 @@
 #define STATUS_LED_STATE3               STATUS_LED_ON
 #define STATUS_LED_PERIOD3              (CONFIG_SYS_HZ / 2)
 
+#define CONFIG_FPGA
+#define CONFIG_FPGA_LATTICE
+#define CONFIG_FPGA_TDI                 MX28_PAD_LCD_D17__GPIO_1_17
+#define CONFIG_FPGA_TMS                 MX28_PAD_LCD_D18__GPIO_1_18
+#define CONFIG_FPGA_TCK                 MX28_PAD_LCD_D23__GPIO_1_23
+#define CONFIG_FPGA_TDO                 MX28_PAD_LCD_D21__GPIO_1_21
 
 #define CONFIG_CMD_CACHE
-#define CONFIG_CMD_DATE
 #define CONFIG_CMD_DHCP
 #define CONFIG_CMD_GPIO
 #define CONFIG_CMD_MII
@@ -66,7 +70,11 @@
 #define CONFIG_CMD_SF
 #define CONFIG_CMD_SPI
 #define CONFIG_CMD_USB
+#define CONFIG_CMD_TIME
 #define CONFIG_LIB_RAND
+#define CONFIG_OF_LIBFDT
+#define CONFIG_CMD_BOOTZ
+#define CONFIG_SUPPORT_RAW_INITRD
 
 /* Memory configuration */
 #define CONFIG_NR_DRAM_BANKS		1		/* 1 bank of DRAM */
@@ -75,38 +83,24 @@
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM_1
 
 /* Environment */
+#define CONFIG_SYS_NO_FLASH
 #define CONFIG_ENV_SIZE			(8 * 1024)
 #define CONFIG_ENV_OVERWRITE
 
-/* Environment is in MMC */
-#define CONFIG_SYS_MMC_ENV_DEV		0
-#if defined(CONFIG_CMD_MMC) && defined(CONFIG_ENV_IS_IN_MMC)
-#define CONFIG_ENV_OFFSET		(256 * 1024)
-#define CONFIG_SYS_MMC_ENV_DEV		0
-#endif
-
 /* Environemnt is in SPI flash */
-#if defined(CONFIG_CMD_SF) && defined(CONFIG_ENV_IS_IN_SPI_FLASH)
-#define CONFIG_SYS_REDUNDAND_ENVIRONMENT
-#define CONFIG_ENV_OFFSET		0x40000		/* 256K */
-#define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + CONFIG_ENV_SIZE)
-#define CONFIG_ENV_SECT_SIZE		0x1000
+#define CONFIG_ENV_IS_IN_SPI_FLASH
+#define CONFIG_ENV_OFFSET		0x100000	
+#define CONFIG_ENV_SECT_SIZE	(4 * 1024)
 #define CONFIG_ENV_SPI_CS		0
 #define CONFIG_ENV_SPI_BUS		2
 #define CONFIG_ENV_SPI_MAX_HZ		24000000
 #define CONFIG_ENV_SPI_MODE		SPI_MODE_0
-#endif
 
 /* FEC Ethernet on SoC */
 #ifdef	CONFIG_CMD_NET
 #define CONFIG_FEC_MXC
 #define CONFIG_NET_MULTI
 #define CONFIG_MX28_FEC_MAC_IN_OCOTP
-#endif
-
-/* RTC */
-#ifdef	CONFIG_CMD_DATE
-#define	CONFIG_RTC_MXS
 #endif
 
 /* USB */
@@ -143,25 +137,6 @@
 
 #endif
 
-/* Framebuffer support */
-#ifdef CONFIG_VIDEO
-#define CONFIG_VIDEO_LOGO
-#define CONFIG_SPLASH_SCREEN
-#define CONFIG_CMD_BMP
-#define CONFIG_BMP_16BPP
-#define CONFIG_VIDEO_BMP_RLE8
-#define CONFIG_VIDEO_BMP_GZIP
-#define CONFIG_SYS_VIDEO_LOGO_MAX_SIZE	(512 << 10)
-#endif
-
-/* Boot Linux */
-#define CONFIG_BOOTDELAY	1
-#define CONFIG_AUTOBOOT_KEYED   1
-#define CONFIG_AUTOBOOT_PROMPT  "Press Ctrl+c to abort autoboot in %d second\n", bootdelay
-#define CTRL(c) ((c)&0x1F)     
-#define CONFIG_AUTOBOOT_STOP_STR  (char []){CTRL('C'), 0}
-
-#define CONFIG_BOOTFILE		"uImage"
 #define CONFIG_LOADADDR		0x42000000
 #define CONFIG_SYS_LOAD_ADDR	CONFIG_LOADADDR
 #define CONFIG_MISC_INIT_R
@@ -171,6 +146,20 @@
 #define CONFIG_SYS_HUSH_PARSER
 #define CONFIG_SYS_PROMPT              "U-Boot > "
 #define CONFIG_AUTO_COMPLETE
+
+#define CONFIG_BOOTDELAY	           1
+#define CONFIG_AUTOBOOT_KEYED          1
+#define CONFIG_AUTOBOOT_PROMPT         "Press Ctrl+C to abort autoboot in %d second(s)\n", bootdelay
+#define CTRL(c) ((c)&0x1F)     
+#define CONFIG_AUTOBOOT_STOP_STR       (char []){CTRL('C'), 0}
+
+#define CONFIG_PREBOOT \
+	"if gpio input 929; then " \
+		" setenv bootdelay -1; " \
+		" run usbprod; " \
+	" else " \
+		" setenv bootdelay 0; " \
+	"fi" 
 
 /* Extra Environment */
 #define CONFIG_EXTRA_ENV_SETTINGS \
@@ -214,8 +203,8 @@
 				"exit; " \
 			"fi; " \
 		"fi; \0" \
-        "nfsboot=echo Booting from NFS ...; " \
-		"dhcp ; " \
+	"nfsboot=echo Booting from NFS ...; " \
+		"dhcp; " \
 		"env set serverip ${nfsip}; " \
 		"nfs ${loadaddr} ${nfsroot}${uimage}; " \
 		"setenv bootargs root=/dev/nfs ip=dhcp " \
@@ -228,13 +217,11 @@
 			"bootm ${loadaddr};" \
 		"fi; \0" \
 
-
 #define CONFIG_BOOTCOMMAND \
 	"setenv bootargs root=/dev/mmcblk0p2 ${cmdline_append};" \
 	"run usbprod; "\
 	"run sdboot;"\
 	
-
 /* The rest of the configuration is shared */
 #include <configs/mxs.h>
 
