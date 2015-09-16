@@ -140,8 +140,6 @@ int misc_init_r(void)
 	if(sdboot) setenv("jpsdboot", "off");
 	else setenv("jpsdboot", "on");
 
-	printf("jpuboot, %d\n", MX28_PAD_LCD_D11__GPIO_1_11);
-
 #if defined(CONFIG_FPGA)
 	ts7680_fpga_init();
 #endif
