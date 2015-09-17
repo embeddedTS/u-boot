@@ -24,6 +24,10 @@
 
 #define STATUS_LED_BOOT			STATUS_LED_GREEN
 
+#define CONFIG_RED_LED                  MX28_PAD_GPMI_D07__GPIO_0_7
+#define CONFIG_GREEN_LED                MX28_PAD_GPMI_D05__GPIO_0_5
+#define CONFIG_YEL_LED                  MX28_PAD_LCD_RS__GPIO_1_26
+#define CONFIG_BLUE_LED                 MX28_PAD_LCD_VSYNC__GPIO_1_28
 #define STATUS_LED_RED			0
 #define STATUS_LED_GREEN		1
 #define STATUS_LED_YELLOW		2
@@ -34,15 +38,15 @@
 #define STATUS_LED_PERIOD               (CONFIG_SYS_HZ / 2)
 
 #define STATUS_LED_BIT1                 STATUS_LED_GREEN
-#define STATUS_LED_STATE1               STATUS_LED_ON
+#define STATUS_LED_STATE1               STATUS_LED_OFF
 #define STATUS_LED_PERIOD1              (CONFIG_SYS_HZ / 2)
 
 #define STATUS_LED_BIT2                 STATUS_LED_YELLOW
-#define STATUS_LED_STATE2               STATUS_LED_ON
+#define STATUS_LED_STATE2               STATUS_LED_OFF
 #define STATUS_LED_PERIOD2              (CONFIG_SYS_HZ / 2)
 
 #define STATUS_LED_BIT3                 STATUS_LED_BLUE
-#define STATUS_LED_STATE3               STATUS_LED_ON
+#define STATUS_LED_STATE3               STATUS_LED_OFF
 #define STATUS_LED_PERIOD3              (CONFIG_SYS_HZ / 2)
 
 #define CONFIG_FPGA
@@ -60,6 +64,7 @@
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
 #define CONFIG_CMD_EXT4
+#define CONFIG_CMD_EXT4_WRITE
 #define CONFIG_CMD_FS_GENERIC
 #define CONFIG_CMD_NET
 #define CONFIG_CMD_NFS
@@ -114,10 +119,11 @@
 #endif
 
 /* I2C */
-#ifdef CONFIG_CMD_I2C
+/* This currently interfers with the Linux i2c setup.  
+ * Disabling temporarily
+#define CONFIG_CMD_I2C
 #define CONFIG_I2C_MXS
-#define CONFIG_SYS_I2C_SPEED            100000
-#endif
+#define CONFIG_SYS_I2C_SPEED            100000 */
 
 /* SPI */
 #ifdef CONFIG_CMD_SPI
@@ -154,8 +160,9 @@
 #define CONFIG_AUTOBOOT_STOP_STR       (char []){CTRL('C'), 0}
 
 #define CONFIG_PREBOOT \
-	"if gpio input 929; then " \
+	"if gpio input 857; then " \
 		" setenv bootdelay -1; " \
+		" echo UBoot jumper installed, checking usb and stopping boot.; " \
 		" run usbprod; " \
 	" else " \
 		" setenv bootdelay 0; " \
@@ -164,35 +171,51 @@
 /* Extra Environment */
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"autoload=no\0" \
-	"uimage=/boot/uImage\0" \
-	"script=/boot/boot.ub\0" \
-	"usb_script=/tsinit.ub\0" \
 	"nfsroot=/nfsroot/\0" \
 	"nfsip=192.168.0.1\0" \
 	"fdtaddr=0x41000000\0" \
-	"bootpart=0:2\0" \
-	"bootname=SD card\0" \
 	"cmdline_append=rw rootwait console=null\0" \
 	"boot_fdt=yes\0" \
 	"ip_dyn=yes\0" \
-	"emmcboot=" \
-		"setenv bootpart 2:0;" \
-		"setenv bootname eMMC;" \
-		"setenv bootargs root=/dev/mmcblk2p2 ${cmdline_append};" \
-		"run sdboot; \0" \
-	"sdboot=echo Booting from the ${bootname} ...; " \
-		"if load mmc ${bootpart} ${loadaddr} ${script}; " \
-			"then echo Booting from custom ${script}; " \
+	"clearenv=if sf probe; then " \
+		"sf erase 0x100000 0x2000 && " \
+		"echo restored environment to factory default ; fi\0" \
+	"update-uboot=echo Updating u-boot from /boot/u-boot.sb; " \
+		"if test ${jpsdboot} = 'on' ; " \
+			"then if load mmc 0:2 ${loadaddr} /boot/u-boot.sb; " \
+				"then sf probe; " \
+				"sf erase 0 80000; " \
+				"sf write ${loadaddr} ${filesize}; " \
+			"fi;" \
+		"else " \
+			"if load mmc 1:2 ${loadaddr} /boot/u-boot.sb; " \
+				"then sf probe; " \
+				"sf erase 0 80000; " \
+				"sf write ${loadaddr} ${filesize}; " \
+			"fi; " \
+		"fi;\0" \
+	"emmcboot=echo Booting from the onboard eMMC  ...; " \
+		"if load mmc 1:2 ${loadaddr} /boot/boot.ub; " \
+			"then echo Booting from custom /boot/boot.ub; " \
 			"source ${loadaddr}; " \
 		"fi; " \
-		"load mmc ${bootpart} ${loadaddr} ${uimage}; " \
-		"if load mmc ${bootpart} ${fdtaddr} /boot/imx28-ts7680.dtb; then " \
-			"echo Using device tree; " \
-			"bootm ${loadaddr} - ${fdtaddr}; "\
-		"else " \
-			"echo Booting without device tree ; " \
-			"bootm ${loadaddr};" \
-		"fi; \0" \
+		"if load mmc 1:2 ${loadaddr} /boot/ts7680-fpga.vme; " \
+			"then fpga load 0 ${loadaddr} ${filesize}; " \
+		"fi; " \
+		"load mmc 1:2 ${loadaddr} /boot/uImage; " \
+		"load mmc 1:2 ${fdtaddr} /boot/imx28-ts7680.dtb; " \
+		"bootm ${loadaddr} - ${fdtaddr}; \0"\
+	"sdboot=echo Booting from the SD Card ...; " \
+		"if load mmc 0:2 ${loadaddr} /boot/boot.ub; " \
+			"then echo Booting from custom /boot/boot.ub; " \
+			"source ${loadaddr}; " \
+		"fi; " \
+		"if load mmc 0:2 ${loadaddr} /boot/ts7680-fpga.vme; " \
+			"then fpga load 0 ${loadaddr} ${filesize}; " \
+		"fi; " \
+		"load mmc 0:2 ${loadaddr} /boot/uImage; " \
+		"load mmc 0:2 ${fdtaddr} /boot/imx28-ts7680.dtb; " \
+		"bootm ${loadaddr} - ${fdtaddr}; \0"\
 	"usbprod=usb start; " \
 		"if usb storage; " \
 			"then echo Checking USB storage for updates; " \
@@ -206,21 +229,17 @@
 	"nfsboot=echo Booting from NFS ...; " \
 		"dhcp; " \
 		"env set serverip ${nfsip}; " \
-		"nfs ${loadaddr} ${nfsroot}${uimage}; " \
+		"nfs ${loadaddr} ${nfsroot}/boot/uImage; " \
 		"setenv bootargs root=/dev/nfs ip=dhcp " \
 		  "nfsroot=${serverip}:${nfsroot},vers=2,nolock ${cmdline_append}; " \
-		"if nfs ${fdtaddr} ${nfsroot}/boot/imx28-ts7680.dtb; then " \
-			"echo Using device tree; " \
-			"bootm ${loadaddr} - ${fdtaddr}; "\
-		"else " \
-			"echo Booting without device tree ; " \
-			"bootm ${loadaddr};" \
-		"fi; \0" \
+		"nfs ${fdtaddr} ${nfsroot}/boot/imx28-ts7680.dtb; " \
+		"bootm ${loadaddr} - ${fdtaddr};\0"\
 
 #define CONFIG_BOOTCOMMAND \
-	"setenv bootargs root=/dev/mmcblk0p2 ${cmdline_append};" \
-	"run usbprod; "\
-	"run sdboot;"\
+	"if test ${jpsdboot} = 'on' ; " \
+		"then run sdboot; " \
+		"else run emmcboot; " \
+	"fi;"
 	
 /* The rest of the configuration is shared */
 #include <configs/mxs.h>

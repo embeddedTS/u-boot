@@ -27,8 +27,8 @@
 #include <lattice.h>
 
 #define TS7680_EN_SDPWR     MX28_PAD_PWM3__GPIO_3_28
-#define TS7680_SDBOOT_JP    MX28_PAD_LCD_D11__GPIO_1_11
-
+#define TS7680_SDBOOT_JP    MX28_PAD_LCD_D12__GPIO_1_12
+#define TS7680_POWER_FAIL	MX28_PAD_SSP0_DETECT__GPIO_2_9
 
 DECLARE_GLOBAL_DATA_PTR;
 int random_mac = 0;
@@ -106,19 +106,12 @@ int board_early_init_f(void)
 	/* IO1 clock at 480MHz */
 	mxs_set_ioclk(MXC_IOCLK1, 480000);
 
-	/* SSP0 clock at 96MHz */
+	/* SSP clocks at 96MHz */
 	mxs_set_sspclk(MXC_SSPCLK0, 96000, 0);
+	/* SSP clocks at 96MHz */
+	mxs_set_sspclk(MXC_SSPCLK1, 96000, 0);
 	/* SSP2 clock at 160MHz */
 	mxs_set_sspclk(MXC_SSPCLK2, 160000, 0);
-
-#ifdef	CONFIG_CMD_USB
-	mxs_iomux_setup_pad(MX28_PAD_SSP2_SS1__USB1_OVERCURRENT);
-	mxs_iomux_setup_pad(MX28_PAD_AUART2_RX__GPIO_3_8 |
-			MXS_PAD_4MA | MXS_PAD_3V3 | MXS_PAD_NOPULL);
-	gpio_direction_output(MX28_PAD_AUART2_RX__GPIO_3_8, 1);
-#endif
-
-	mxs_iomux_setup_pad(MX28_PAD_SSP0_DETECT__GPIO_2_9);
 
 	return 0;
 }
@@ -161,6 +154,7 @@ static int ts7680_mmc_cd(int id) {
 
 int board_mmc_init(bd_t *bis)
 {
+	int ret;
 	mxs_iomux_setup_pad(TS7680_EN_SDPWR);
 
 	gpio_direction_output(TS7680_EN_SDPWR, 1); // EN_SD_POWER#
@@ -168,12 +162,16 @@ int board_mmc_init(bd_t *bis)
 	gpio_direction_output(TS7680_EN_SDPWR, 0);
 
 	/* SD card */
-	if(!mxsmmc_initialize(bis, 0, NULL, ts7680_mmc_cd))
-		return 1;
+	ret = mxsmmc_initialize(bis, 0, NULL, ts7680_mmc_cd);
+	if(ret != 0) {
+		printf("SD controller initialized with %d\n", ret);
+	}
 
 	/* eMMC */
-	if(!mxsmmc_initialize(bis, 2, NULL, ts7680_mmc_cd))
-		return 1;
+	ret = mxsmmc_initialize(bis, 1, NULL, ts7680_mmc_cd);
+	if(ret != 0) {
+		printf("eMMC controller initialized with %d\n", ret);
+	}
 
 	return 0;
 }
@@ -195,11 +193,6 @@ int board_eth_init(bd_t *bis)
 	/* MX28EVK uses ENET_CLK PAD to drive FEC clock */
 	writel(CLKCTRL_ENET_TIME_SEL_RMII_CLK | CLKCTRL_ENET_CLK_OUT_EN,
 	       &clkctrl_regs->hw_clkctrl_enet);
-
-	/* Reset FEC PHYs */
-	gpio_direction_output(MX28_PAD_SSP0_DETECT__GPIO_2_9, 0);
-	udelay(15000);
-	gpio_set_value(MX28_PAD_SSP0_DETECT__GPIO_2_9, 1);
 
 	ret = fecmxc_initialize_multi(bis, 0, 0, MXS_ENET0_BASE);
 	if (ret) {
