@@ -204,6 +204,7 @@
 		"fi; " \
 		"load mmc 1:2 ${loadaddr} /boot/uImage; " \
 		"load mmc 1:2 ${fdtaddr} /boot/imx28-ts7680.dtb; " \
+		"setenv bootargs root=/dev/mmcblk1p2 ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0"\
 	"sdboot=echo Booting from the SD Card ...; " \
 		"if load mmc 0:2 ${loadaddr} /boot/boot.ub; " \
@@ -215,6 +216,7 @@
 		"fi; " \
 		"load mmc 0:2 ${loadaddr} /boot/uImage; " \
 		"load mmc 0:2 ${fdtaddr} /boot/imx28-ts7680.dtb; " \
+		"setenv bootargs root=/dev/mmcblk0p2 ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0"\
 	"usbprod=usb start; " \
 		"if usb storage; " \
