@@ -9,6 +9,7 @@ FAIL=0
 rm -rf out
 mkdir out > /dev/null 2>&1
 
+make mrproper
 make ts7680_defconfig
 make -j9 u-boot.sb
 if [ $? -eq 0 ]; then
