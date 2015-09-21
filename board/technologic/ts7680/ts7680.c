@@ -40,6 +40,25 @@ void mx28_adjust_mac(int dev_id, unsigned char *mac)
 	mac[2] = 0x69;
 }
 
+static void enable_fpga_clk(void) 
+{
+	// Clear PWM clk gate
+	writel(0x20000000, 0x80040088); // HW_CLKCTRL_XTAL_SET
+
+	// Take PWM out of reset
+	writel(0x80000000, 0x80064008); // HW_PWM_CTRL_CLR
+	writel(0x40000000, 0x80064008); // HW_PWM_CTRL_CLR
+
+	// Set PWM active and period
+	writel(0x10000, 0x80064050); // HW_PWM_ACTIVE2
+	writel(0xb0001, 0x80064060); // HW_PWM_PERIOD2
+
+	// Enable PWM output
+	writel(0x4, 0x80064004); // HW_PWM_CTRL_SET
+	
+}
+
+
 #if defined(CONFIG_FPGA)
 
 static void ts7680_jtag_init(void)
@@ -136,6 +155,7 @@ int misc_init_r(void)
 #if defined(CONFIG_FPGA)
 	ts7680_fpga_init();
 #endif
+	enable_fpga_clk();
 
 	return 0;
 }

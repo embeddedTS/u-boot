@@ -134,6 +134,10 @@ const iomux_cfg_t iomux_setup[] = {
 	/* I2C */
 	MX28_PAD_I2C0_SCL__I2C0_SCL,
 	MX28_PAD_I2C0_SDA__I2C0_SDA,
+
+	/* PWM for FPGA clock */
+	MX28_PAD_PWM2__PWM_2,
+	
 };
 
 #define HW_DRAM_CTL29	(0x74 >> 2)
