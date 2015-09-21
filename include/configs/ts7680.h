@@ -185,13 +185,13 @@
 			"then if load mmc 0:2 ${loadaddr} /boot/u-boot.sb; " \
 				"then sf probe; " \
 				"sf erase 0 80000; " \
-				"sf write ${loadaddr} ${filesize}; " \
+				"sf write ${loadaddr} 0 ${filesize}; " \
 			"fi;" \
 		"else " \
 			"if load mmc 1:2 ${loadaddr} /boot/u-boot.sb; " \
 				"then sf probe; " \
 				"sf erase 0 80000; " \
-				"sf write ${loadaddr} ${filesize}; " \
+				"sf write ${loadaddr} 0 ${filesize}; " \
 			"fi; " \
 		"fi;\0" \
 	"emmcboot=echo Booting from the onboard eMMC  ...; " \
