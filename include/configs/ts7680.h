@@ -174,7 +174,7 @@
 	"nfsroot=/nfsroot/\0" \
 	"nfsip=192.168.0.1\0" \
 	"fdtaddr=0x41000000\0" \
-	"cmdline_append=rw rootwait console=null\0" \
+	"cmdline_append=rw rootwait console=null boardID=7680\0" \
 	"boot_fdt=yes\0" \
 	"ip_dyn=yes\0" \
 	"clearenv=if sf probe; then " \
@@ -204,7 +204,7 @@
 		"fi; " \
 		"load mmc 1:2 ${loadaddr} /boot/uImage; " \
 		"load mmc 1:2 ${fdtaddr} /boot/imx28-ts7680.dtb; " \
-		"setenv bootargs root=/dev/mmcblk1p2 ${cmdline_append}; " \
+		"setenv bootargs root=/dev/mmcblk2p2 ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0"\
 	"sdboot=echo Booting from the SD Card ...; " \
 		"if load mmc 0:2 ${loadaddr} /boot/boot.ub; " \
