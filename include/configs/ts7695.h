@@ -1,16 +1,17 @@
 /*
  * (C) Copyright 2011 Freescale Semiconductor, Inc.
  *
- * TS-7680 config
+ * TS-7695 config
  * Based on m28evk.h
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
-#ifndef __CONFIGS_TS7680_H__
-#define __CONFIGS_TS7680_H__
+#ifndef __CONFIGS_TS7695_H__
+#define __CONFIGS_TS7695_H__
 
 /* System configurations */
 #define CONFIG_MX28				/* i.MX28 SoC */
+#define CONFIG_MACH_TYPE	MACH_TYPE_MX28EVK
 
 /* U-Boot Commands */
 #define CONFIG_SYS_NO_FLASH
@@ -24,10 +25,6 @@
 
 #define STATUS_LED_BOOT			STATUS_LED_GREEN
 
-#define CONFIG_RED_LED                  MX28_PAD_GPMI_D07__GPIO_0_7
-#define CONFIG_GREEN_LED                MX28_PAD_GPMI_D05__GPIO_0_5
-#define CONFIG_YEL_LED                  MX28_PAD_LCD_RS__GPIO_1_26
-#define CONFIG_BLUE_LED                 MX28_PAD_LCD_VSYNC__GPIO_1_28
 #define STATUS_LED_RED			0
 #define STATUS_LED_GREEN		1
 #define STATUS_LED_YELLOW		2
@@ -38,25 +35,20 @@
 #define STATUS_LED_PERIOD               (CONFIG_SYS_HZ / 2)
 
 #define STATUS_LED_BIT1                 STATUS_LED_GREEN
-#define STATUS_LED_STATE1               STATUS_LED_OFF
+#define STATUS_LED_STATE1               STATUS_LED_ON
 #define STATUS_LED_PERIOD1              (CONFIG_SYS_HZ / 2)
 
 #define STATUS_LED_BIT2                 STATUS_LED_YELLOW
-#define STATUS_LED_STATE2               STATUS_LED_OFF
+#define STATUS_LED_STATE2               STATUS_LED_ON
 #define STATUS_LED_PERIOD2              (CONFIG_SYS_HZ / 2)
 
 #define STATUS_LED_BIT3                 STATUS_LED_BLUE
-#define STATUS_LED_STATE3               STATUS_LED_OFF
+#define STATUS_LED_STATE3               STATUS_LED_ON
 #define STATUS_LED_PERIOD3              (CONFIG_SYS_HZ / 2)
 
-#define CONFIG_FPGA
-#define CONFIG_FPGA_LATTICE
-#define CONFIG_FPGA_TDI                 MX28_PAD_LCD_D17__GPIO_1_17
-#define CONFIG_FPGA_TMS                 MX28_PAD_LCD_D18__GPIO_1_18
-#define CONFIG_FPGA_TCK                 MX28_PAD_LCD_D23__GPIO_1_23
-#define CONFIG_FPGA_TDO                 MX28_PAD_LCD_D21__GPIO_1_21
 
 #define CONFIG_CMD_CACHE
+#define CONFIG_CMD_DATE
 #define CONFIG_CMD_DHCP
 #define CONFIG_CMD_GPIO
 #define CONFIG_CMD_MII
@@ -64,7 +56,6 @@
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
 #define CONFIG_CMD_EXT4
-#define CONFIG_CMD_EXT4_WRITE
 #define CONFIG_CMD_FS_GENERIC
 #define CONFIG_CMD_NET
 #define CONFIG_CMD_NFS
@@ -75,37 +66,48 @@
 #define CONFIG_CMD_SF
 #define CONFIG_CMD_SPI
 #define CONFIG_CMD_USB
-#define CONFIG_CMD_TIME
 #define CONFIG_LIB_RAND
-#define CONFIG_OF_LIBFDT
-#define CONFIG_CMD_BOOTZ
-#define CONFIG_SUPPORT_RAW_INITRD
+/*#define CONFIG_CMD_NAND_TRIMFFS*/
 
 /* Memory configuration */
-#define CONFIG_NR_DRAM_BANKS		1		/* 1 bank of DRAM */
+#define CONFIG_NR_DRAM_BANKS		2		/* 1 bank of DRAM */
 #define PHYS_SDRAM_1			0x40000000	/* Base address */
 #define PHYS_SDRAM_1_SIZE		0x40000000	/* Max 1 GB RAM */
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM_1
 
 /* Environment */
-#define CONFIG_SYS_NO_FLASH
 #define CONFIG_ENV_SIZE			(8 * 1024)
 #define CONFIG_ENV_OVERWRITE
 
+/* Environment is in MMC */
+#define CONFIG_SYS_MMC_ENV_DEV		0
+#if defined(CONFIG_CMD_MMC) && defined(CONFIG_ENV_IS_IN_MMC)
+#define CONFIG_ENV_OFFSET		(256 * 1024)
+#define CONFIG_SYS_MMC_ENV_DEV		0
+#endif
+
 /* Environemnt is in SPI flash */
-#define CONFIG_ENV_IS_IN_SPI_FLASH
-#define CONFIG_ENV_OFFSET		0x100000	
-#define CONFIG_ENV_SECT_SIZE	(4 * 1024)
+#if defined(CONFIG_CMD_SF) && defined(CONFIG_ENV_IS_IN_SPI_FLASH)
+#define CONFIG_SYS_REDUNDAND_ENVIRONMENT
+#define CONFIG_ENV_OFFSET		0x40000		/* 256K */
+#define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + CONFIG_ENV_SIZE)
+#define CONFIG_ENV_SECT_SIZE		0x1000
 #define CONFIG_ENV_SPI_CS		0
 #define CONFIG_ENV_SPI_BUS		2
 #define CONFIG_ENV_SPI_MAX_HZ		24000000
 #define CONFIG_ENV_SPI_MODE		SPI_MODE_0
+#endif
 
 /* FEC Ethernet on SoC */
 #ifdef	CONFIG_CMD_NET
 #define CONFIG_FEC_MXC
 #define CONFIG_NET_MULTI
 #define CONFIG_MX28_FEC_MAC_IN_OCOTP
+#endif
+
+/* RTC */
+#ifdef	CONFIG_CMD_DATE
+#define	CONFIG_RTC_MXS
 #endif
 
 /* USB */
@@ -119,11 +121,10 @@
 #endif
 
 /* I2C */
-/* This currently interfers with the Linux i2c setup.  
- * Disabling temporarily
-#define CONFIG_CMD_I2C
+#ifdef CONFIG_CMD_I2C
 #define CONFIG_I2C_MXS
-#define CONFIG_SYS_I2C_SPEED            100000 */
+#define CONFIG_SYS_I2C_SPEED            100000
+#endif
 
 /* SPI */
 #ifdef CONFIG_CMD_SPI
@@ -143,6 +144,25 @@
 
 #endif
 
+/* Framebuffer support */
+#ifdef CONFIG_VIDEO
+#define CONFIG_VIDEO_LOGO
+#define CONFIG_SPLASH_SCREEN
+#define CONFIG_CMD_BMP
+#define CONFIG_BMP_16BPP
+#define CONFIG_VIDEO_BMP_RLE8
+#define CONFIG_VIDEO_BMP_GZIP
+#define CONFIG_SYS_VIDEO_LOGO_MAX_SIZE	(512 << 10)
+#endif
+
+/* Boot Linux */
+#define CONFIG_BOOTDELAY	1
+#define CONFIG_AUTOBOOT_KEYED   1
+#define CONFIG_AUTOBOOT_PROMPT  "Press Ctrl+c to abort autoboot in %d second\n", bootdelay
+#define CTRL(c) ((c)&0x1F)     
+#define CONFIG_AUTOBOOT_STOP_STR  (char []){CTRL('C'), 0}
+
+#define CONFIG_BOOTFILE		"uImage"
 #define CONFIG_LOADADDR		0x42000000
 #define CONFIG_SYS_LOAD_ADDR	CONFIG_LOADADDR
 #define CONFIG_MISC_INIT_R
@@ -153,71 +173,38 @@
 #define CONFIG_SYS_PROMPT              "U-Boot > "
 #define CONFIG_AUTO_COMPLETE
 
-#define CONFIG_BOOTDELAY	           1
-#define CONFIG_AUTOBOOT_KEYED          1
-#define CONFIG_AUTOBOOT_PROMPT         "Press Ctrl+C to abort autoboot in %d second(s)\n", bootdelay
-#define CTRL(c) ((c)&0x1F)     
-#define CONFIG_AUTOBOOT_STOP_STR       (char []){CTRL('C'), 0}
-
-#define CONFIG_PREBOOT \
-	"if gpio input 857; then " \
-		" setenv bootdelay -1; " \
-		" echo UBoot jumper installed, checking usb and stopping boot.; " \
-		" run usbprod; " \
-	" else " \
-		" setenv bootdelay 0; " \
-	"fi" 
-
 /* Extra Environment */
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"autoload=no\0" \
+	"uimage=/boot/uImage\0" \
+	"script=/boot/boot.ub\0" \
+	"usb_script=/tsinit.ub\0" \
 	"nfsroot=/nfsroot/\0" \
 	"nfsip=192.168.0.1\0" \
 	"fdtaddr=0x41000000\0" \
-	"cmdline_append=rw rootwait console=null boardID=7680\0" \
+	"bootpart=0:2\0" \
+	"bootname=SD card\0" \
+	"cmdline_append=rw rootwait console=null\0" \
 	"boot_fdt=yes\0" \
 	"ip_dyn=yes\0" \
-	"clearenv=if sf probe; then " \
-		"sf erase 0x100000 0x2000 && " \
-		"echo restored environment to factory default ; fi\0" \
-	"update-uboot=echo Updating u-boot from /boot/u-boot.sb; " \
-		"if test ${jpsdboot} = 'on' ; " \
-			"then if load mmc 0:2 ${loadaddr} /boot/u-boot.sb; " \
-				"then sf probe; " \
-				"sf erase 0 80000; " \
-				"sf write ${loadaddr} 0 ${filesize}; " \
-			"fi;" \
+	"emmcboot=" \
+		"setenv bootpart 2:0;" \
+		"setenv bootname eMMC;" \
+		"setenv bootargs root=/dev/mmcblk2p2 ${cmdline_append};" \
+		"run sdboot; \0" \
+	"sdboot=echo Booting from the ${bootname} ...; " \
+		"if load mmc ${bootpart} ${loadaddr} ${script}; " \
+			"then echo Booting from custom ${script}; " \
+			"source ${loadaddr}; " \
+		"fi; " \
+		"load mmc ${bootpart} ${loadaddr} ${uimage}; " \
+		"if load mmc ${bootpart} ${fdtaddr} /boot/imx28-ts7695.dtb; then " \
+			"echo Using device tree; " \
+			"bootm ${loadaddr} - ${fdtaddr}; "\
 		"else " \
-			"if load mmc 1:2 ${loadaddr} /boot/u-boot.sb; " \
-				"then sf probe; " \
-				"sf erase 0 80000; " \
-				"sf write ${loadaddr} 0 ${filesize}; " \
-			"fi; " \
-		"fi;\0" \
-	"emmcboot=echo Booting from the onboard eMMC  ...; " \
-		"if load mmc 1:2 ${loadaddr} /boot/boot.ub; " \
-			"then echo Booting from custom /boot/boot.ub; " \
-			"source ${loadaddr}; " \
-		"fi; " \
-		"if load mmc 1:2 ${loadaddr} /boot/ts7680-fpga.vme; " \
-			"then fpga load 0 ${loadaddr} ${filesize}; " \
-		"fi; " \
-		"load mmc 1:2 ${loadaddr} /boot/uImage; " \
-		"load mmc 1:2 ${fdtaddr} /boot/imx28-ts7680.dtb; " \
-		"setenv bootargs root=/dev/mmcblk2p2 ${cmdline_append}; " \
-		"bootm ${loadaddr} - ${fdtaddr}; \0"\
-	"sdboot=echo Booting from the SD Card ...; " \
-		"if load mmc 0:2 ${loadaddr} /boot/boot.ub; " \
-			"then echo Booting from custom /boot/boot.ub; " \
-			"source ${loadaddr}; " \
-		"fi; " \
-		"if load mmc 0:2 ${loadaddr} /boot/ts7680-fpga.vme; " \
-			"then fpga load 0 ${loadaddr} ${filesize}; " \
-		"fi; " \
-		"load mmc 0:2 ${loadaddr} /boot/uImage; " \
-		"load mmc 0:2 ${fdtaddr} /boot/imx28-ts7680.dtb; " \
-		"setenv bootargs root=/dev/mmcblk0p2 ${cmdline_append}; " \
-		"bootm ${loadaddr} - ${fdtaddr}; \0"\
+			"echo Booting without device tree ; " \
+			"bootm ${loadaddr};" \
+		"fi; \0" \
 	"usbprod=usb start; " \
 		"if usb storage; " \
 			"then echo Checking USB storage for updates; " \
@@ -228,22 +215,28 @@
 				"exit; " \
 			"fi; " \
 		"fi; \0" \
-	"nfsboot=echo Booting from NFS ...; " \
-		"dhcp; " \
+        "nfsboot=echo Booting from NFS ...; " \
+		"dhcp ; " \
 		"env set serverip ${nfsip}; " \
-		"nfs ${loadaddr} ${nfsroot}/boot/uImage; " \
+		"nfs ${loadaddr} ${nfsroot}${uimage}; " \
 		"setenv bootargs root=/dev/nfs ip=dhcp " \
 		  "nfsroot=${serverip}:${nfsroot},vers=2,nolock ${cmdline_append}; " \
-		"nfs ${fdtaddr} ${nfsroot}/boot/imx28-ts7680.dtb; " \
-		"bootm ${loadaddr} - ${fdtaddr};\0"\
+		"if nfs ${fdtaddr} ${nfsroot}/boot/imx28-ts7695.dtb; then " \
+			"echo Using device tree; " \
+			"bootm ${loadaddr} - ${fdtaddr}; "\
+		"else " \
+			"echo Booting without device tree ; " \
+			"bootm ${loadaddr};" \
+		"fi; \0" \
+
 
 #define CONFIG_BOOTCOMMAND \
-	"if test ${jpsdboot} = 'on' ; " \
-		"then run sdboot; " \
-		"else run emmcboot; " \
-	"fi;"
+	"setenv bootargs root=/dev/mmcblk0p2 ${cmdline_append};" \
+	"run usbprod; "\
+	"run sdboot;"\
 	
+
 /* The rest of the configuration is shared */
 #include <configs/mxs.h>
 
-#endif /* __CONFIGS_TS7680_H__ */
+#endif /* __CONFIGS_TS7695_H__ */

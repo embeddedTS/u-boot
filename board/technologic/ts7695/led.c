@@ -11,10 +11,10 @@ static unsigned int saved_state[4] = {STATUS_LED_OFF,
 	STATUS_LED_OFF, STATUS_LED_OFF, STATUS_LED_OFF};
 
 iomux_cfg_t const led_pads[] = {
-	CONFIG_RED_LED, // Red
-	CONFIG_GREEN_LED, // Green
-	CONFIG_YEL_LED, // Yellow
-	CONFIG_BLUE_LED, // Blue
+	MX28_PAD_GPMI_CE1N__GPIO_0_17, // Red
+	MX28_PAD_GPMI_RESETN__GPIO_0_28, // Green
+	MX28_PAD_LCD_RS__GPIO_1_26,
+	MX28_PAD_LCD_RD_E__GPIO_1_24,	
 };
 
 void coloured_LED_init(void)
@@ -82,21 +82,13 @@ void __led_toggle(led_id_t mask)
 			red_led_off();
 		else
 			red_led_on();
+
 	} else if (STATUS_LED_GREEN == mask) {
 		if (STATUS_LED_ON == saved_state[STATUS_LED_GREEN])
 			green_led_off();
 		else
 			green_led_on();
-	} else if (STATUS_LED_YELLOW == mask) {
-		if (STATUS_LED_ON == saved_state[STATUS_LED_YELLOW])
-			yellow_led_off();
-		else
-			yellow_led_on();
-	} else if (STATUS_LED_BLUE == mask) {
-		if (STATUS_LED_ON == saved_state[STATUS_LED_BLUE])
-			blue_led_off();
-		else
-			blue_led_on();
+
 	}
 }
 
