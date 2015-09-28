@@ -13,7 +13,7 @@ static int do_ice40_load(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv
 	data = simple_strtoul(argv[1], NULL, 16);
 	len = simple_strtoul(argv[2], NULL, 16);
 
-	slave = spi_setup_slave(1, CONFIG_ICE40_BUS, 25000000, SPI_MODE_0);
+	slave = spi_setup_slave(1, CONFIG_ICE40_BUS, 25000000, SPI_MODE_3);
 	if(spi_claim_bus(slave)){
 		printf("Failed to claim the SPI bus\n");
 		return 1;
@@ -22,6 +22,7 @@ static int do_ice40_load(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv
 	gpio_direction_input(CONFIG_ICE40_FPGA_DONE); // fpga_done
 	gpio_direction_output(CONFIG_ICE40_FPGA_RESET, 0); // reset low
 	gpio_direction_output(CONFIG_ICE40_CS, 0); // spi cs# low
+	udelay(1); // at least 200ns
 	gpio_set_value(CONFIG_ICE40_FPGA_RESET, 1); // reset high
 	udelay(800);
 
