@@ -121,6 +121,11 @@ iomux_v3_cfg_t const uart1_pads[] = {
 	MX6_PAD_SD3_DAT6__UART1_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
+iomux_v3_cfg_t const uart1_gpio_pads[] = {
+	MX6_PAD_SD3_DAT7__GPIO6_IO17 | MUX_PAD_CTRL(UART_PAD_CTRL),
+	MX6_PAD_SD3_DAT6__GPIO6_IO18 | MUX_PAD_CTRL(UART_PAD_CTRL),
+};
+
 iomux_v3_cfg_t const enet_pads1[] = {
 	MX6_PAD_ENET_MDIO__ENET_MDIO		| MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_MDC__ENET_MDC		| MUX_PAD_CTRL(ENET_PAD_CTRL),
@@ -230,6 +235,19 @@ int ts7970_fpga_init(void)
 
 #endif
 
+struct i2c_pads_info i2c_pad_info0 = {
+	.scl = {
+		.i2c_mode  = MX6_PAD_EIM_D21__I2C1_SCL | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gpio_mode = MX6_PAD_EIM_D21__GPIO3_IO21 | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gp = TS7970_SCL
+	},
+	.sda = {
+		.i2c_mode = MX6_PAD_EIM_D28__I2C1_SDA | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gpio_mode = MX6_PAD_EIM_D28__GPIO3_IO28 | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gp = TS7970_SDA
+	}
+};
+
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
 {
 	return (bus == 0 && cs == 0) ? (TS7970_SPI_CS) : -1;
@@ -274,11 +292,6 @@ static void setup_iomux_enet(void)
 	udelay(1000 * 100);
 
 	imx_iomux_v3_setup_multiple_pads(enet_pads2, ARRAY_SIZE(enet_pads2));
-}
-
-static void setup_iomux_uart(void)
-{
-	imx_iomux_v3_setup_multiple_pads(uart1_pads, ARRAY_SIZE(uart1_pads));
 }
 
 struct fsl_esdhc_cfg usdhc_cfg[2] = {
@@ -357,6 +370,36 @@ int board_phy_config(struct phy_device *phydev)
 	return 0;
 }
 
+void setup_i2c(void)
+{
+	int i;
+
+	// EN RTC fet
+	gpio_direction_output(TS7970_EN_RTC, 0);
+
+	imx_iomux_v3_setup_multiple_pads(i2c_pads, ARRAY_SIZE(i2c_pads));
+	gpio_direction_input(TS7970_SCL);
+	gpio_direction_input(TS7970_SDA);
+
+	// On rare occasions the RTC misbehaves and drives the pins
+	// on i2c.  Turning off the fet prevents this condition
+	udelay(1000*2); // 2ms to turn on fet
+	for (i = 0; i < 5; i++)
+	{
+		if (gpio_get_value(TS7970_SCL) == 1 &&
+			gpio_get_value(TS7970_SDA) == 1)
+			break;
+		puts("Attempting to reset RTC\n");
+		// Enable RTC FET
+		gpio_direction_output(TS7970_EN_RTC, 1);
+		udelay(1000*200); // at least 140ms to discharge
+		gpio_direction_output(TS7970_EN_RTC, 0);
+		udelay(1000*2); // 2ms to turn on
+		if(i == 4) puts ("Not able to force bus idle.  Giving up.\n");
+	}
+	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info0);
+}
+
 /*
  * Do not overwrite the console
  * Use always serial for U-Boot console
@@ -410,15 +453,39 @@ int board_eth_init(bd_t *bis)
 
 int board_early_init_f(void)
 {
-	setup_iomux_uart();
+	char *rcause = get_reset_cause(0);
+
+	/* The TS-7970 should reset from a poke in the fpga to cause a true 
+	 * POR reset.  Unfortunately the i2c bus needed to do that can't
+	 * be accessed this early on, so this will just silence the uart
+	 * on boots that are actually resets until it boots enough to reset */
+	if(strstr(rcause, "WDOG")) {
+		imx_iomux_v3_setup_multiple_pads(uart1_gpio_pads, ARRAY_SIZE(uart1_gpio_pads));
+	} else {
+		imx_iomux_v3_setup_multiple_pads(uart1_pads, ARRAY_SIZE(uart1_pads));
+	}
 
 	return 0;
 }
 
+void reset_misc(void)
+{
+	uint8_t val = 0x2;
+	/* Poke reset register in the fpga */
+	i2c_write(0x28, 30, 2, &val, 1);
+}
+
 int misc_init_r(void)
 {
+	uint8_t val = 0x2;
 	int sdboot = 0;
 	struct iomuxc *iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
+	char *rcause = get_reset_cause(1);
+
+	/* If there is ever a watchdog reset, cause a full POR */
+	if(strstr(rcause, "WDOG")) {
+		i2c_write(0x28, 30, 2, &val, 1);
+	}
 
 	imx_iomux_v3_setup_multiple_pads(misc_pads, ARRAY_SIZE(misc_pads));
 
@@ -451,7 +518,13 @@ int misc_init_r(void)
 	#endif
 
 	setenv("model", "7970");
-	setenv("rcause", get_reset_cause(1));
+
+	i2c_read(0x28, 31, 2, &val, 1);
+	if(val & 0x4) {
+		setenv("pushsw", "off");
+	} else {
+		setenv("pushsw", "on");
+	}
 
 	/* PCIE does not get properly disabled from a watchdog reset.  This prevents 
 	 * a hang in the kernel if pcie was enabled in a previous boot. */
@@ -463,32 +536,7 @@ int misc_init_r(void)
 
 int board_init(void)
 {
-	int i;
-
-	imx_iomux_v3_setup_multiple_pads(i2c_pads, ARRAY_SIZE(i2c_pads));
-
-	// EN RTC fet
-	gpio_direction_output(TS7970_EN_RTC, 0);
-	gpio_direction_input(TS7970_SCL);
-	gpio_direction_input(TS7970_SDA);
-
-	// On rare occasions the RTC misbehaves and drives the pins
-	// on i2c.  Turning off the fet prevents this condition
-	udelay(1000*2); // 2ms to turn on fet
-	for (i = 0; i < 5; i++)
-	{
-		if (gpio_get_value(TS7970_SCL) == 1 &&
-			gpio_get_value(TS7970_SDA) == 1)
-			break;
-		puts("Attempting to reset RTC\n");
-		// Enable RTC FET
-		gpio_direction_output(TS7970_EN_RTC, 1);
-		udelay(1000*200); // at least 140ms to discharge
-		gpio_direction_output(TS7970_EN_RTC, 0);
-		udelay(1000*2); // 2ms to turn on
-		if(i == 4) puts ("Not able to force bus idle.  Giving up.\n");
-	}
-
+	setup_i2c();
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 

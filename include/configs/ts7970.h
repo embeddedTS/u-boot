@@ -36,6 +36,12 @@
 #define CONFIG_SPI_FLASH
 #define CONFIG_SPI_FLASH_STMICRO
 #define CONFIG_MXC_SPI
+ 
+/* I2C Configs */
+#define CONFIG_CMD_I2C
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_MXC
+#define CONFIG_SYS_I2C_SPEED		100000
 
 /* MMC Configs */
 #define CONFIG_FSL_ESDHC
@@ -144,7 +150,7 @@
 #define CONFIG_NFS_TIMEOUT             10000UL
 
 #define CONFIG_PREBOOT \
-	"if gpio input 4; then " \
+	"if test ${pushsw} = 'on'; then " \
 		" setenv bootdelay -1; " \
 		" run usbprod; " \
 	" else " \
