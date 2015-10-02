@@ -174,6 +174,9 @@
 			"then echo Booting from custom /boot/boot.ub; " \
 			"source ${loadaddr}; " \
 		"fi; " \
+		"if load mmc 0:1 ${loadaddr} /boot/ts7970-fpga.vme; " \
+			"then fpga load 0 ${loadaddr} ${filesize}" \
+		"fi; " \
 		"load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; " \
 		"load mmc 0:1 ${loadaddr} ${uimage}; " \
 		"setenv bootargs root=/dev/mmcblk1p1 rootwait rw ${cmdline_append}; " \
@@ -182,6 +185,9 @@
 		"if load mmc 1:1 ${loadaddr} /boot/boot.ub; " \
 			"then echo Booting from custom /boot/boot.ub; " \
 			"source ${loadaddr}; " \
+		"fi; " \
+		"if load mmc 1:1 ${loadaddr} /boot/ts7970-fpga.vme; " \
+			"then fpga load 0 ${loadaddr} ${filesize}" \
 		"fi; " \
 		"load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; " \
 		"load mmc 1:1 ${loadaddr} ${uimage}; " \
@@ -192,6 +198,9 @@
 		"if load sata 0:1 ${loadaddr} /boot/boot.ub; " \
 			"then echo Booting from custom /boot/boot.ub; " \
 			"source ${loadaddr}; " \
+		"fi; " \
+		"if load sata 0:1 ${loadaddr} /boot/ts7970-fpga.vme; " \
+			"then fpga load 0 ${loadaddr} ${filesize}" \
 		"fi; " \
 		"load sata 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; " \
 		"load sata 0:1 ${loadaddr} ${uimage}; " \
