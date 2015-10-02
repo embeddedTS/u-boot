@@ -370,7 +370,7 @@ int board_phy_config(struct phy_device *phydev)
 	return 0;
 }
 
-void setup_i2c(void)
+void fixup_i2c(void)
 {
 	int i;
 
@@ -536,7 +536,7 @@ int misc_init_r(void)
 
 int board_init(void)
 {
-	setup_i2c();
+	fixup_i2c();
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
