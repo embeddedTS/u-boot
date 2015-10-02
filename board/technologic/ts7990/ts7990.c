@@ -180,17 +180,91 @@ iomux_v3_cfg_t const lcd_pads[] = {
 	MX6_PAD_DISP0_DAT23__IPU1_DISP0_DATA23	| MUX_PAD_CTRL(LCD_PAD_CTRL),
 };
 
-iomux_v3_cfg_t const fpga_pads[] = {
-	MX6_PAD_CSI0_MCLK__GPIO5_IO19	| MUX_PAD_CTRL(NO_PAD_CTRL),
-	MX6_PAD_GPIO_17__GPIO7_IO12		| MUX_PAD_CTRL(NO_PAD_CTRL),
-	MX6_PAD_GPIO_5__GPIO1_IO05		| MUX_PAD_CTRL(NO_PAD_CTRL),
-	MX6_PAD_GPIO_16__GPIO7_IO11		| MUX_PAD_CTRL(NO_PAD_CTRL),
-};
-
 iomux_v3_cfg_t const i2c_pads[] = {
 	MX6_PAD_EIM_D21__GPIO3_IO21	| MUX_PAD_CTRL(I2C_PAD_CTRL),
 	MX6_PAD_EIM_D28__GPIO3_IO28	| MUX_PAD_CTRL(I2C_PAD_CTRL),
 };
+
+struct i2c_pads_info i2c_pad_info0 = {
+	.scl = {
+		.i2c_mode  = MX6_PAD_EIM_D21__I2C1_SCL | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gpio_mode = MX6_PAD_EIM_D21__GPIO3_IO21 | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gp = TS7990_SCL
+	},
+	.sda = {
+		.i2c_mode = MX6_PAD_EIM_D28__I2C1_SDA | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gpio_mode = MX6_PAD_EIM_D28__GPIO3_IO28 | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gp = TS7990_SDA
+	}
+};
+
+#if defined(CONFIG_FPGA)
+
+iomux_v3_cfg_t const fpga_jtag_pads[] = {
+	MX6_PAD_GPIO_5__GPIO1_IO05 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// JTAG_FPGA_TMS
+	MX6_PAD_GPIO_16__GPIO7_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// JTAG_FPGA_TCK
+	MX6_PAD_GPIO_17__GPIO7_IO12 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// JTAG_FPGA_TDI
+	MX6_PAD_CSI0_MCLK__GPIO5_IO19 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// JTAG_FPGA_TDO
+};
+
+static void ts7990_jtag_init(void)
+{
+	gpio_direction_output(CONFIG_FPGA_TDI, 1);
+	gpio_direction_output(CONFIG_FPGA_TCK, 1);
+	gpio_direction_output(CONFIG_FPGA_TMS, 1);
+	gpio_direction_input(CONFIG_FPGA_TDO);
+
+	return;
+}
+
+static void ts7990_fpga_jtag_set_tdi(int value)
+{
+	gpio_set_value(CONFIG_FPGA_TDI, value);
+}
+
+static void ts7990_fpga_jtag_set_tms(int value)
+{
+	gpio_set_value(CONFIG_FPGA_TMS, value);
+}
+
+static void ts7990_fpga_jtag_set_tck(int value)
+{
+	gpio_set_value(CONFIG_FPGA_TCK, value);
+}
+
+static int ts7990_fpga_jtag_get_tdo(void)
+{
+	return gpio_get_value(CONFIG_FPGA_TDO);
+}
+
+lattice_board_specific_func ts7990_fpga_fns = {
+	ts7990_jtag_init,
+	ts7990_fpga_jtag_set_tdi,
+	ts7990_fpga_jtag_set_tms,
+	ts7990_fpga_jtag_set_tck,
+	ts7990_fpga_jtag_get_tdo
+};
+
+Lattice_desc ts7990_fpga = {
+	Lattice_XP2,
+	lattice_jtag_mode,
+	540212,
+	(void *) &ts7990_fpga_fns,
+	NULL,
+	0,
+	"machxo_2_cb132"
+};
+
+int ts7990_fpga_init(void)
+{
+	fpga_init();
+	fpga_add(fpga_lattice, &ts7990_fpga);
+	puts("Fpga should be loaded\n");
+	return 0;
+}
+
+#endif
+
 
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
 {
@@ -381,6 +455,7 @@ int misc_init_r(void)
 {
 	int sdboot = 0;
 	struct iomuxc *iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
+	uint8_t val;
 
 	imx_iomux_v3_setup_multiple_pads(misc_pads, ARRAY_SIZE(misc_pads));
 
@@ -419,6 +494,19 @@ int misc_init_r(void)
 	setbits_le32(&iomuxc_regs->gpr[1], IOMUXC_GPR1_TEST_POWERDOWN);
 	clrbits_le32(&iomuxc_regs->gpr[1], IOMUXC_GPR1_REF_SSP_EN);
 
+	i2c_read(0x28, 51, 2, &val, 1);
+
+	if(!(val & 0x80)) // R39 (LXD)
+		setenv("lcd", "lxd");
+	else
+	setenv("lcd", "microtips");
+
+	//if(!(val & 0x40)) // R34 (WIFI)
+
+	//if(!(val & 0x20)) // R36 Quad
+
+	//if(!(val & 0x10)) // R37 Commercial Temp
+
 	return 0;
 }
 
@@ -449,6 +537,7 @@ int board_init(void)
 		udelay(1000*2); // 2ms to turn on
 		if(i == 4) puts ("Not able to force bus idle.  Giving up.\n");
 	}
+	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info0);
 
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
@@ -456,6 +545,10 @@ int board_init(void)
 
 	#ifdef CONFIG_CMD_SATA
 	setup_sata();
+	#endif
+
+	#ifdef CONFIG_FPGA
+	ts7990_fpga_init();
 	#endif
 
 	return 0;
