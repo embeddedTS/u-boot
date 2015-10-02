@@ -175,7 +175,7 @@
 			"source ${loadaddr}; " \
 		"fi; " \
 		"if load mmc 0:1 ${loadaddr} /boot/ts7970-fpga.vme; " \
-			"then fpga load 0 ${loadaddr} ${filesize}" \
+			"then fpga load 0 ${loadaddr} ${filesize}; " \
 		"fi; " \
 		"load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; " \
 		"load mmc 0:1 ${loadaddr} ${uimage}; " \
@@ -187,7 +187,7 @@
 			"source ${loadaddr}; " \
 		"fi; " \
 		"if load mmc 1:1 ${loadaddr} /boot/ts7970-fpga.vme; " \
-			"then fpga load 0 ${loadaddr} ${filesize}" \
+			"then fpga load 0 ${loadaddr} ${filesize}; " \
 		"fi; " \
 		"load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; " \
 		"load mmc 1:1 ${loadaddr} ${uimage}; " \
