@@ -238,6 +238,23 @@
 		"load mmc 1:1 ${loadaddr} ${uimage}; " \
 		"setenv bootargs root=/dev/mmcblk2p1 rootwait rw smsc95xx.macaddr=${eth1addr} ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
+	"sataboot=echo Booting from SATA ...; " \
+		"bbdetect; " \
+		"if load sata 0:1 ${loadaddr} /boot/boot.ub; " \
+			"then echo Booting from custom /boot/boot.ub; " \
+			"source ${loadaddr}; " \
+		"fi; " \
+		"if load sata 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
+			"then echo $baseboardid detected; " \
+		"else " \
+			"echo Booting default device tree; " \
+			"load sata 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb; " \
+		"fi; " \
+		"load sata 0:1 ${loadaddr} /boot/ts4900-fpga.bin; " \
+		"ice40 ${loadaddr} ${filesize}; " \
+		"load sata 0:1 ${loadaddr} ${uimage}; " \
+		"setenv bootargs root=/dev/sda1 rootwait rw smsc95xx.macaddr=${eth1addr} ${cmdline_append}; " \
+		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 	"usbprod=usb start; " \
 		"if usb storage; " \
 			"then echo Checking USB storage for updates; " \
