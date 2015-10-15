@@ -14,6 +14,9 @@
 
 /* SPI/QSPI flash device params structure */
 const struct spi_flash_params spi_flash_params_table[] = {
+#ifdef CONFIG_SPI_FLASH_ISSI
+	{"IS25LQ016B",     0x9d4015, 0x9d40,    64 * 1024,    32, RD_FULL,                  SECT_4K},
+#endif
 #ifdef CONFIG_SPI_FLASH_ATMEL		/* ATMEL */
 	{"AT45DB011D",	   0x1f2200, 0x0,	64 * 1024,     4,	0,		    SECT_4K},
 	{"AT45DB021D",	   0x1f2300, 0x0,	64 * 1024,     8,	0,		    SECT_4K},
