@@ -173,7 +173,7 @@
 	"nfsroot=/nfsroot/\0" \
 	"nfsip=192.168.0.1\0" \
 	"fdtaddr=0x41000000\0" \
-	"cmdline_append=rw rootwait console=null boardID=7680\0" \
+	"cmdline_append=rw rootwait console=ttyAMA0,115200 loglevel=3\0" \
 	"boot_fdt=yes\0" \
 	"ip_dyn=yes\0" \
 	"clearenv=if sf probe; then " \
