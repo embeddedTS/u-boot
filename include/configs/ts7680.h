@@ -119,11 +119,9 @@
 #endif
 
 /* I2C */
-/* This currently interfers with the Linux i2c setup.  
- * Disabling temporarily
 #define CONFIG_CMD_I2C
 #define CONFIG_I2C_MXS
-#define CONFIG_SYS_I2C_SPEED            100000 */
+#define CONFIG_SYS_I2C_SPEED            100000 
 
 /* SPI */
 #ifdef CONFIG_CMD_SPI
@@ -134,6 +132,7 @@
 #ifdef CONFIG_CMD_SF
 #define CONFIG_SPI_FLASH
 #define CONFIG_SPI_FLASH_STMICRO
+#define CONFIG_SPI_FLASH_ISSI
 #define CONFIG_SF_DEFAULT_BUS		2
 #define CONFIG_SF_DEFAULT_CS		0
 /* this may vary and depends on the installed chip */
@@ -174,7 +173,7 @@
 	"nfsroot=/nfsroot/\0" \
 	"nfsip=192.168.0.1\0" \
 	"fdtaddr=0x41000000\0" \
-	"cmdline_append=rw rootwait console=null boardID=7680\0" \
+	"cmdline_append=rw rootwait console=ttyAMA0,115200 loglevel=3\0" \
 	"boot_fdt=yes\0" \
 	"ip_dyn=yes\0" \
 	"clearenv=if sf probe; then " \

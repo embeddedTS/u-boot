@@ -25,6 +25,7 @@
 #include <spi.h>
 #include <fpga.h>
 #include <lattice.h>
+#include <i2c.h>
 
 #define TS7680_EN_SDPWR     MX28_PAD_PWM3__GPIO_3_28
 #define TS7680_SDBOOT_JP    MX28_PAD_LCD_D12__GPIO_1_12
@@ -205,6 +206,10 @@ int board_eth_init(bd_t *bis)
 	struct eth_device *dev;
 	int ret;
 	uchar enetaddr[6];
+	uint8_t val = 0x2;
+
+	/* Take switch out of reset */
+	i2c_write(0x28, 0x2b, 2, &val, 1);
 
 	ret = cpu_eth_init(bis);
 	if (ret)
