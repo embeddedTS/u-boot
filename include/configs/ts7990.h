@@ -199,7 +199,6 @@
 #define CONFIG_NFS_TIMEOUT 10000UL
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
-	"uimage=/boot/uImage\0" \
 	"ip_dyn=yes\0" \
 	"initrd_high=0xffffffff\0" \
 	"fdtaddr=0x18000000\0" \
@@ -213,51 +212,42 @@
 	"clearenv=if sf probe; then " \
 		"sf erase 0x100000 0x2000 && " \
 		"echo restored environment to factory default ; fi\0" \
-	"sdboot=echo Booting from the SD card ...; " \
-		"bbdetect; " \
+	"sdboot=echo Booting from SD ...; " \
 		"if load mmc 0:1 ${loadaddr} /boot/boot.ub; " \
 			"then echo Booting from custom /boot/boot.ub; " \
 			"source ${loadaddr}; " \
 		"fi; " \
-		"if load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990.dtb; " \
-			"then echo $baseboardid detected; " \
-		"else " \
-			"echo Booting default device tree; " \
-			"if load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-lxd.dtb; " \
-			   "then echo Loading lxd device tree; " \
-			"elif load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-microtips.dtb; " \
-			   "then echo Loading microtips device tree; " \
-         "elif load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-okaya.dtb; " \
-			   "then echo Loading okaya device tree; " \
-			"fi; " \
+		"if load mmc 0:1 ${loadaddr} /boot/ts7990-fpga.vme; " \
+			"then fpga load 0 ${loadaddr} ${filesize}; " \
 		"fi; " \
-		"load mmc 0:1 ${loadaddr} /boot/ts7990-fpga.bin; " \
-		"ice40 ${loadaddr} ${filesize}; " \
-		"load mmc 0:1 ${loadaddr} ${uimage}; " \
-		"setenv bootargs root=/dev/mmcblk1p1 rootwait rw ${cmdline_append}; " \
+		"load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-${lcd}.dtb; " \
+		"load mmc 0:1 ${loadaddr} /boot/uImage; " \
+		"setenv bootargs smsc95xx.macaddr=${eth1addr} root=/dev/mmcblk1p1 rootwait rw ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
-	"emmcboot=echo Booting from the eMMC ...; " \
-		"bbdetect; " \
+	"emmcboot=echo Booting from eMMC ...; " \
 		"if load mmc 1:1 ${loadaddr} /boot/boot.ub; " \
 			"then echo Booting from custom /boot/boot.ub; " \
 			"source ${loadaddr}; " \
 		"fi; " \
-		"if load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7990.dtb; " \
-			"then echo $baseboardid detected; " \
-		"else " \
-			"echo Booting default device tree; " \
-			"if load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-lxd.dtb; " \
-			   "then echo Loading lxd device tree; " \
-			"elif load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-microtips.dtb; " \
-			   "then echo Loading microtips device tree; " \
-         "elif load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-okaya.dtb; " \
-			   "then echo Loading okaya device tree; " \
-			"fi; " \
+		"if load mmc 1:1 ${loadaddr} /boot/ts7990-fpga.vme; " \
+			"then fpga load 0 ${loadaddr} ${filesize}; " \
 		"fi; " \
-		"load mmc 1:1 ${loadaddr} /boot/ts7990-fpga.bin; " \
-		"ice40 ${loadaddr} ${filesize}; " \
-		"load mmc 1:1 ${loadaddr} ${uimage}; " \
-		"setenv bootargs root=/dev/mmcblk2p1 rootwait rw ${cmdline_append}; " \
+		"load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-${lcd}.dtb; " \
+		"load mmc 1:1 ${loadaddr} /boot/uImage; " \
+		"setenv bootargs smsc95xx.macaddr=${eth1addr} root=/dev/mmcblk2p1 rootwait rw ${cmdline_append}; " \
+		"bootm ${loadaddr} - ${fdtaddr}; \0" \
+	"sataboot=echo Booting from SATA ...; " \
+		"sata init; " \
+		"if load sata 0:1 ${loadaddr} /boot/boot.ub; " \
+			"then echo Booting from custom /boot/boot.ub; " \
+			"source ${loadaddr}; " \
+		"fi; " \
+		"if load sata 0:1 ${loadaddr} /boot/ts7990-fpga.vme; " \
+			"then fpga load 0 ${loadaddr} ${filesize}; " \
+		"fi; " \
+		"load sata 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-${lcd}.dtb; " \
+		"load sata 0:1 ${loadaddr} /boot/uImage; " \
+		"setenv bootargs smsc95xx.macaddr=${eth1addr} root=/dev/sda1 rootwait rw ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 	"usbprod=usb start; " \
 		"if usb storage; " \
@@ -270,21 +260,11 @@
 			"fi; " \
 		"fi; \0" \
 	"nfsboot=echo Booting from NFS ...; " \
-		"dhcp ; " \
-		"bbdetect; " \
-		"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts7990.dtb; " \
-		"if fdt addr ${fdtaddr}; " \
-			"then echo $baseboardid detected; " \
-		"else " \
-			"echo Booting default device tree; " \
-			"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts7990.dtb; " \
-		"fi; " \
-		"nfs ${loadaddr} ${nfsroot}/boot/ts7990-fpga.bin; " \
-		"ice40 ${loadaddr} ${filesize}; " \
+		"dhcp; " \
+		"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts7990-${lcd}.dtb; " \
 		"nfs ${loadaddr} ${nfsroot}/boot/uImage; " \
-		"setenv bootargs root=/dev/nfs ip=dhcp nfsroot=${serverip}:${nfsroot} " \
-			"rootwait rw init=/sbin/init ${cmdline_append}; " \
-		"bootm ${loadaddr} - ${fdtaddr}; \0"
+		"setenv bootargs smsc95xx.macaddr=${eth1addr} root=/dev/nfs ip=dhcp nfsroot=${serverip}:${nfsroot} ${cmdline_append}; " \
+		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 
 #define CONFIG_BOOTCOMMAND \
 	"run usbprod; " \
