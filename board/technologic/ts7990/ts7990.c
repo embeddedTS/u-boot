@@ -408,6 +408,7 @@ int board_eth_init(bd_t *bis)
 	struct mii_dev *bus = NULL;
 	struct phy_device *phydev = NULL;
 	uchar enetaddr[6];
+	char enet1addr[18];
 	int ret;
 
 	setup_iomux_enet();
@@ -429,7 +430,6 @@ int board_eth_init(bd_t *bis)
 		free(bus);
 	}
 
-	// This should only happen in production
 #ifdef CONFIG_RANDOM_MACADDR
 	if (!eth_getenv_enetaddr("ethaddr", enetaddr)) {
 		printf("No MAC address set in fuses.  Using random mac address.\n");
@@ -438,6 +438,22 @@ int board_eth_init(bd_t *bis)
 		if (eth_setenv_enetaddr("ethaddr", enetaddr)) {
 			printf("Failed to set ethernet address\n");
 		}
+	} else {
+		/* Each board is allocated two sequential mac addresses.
+		 * This is used for USB ethernets or the I210 on a carrier board */
+		if (enetaddr[5] == 0xff) {
+			if (enetaddr[4] == 0xff) {
+				enetaddr[3]++;
+			}
+			enetaddr[4]++;
+		}
+		enetaddr[5]++;
+
+		snprintf(enet1addr, 18, "00:d0:69:%02x:%02x:%02x",
+				 enetaddr[3],
+				 enetaddr[4],
+				 enetaddr[5]);
+		setenv("eth1addr", enet1addr);
 	}
 #endif
 	
