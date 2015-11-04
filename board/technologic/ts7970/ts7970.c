@@ -68,8 +68,7 @@ int random_mac = 0;
 	PAD_CTL_SPEED_LOW | PAD_CTL_DSE_80ohm |			\
 	PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
-#define ENET_PAD_CTRL (PAD_CTL_PUS_100K_UP |			\
-	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS)
+#define ENET_PAD_CTRL (PAD_CTL_SPEED_MED | PAD_CTL_DSE_240ohm)
 
 #define SPI_PAD_CTRL (PAD_CTL_HYS | PAD_CTL_SPEED_MED |		\
 	PAD_CTL_DSE_40ohm     | PAD_CTL_SRE_FAST)
@@ -362,7 +361,7 @@ int board_mmc_init(bd_t *bis)
 
 int board_phy_config(struct phy_device *phydev)
 {
-	ksz9031_phy_extended_write(phydev, 0x2, 0x8, 0x8000, 0x303);
+	ksz9031_phy_extended_write(phydev, 0x2, 0x8, 0x8000, 0x3EF);
 
 	if (phydev->drv->config)
 		phydev->drv->config(phydev); 
