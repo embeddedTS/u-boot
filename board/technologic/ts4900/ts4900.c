@@ -301,7 +301,7 @@ int board_mmc_init(bd_t *bis)
 
 int board_phy_config(struct phy_device *phydev)
 {
-	ksz9031_phy_extended_write(phydev, 0x2, 0x8, 0x8000, 0x3f30);
+	ksz9031_phy_extended_write(phy, 0x2, 0x8, 0x8000, 0x303);
 
 	if (phydev->drv->config)
 		phydev->drv->config(phydev); 
