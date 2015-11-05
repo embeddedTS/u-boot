@@ -253,7 +253,7 @@ int bmp_display(ulong addr, int x, int y)
 	if (bmp_alloc_addr)
 		free(bmp_alloc_addr);
 
-	splash_screen_prepare();
+	bmp_display_post();
 
 	return ret;
 }
