@@ -52,6 +52,7 @@
 #define TS7990_EN_RTC		IMX_GPIO_NR(3, 23)
 #define TS7990_SCL			IMX_GPIO_NR(3, 21)
 #define TS7990_SDA			IMX_GPIO_NR(3, 28)
+#define TS7990_BKL          IMX_GPIO_NR(2, 9)
 
 DECLARE_GLOBAL_DATA_PTR;
 int random_mac = 0;
@@ -88,6 +89,7 @@ iomux_v3_cfg_t const misc_pads[] = {
 	MX6_PAD_EIM_A16__GPIO2_IO22 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// EN_USB_5V
 	MX6_PAD_EIM_RW__GPIO2_IO26 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// JP_SD_BOOT#
 	MX6_PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// EN_RTC_PWR#
+	MX6_PAD_GPIO_3__XTALOSC_REF_CLK_24M | MUX_PAD_CTRL(NO_PAD_CTRL), 
 };
 
 /* SD card */
@@ -157,7 +159,7 @@ iomux_v3_cfg_t const lcd_pads[] = {
 	// DE
 	MX6_PAD_DI0_PIN15__IPU1_DI0_PIN15 | MUX_PAD_CTRL(LCD_PAD_CTRL),
 	// PWM
-	MX6_PAD_SD4_DAT1__PWM3_OUT | MUX_PAD_CTRL(LCD_PAD_CTRL),
+	MX6_PAD_SD4_DAT1__GPIO2_IO09 | MUX_PAD_CTRL(LCD_PAD_CTRL),
 
 	MX6_PAD_DISP0_DAT2__IPU1_DISP0_DATA02	| MUX_PAD_CTRL(LCD_PAD_CTRL),
 	MX6_PAD_DISP0_DAT3__IPU1_DISP0_DATA03	| MUX_PAD_CTRL(LCD_PAD_CTRL),
@@ -264,6 +266,89 @@ int ts7990_fpga_init(void)
 
 #endif
 
+static int check_lcd(struct display_info_t const *dev)
+{
+	return 1;
+}
+
+static void enable_lvds(struct display_info_t const *dev)
+{
+	struct iomuxc *iomux = (struct iomuxc *)
+				IOMUXC_BASE_ADDR;
+	u32 reg = readl(&iomux->gpr[2]);
+	reg |= IOMUXC_GPR2_DATA_WIDTH_CH0_24BIT;
+	writel(reg, &iomux->gpr[2]);
+}
+
+struct display_info_t const displays[] = {{
+	.bus	= 0,
+	.addr	= 0,
+	.pixfmt	= IPU_PIX_FMT_LVDS666,
+	.detect	= check_lcd,
+	.enable	= enable_lvds,
+	.mode	= {
+		.name           = "LXD-PCAP-M7345A",
+		.refresh        = 60,
+		.xres           = 1024,
+		.yres           = 600,
+		.pixclock       = 19530,
+		.left_margin    = 46,
+		.right_margin   = 210,
+		.upper_margin   = 23,
+		.lower_margin   = 12,
+		.hsync_len      = 20,
+		.vsync_len      = 10,
+		.sync           = FB_SYNC_EXT,
+		.vmode          = FB_VMODE_NONINTERLACED
+} } };
+size_t display_count = ARRAY_SIZE(displays);
+
+static void setup_display(void)
+{
+	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
+	struct iomuxc *iomux = (struct iomuxc *)IOMUXC_BASE_ADDR;
+	int reg;
+
+	enable_ipu_clock();
+
+	/* Turn on LDB0,IPU,IPU DI0 clocks */
+	reg = __raw_readl(&mxc_ccm->CCGR3);
+	reg |=  MXC_CCM_CCGR3_LDB_DI0_MASK;
+	writel(reg, &mxc_ccm->CCGR3);
+
+	/* set LDB0, LDB1 clk select to 011/011 */
+	reg = readl(&mxc_ccm->cs2cdr);
+	reg &= ~(MXC_CCM_CS2CDR_LDB_DI0_CLK_SEL_MASK
+		 |MXC_CCM_CS2CDR_LDB_DI1_CLK_SEL_MASK);
+	reg |= (3<<MXC_CCM_CS2CDR_LDB_DI0_CLK_SEL_OFFSET);
+	writel(reg, &mxc_ccm->cs2cdr);
+
+	reg = readl(&mxc_ccm->cscmr2);
+	reg |= MXC_CCM_CSCMR2_LDB_DI0_IPU_DIV;
+	writel(reg, &mxc_ccm->cscmr2);
+
+	reg = readl(&mxc_ccm->chsccdr);
+	reg |= (CHSCCDR_CLK_SEL_LDB_DI0
+		<<MXC_CCM_CHSCCDR_IPU1_DI0_CLK_SEL_OFFSET);
+	writel(reg, &mxc_ccm->chsccdr);
+
+	reg = IOMUXC_GPR2_BGREF_RRMODE_EXTERNAL_RES
+	     |IOMUXC_GPR2_DI0_VS_POLARITY_ACTIVE_LOW
+	     |IOMUXC_GPR2_BIT_MAPPING_CH1_SPWG
+	     |IOMUXC_GPR2_DATA_WIDTH_CH1_18BIT
+	     |IOMUXC_GPR2_BIT_MAPPING_CH0_SPWG
+	     |IOMUXC_GPR2_DATA_WIDTH_CH0_18BIT
+	     |IOMUXC_GPR2_LVDS_CH1_MODE_DISABLED
+	     |IOMUXC_GPR2_LVDS_CH0_MODE_ENABLED_DI0;
+	writel(reg, &iomux->gpr[2]);
+
+	reg = readl(&iomux->gpr[3]);
+	reg = (reg & ~(IOMUXC_GPR3_LVDS0_MUX_CTL_MASK
+			|IOMUXC_GPR3_HDMI_MUX_CTL_MASK))
+	    | (IOMUXC_GPR3_MUX_SRC_IPU1_DI0
+	       <<IOMUXC_GPR3_LVDS0_MUX_CTL_OFFSET);
+	writel(reg, &iomux->gpr[3]);
+}
 
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
 {
@@ -452,7 +537,7 @@ int board_eth_init(bd_t *bis)
 				 enetaddr[3],
 				 enetaddr[4],
 				 enetaddr[5]);
-		setenv("eth1addr", enet1addr);
+		setenv("usbethaddr", enet1addr);
 	}
 #endif
 	
@@ -462,6 +547,10 @@ int board_eth_init(bd_t *bis)
 int board_early_init_f(void)
 {
 	setup_iomux_uart();
+
+	#if defined(CONFIG_VIDEO_IPUV3)
+	setup_display();
+	#endif
 
 	return 0;
 }
@@ -522,7 +611,14 @@ int misc_init_r(void)
 
 	//if(!(val & 0x10)) // R37 Commercial Temp
 
+
 	return 0;
+}
+
+int bmp_display_post(void)
+{
+	/* Enable backlight late in boot */
+	gpio_direction_output(TS7990_BKL, 1);
 }
 
 int board_init(void)

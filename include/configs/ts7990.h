@@ -54,20 +54,6 @@
 #define CONFIG_FPGA_TCK                 IMX_GPIO_NR(7, 11)
 #define CONFIG_FPGA_TDO                 IMX_GPIO_NR(5, 19)
 
-/* LCD Config */
-/*#define CONFIG_VIDEO
-#define CONFIG_VIDEO_IPUV3
-#define CONFIG_VGA_AS_SINGLE_DEVICE
-#define CONFIG_CFB_CONSOLE
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV
-#define CONFIG_SYS_CONSOLE_OVERWRITE_ROUTINE
-#define CONFIG_VIDEO_BMP_RLE8
-#define CONFIG_SPLASH_SCREEN
-#define CONFIG_BMP_16BPP
-#define CONFIG_IPUV3_CLK 260000000
-#define CONFIG_CMD_HDMIDETECT
-#define CONFIG_CONSOLE_MUX*/
-
 /* OCOTP Configs */
 #define CONFIG_CMD_IMXOTP
 #define CONFIG_IMX_OTP
@@ -132,6 +118,7 @@
 #define CONFIG_CMD_DHCP
 #define CONFIG_CMD_MII
 #define CONFIG_CMD_NET
+#define CONFIG_NET_MULTI
 #define CONFIG_LIB_RAND
 #define CONFIG_FEC_MXC
 #define CONFIG_NET_RETRY_COUNT     5
@@ -144,11 +131,29 @@
 #define CONFIG_PHY_MICREL
 #define PHY_ANEG_TIMEOUT 50000
 
+/* LCD */
+#define CONFIG_VIDEO
+#define CONFIG_VIDEO_IPUV3
+#define CONFIG_CFB_CONSOLE
+#define CONFIG_VGA_AS_SINGLE_DEVICE
+#define CONFIG_SYS_CONSOLE_IS_IN_ENV
+#define CONFIG_SYS_CONSOLE_OVERWRITE_ROUTINE
+#define CONFIG_VIDEO_BMP_RLE8
+#define CONFIG_VIDEO_BMP_GZIP
+#define CONFIG_BMP_16BPP
+#define CONFIG_CMD_BMP
+#define CONFIG_SPLASH_SCREEN
+#define CONFIG_IPUV3_CLK 260000000
+#define CONFIG_IMX_VIDEO_SKIP
+#define CONFIG_SYS_VIDEO_LOGO_MAX_SIZE  (2 << 20)
+
 /* USB Configs */ 
 #define CONFIG_CMD_USB
 #define CONFIG_CMD_FAT
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_MX6
+#define CONFIG_USB_HOST_ETHER
+#define CONFIG_USB_ETHER_SMSC95XX
 #define CONFIG_USB_STORAGE
 #define CONFIG_USB_GADGET_DUALSPEED
 #define CONFIG_USBD_HS
@@ -202,6 +207,7 @@
 	"ip_dyn=yes\0" \
 	"initrd_high=0xffffffff\0" \
 	"fdtaddr=0x18000000\0" \
+	"splashaddr=0x12000000\0" \
 	"fdt_high=0xffffffff\0" \
 	"serverip=192.168.0.11\0" \
 	"nfsroot=/u/x/ts7990/rootfs/\0" \
@@ -209,6 +215,8 @@
 	"disable_giga=1\0" \
 	"initrd_addr=0x10800000\0 " \
 	"cmdline_append=console=ttymxc0,115200 ro init=/sbin/init\0" \
+	"splash=sf probe; sf read ${splashaddr} 200000 1ff0; bmp display ${splashaddr}\0" \
+	"preboot=run splash\0" \
 	"clearenv=if sf probe; then " \
 		"sf erase 0x100000 0x2000 && " \
 		"echo restored environment to factory default ; fi\0" \
@@ -222,7 +230,7 @@
 		"fi; " \
 		"load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-${lcd}.dtb; " \
 		"load mmc 0:1 ${loadaddr} /boot/uImage; " \
-		"setenv bootargs smsc95xx.macaddr=${eth1addr} root=/dev/mmcblk1p1 rootwait rw ${cmdline_append}; " \
+		"setenv bootargs smsc95xx.macaddr=${usbethaddr} root=/dev/mmcblk1p1 rootwait rw ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 	"emmcboot=echo Booting from eMMC ...; " \
 		"if load mmc 1:1 ${loadaddr} /boot/boot.ub; " \
@@ -234,7 +242,7 @@
 		"fi; " \
 		"load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-${lcd}.dtb; " \
 		"load mmc 1:1 ${loadaddr} /boot/uImage; " \
-		"setenv bootargs smsc95xx.macaddr=${eth1addr} root=/dev/mmcblk2p1 rootwait rw ${cmdline_append}; " \
+		"setenv bootargs smsc95xx.macaddr=${usbethaddr} root=/dev/mmcblk2p1 rootwait rw ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 	"sataboot=echo Booting from SATA ...; " \
 		"sata init; " \
@@ -247,7 +255,7 @@
 		"fi; " \
 		"load sata 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-${lcd}.dtb; " \
 		"load sata 0:1 ${loadaddr} /boot/uImage; " \
-		"setenv bootargs smsc95xx.macaddr=${eth1addr} root=/dev/sda1 rootwait rw ${cmdline_append}; " \
+		"setenv bootargs smsc95xx.macaddr=${usbethaddr} root=/dev/sda1 rootwait rw ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 	"usbprod=usb start; " \
 		"if usb storage; " \
@@ -263,7 +271,7 @@
 		"dhcp; " \
 		"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts7990-${lcd}.dtb; " \
 		"nfs ${loadaddr} ${nfsroot}/boot/uImage; " \
-		"setenv bootargs smsc95xx.macaddr=${eth1addr} root=/dev/nfs ip=dhcp nfsroot=${serverip}:${nfsroot} ${cmdline_append}; " \
+		"setenv bootargs smsc95xx.macaddr=${usbethaddr} root=/dev/nfs ip=dhcp nfsroot=${serverip}:${nfsroot} ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 
 #define CONFIG_BOOTCOMMAND \
