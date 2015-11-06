@@ -143,6 +143,7 @@
 #define CONFIG_BMP_16BPP
 #define CONFIG_CMD_BMP
 #define CONFIG_SPLASH_SCREEN
+#define CONFIG_SPLASH_SCREEN_ALIGN
 #define CONFIG_IPUV3_CLK 260000000
 #define CONFIG_IMX_VIDEO_SKIP
 #define CONFIG_SYS_VIDEO_LOGO_MAX_SIZE  (2 << 20)
@@ -208,6 +209,7 @@
 	"initrd_high=0xffffffff\0" \
 	"fdtaddr=0x18000000\0" \
 	"splashaddr=0x12000000\0" \
+	"splashpos=m,m\0" \
 	"fdt_high=0xffffffff\0" \
 	"serverip=192.168.0.11\0" \
 	"nfsroot=/u/x/ts7990/rootfs/\0" \
@@ -215,7 +217,7 @@
 	"disable_giga=1\0" \
 	"initrd_addr=0x10800000\0 " \
 	"cmdline_append=console=ttymxc0,115200 ro init=/sbin/init\0" \
-	"splash=sf probe; sf read ${splashaddr} 200000 3607; bmp display ${splashaddr}\0" \
+	"splash=sf probe; sf read ${splashaddr} 200000 1de7; bmp display ${splashaddr}\0" \
 	"preboot=run splash\0" \
 	"clearenv=if sf probe; then " \
 		"sf erase 0x100000 0x2000 && " \

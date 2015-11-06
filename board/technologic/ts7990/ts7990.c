@@ -118,6 +118,11 @@ iomux_v3_cfg_t const uart1_pads[] = {
 	MX6_PAD_SD3_DAT6__UART1_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
 };
 
+iomux_v3_cfg_t const uart1_gpio_pads[] = {
+	MX6_PAD_SD3_DAT7__GPIO6_IO17 | MUX_PAD_CTRL(UART_PAD_CTRL),
+	MX6_PAD_SD3_DAT6__GPIO6_IO18 | MUX_PAD_CTRL(UART_PAD_CTRL),
+};
+
 iomux_v3_cfg_t const enet_pads1[] = {
 	MX6_PAD_ENET_MDIO__ENET_MDIO		| MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_MDC__ENET_MDC		| MUX_PAD_CTRL(ENET_PAD_CTRL),
@@ -260,34 +265,130 @@ int ts7990_fpga_init(void)
 {
 	fpga_init();
 	fpga_add(fpga_lattice, &ts7990_fpga);
-	puts("Fpga should be loaded\n");
 	return 0;
 }
 
 #endif
 
-static int check_lcd(struct display_info_t const *dev)
+static int detect_lcd(void)
 {
-	return 1;
+	static int lcd = -1;
+	if(lcd == -1) {
+		uint8_t val = 0;
+		i2c_read(0x28, 51, 2, &val, 1);
+		if(!(val & 0x80)) { // R39 (LXD)
+			lcd = 0;
+		} else {
+			i2c_read(0x28, 57, 2, &val, 1);
+			if(val & 8){
+				lcd = 1; // Okaya
+			} else {
+				lcd = 2; // Microtips
+			}
+		}
+	}
+	return lcd;
 }
 
-static void enable_lvds(struct display_info_t const *dev)
+static int is_lxd(struct display_info_t const *dev)
 {
+	if(detect_lcd() == 0)
+		return 1;
+	return 0;
+}
+static int is_okaya(struct display_info_t const *dev)
+{
+	if(detect_lcd() == 1)
+		return 1;
+	return 0;
+}
+
+static int is_microtips(struct display_info_t const *dev)
+{
+	if(detect_lcd() == 2)
+		return 1;
+	return 0;
+}
+
+static void setup_lxd(struct display_info_t const *dev)
+{
+	uint8_t val;
 	struct iomuxc *iomux = (struct iomuxc *)
 				IOMUXC_BASE_ADDR;
 	u32 reg = readl(&iomux->gpr[2]);
 	reg |= IOMUXC_GPR2_DATA_WIDTH_CH0_24BIT;
 	writel(reg, &iomux->gpr[2]);
+
+	printf("Enabling LXD\n");
+
+	// EN_LCD_POWER
+	val = 0x14;
+	i2c_write(0x28, 59, 2, &val, 1);
+	udelay(50000);
+	// Deassert LCD_RESET#
+	val = 0x1c;
+	i2c_write(0x28, 59, 2, &val, 1);
+	udelay(20000);
+	// enable LCD_11V
+	val = 0x18;
+	i2c_write(0x28, 59, 2, &val, 1);
+	udelay(20000);
+	// enable LCD_NEG_7V
+	val = 0x1a;
+	i2c_write(0x28, 59, 2, &val, 1);
+	udelay(30000);
+	// enable LCD_20V
+	val = 0x1b;
+	i2c_write(0x28, 59, 2, &val, 1);
+	// Wait 20ms more before driving lcd pins
+	udelay(20000);
 }
 
-struct display_info_t const displays[] = {{
-	.bus	= 0,
-	.addr	= 0,
+static void setup_microtips(struct display_info_t const *dev)
+{
+	uint8_t val;
+	imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
+
+	// EN_LCD_POWER
+	val = 0x14;
+	i2c_write(0x28, 59, 2, &val, 1);
+	udelay(50000);
+	// Deassert LCD_RESET#
+	val = 0x1c;
+	i2c_write(0x28, 59, 2, &val, 1);
+	udelay(20000);
+	// enable LCD_11V
+	val = 0x18;
+	i2c_write(0x28, 59, 2, &val, 1);
+	udelay(5000);
+	// enable LCD_NEG_7V
+	val = 0x1a;
+	i2c_write(0x28, 59, 2, &val, 1);
+	udelay(5000);
+	// enable LCD_20V
+	val = 0x1b;
+	i2c_write(0x28, 59, 2, &val, 1);
+	// Wait 20ms more before driving lcd pins
+	udelay(20000);
+}
+
+static void setup_okaya(struct display_info_t const *dev)
+{
+	uint8_t val;
+	imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
+
+	// EN_LCD_POWER
+	val = 0x14;
+	i2c_write(0x28, 59, 2, &val, 1);
+	udelay(50000);
+}
+
+struct display_info_t const displays[] = { {
 	.pixfmt	= IPU_PIX_FMT_LVDS666,
-	.detect	= check_lcd,
-	.enable	= enable_lvds,
+	.detect	= is_lxd,
+	.enable	= setup_lxd,
 	.mode	= {
-		.name           = "LXD-PCAP-M7345A",
+		.name           = "LXD-WSVGA",
 		.refresh        = 60,
 		.xres           = 1024,
 		.yres           = 600,
@@ -298,6 +399,42 @@ struct display_info_t const displays[] = {{
 		.lower_margin   = 12,
 		.hsync_len      = 20,
 		.vsync_len      = 10,
+		.sync           = FB_SYNC_EXT,
+		.vmode          = FB_VMODE_NONINTERLACED
+} }, {
+	.pixfmt	= IPU_PIX_FMT_LVDS666,
+	.detect	= is_okaya,
+	.enable	= setup_okaya,
+	.mode	= {
+		.name           = "OKAYA-WVGA",
+		.refresh        = 60,
+		.xres           = 800,
+		.yres           = 480,
+		.pixclock       = 30066,
+		.left_margin    = 50,
+		.right_margin   = 70,
+		.upper_margin   = 0,
+		.lower_margin   = 0,
+		.hsync_len      = 50,
+		.vsync_len      = 50,
+		.sync           = FB_SYNC_EXT,
+		.vmode          = FB_VMODE_NONINTERLACED
+} }, {
+	.pixfmt	= IPU_PIX_FMT_LVDS666,
+	.detect	= is_microtips,
+	.enable	= setup_microtips,
+	.mode	= {
+		.name           = "Microtips-WVGA",
+		.refresh        = 60,
+		.xres           = 800,
+		.yres           = 480,
+		.pixclock       = 30066,
+		.left_margin    = 50,
+		.right_margin   = 70,
+		.upper_margin   = 0,
+		.lower_margin   = 0,
+		.hsync_len      = 50,
+		.vsync_len      = 50,
 		.sync           = FB_SYNC_EXT,
 		.vmode          = FB_VMODE_NONINTERLACED
 } } };
@@ -394,11 +531,6 @@ static void setup_iomux_enet(void)
 	udelay(1000 * 100);
 
 	imx_iomux_v3_setup_multiple_pads(enet_pads2, ARRAY_SIZE(enet_pads2));
-}
-
-static void setup_iomux_uart(void)
-{
-	imx_iomux_v3_setup_multiple_pads(uart1_pads, ARRAY_SIZE(uart1_pads));
 }
 
 struct fsl_esdhc_cfg usdhc_cfg[2] = {
@@ -546,22 +678,43 @@ int board_eth_init(bd_t *bis)
 
 int board_early_init_f(void)
 {
-	setup_iomux_uart();
+	char *rcause = get_reset_cause(0);
+	imx_iomux_v3_setup_multiple_pads(misc_pads, ARRAY_SIZE(misc_pads));
 
-	#if defined(CONFIG_VIDEO_IPUV3)
-	setup_display();
-	#endif
+	/* The TS-7990 should reset from a poke in the fpga to cause a true 
+	 * POR reset.  Unfortunately the i2c bus needed to do that can't
+	 * be accessed this early on, so this will just silence the uart
+	 * on boots that are actually resets until it boots enough to reset */
+	if(strstr(rcause, "WDOG")) {
+		imx_iomux_v3_setup_multiple_pads(uart1_gpio_pads, ARRAY_SIZE(uart1_gpio_pads));
+	} else {
+		imx_iomux_v3_setup_multiple_pads(uart1_pads, ARRAY_SIZE(uart1_pads));
+		#if defined(CONFIG_VIDEO_IPUV3)
+		setup_display();
+		#endif
+	}
 
 	return 0;
+}
+
+void reset_misc(void)
+{
+	uint8_t val = 0x2;
+	/* Poke reset register in the fpga */
+	i2c_write(0x28, 30, 2, &val, 1);
 }
 
 int misc_init_r(void)
 {
 	int sdboot = 0;
 	struct iomuxc *iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
+	char *rcause = get_reset_cause(1);
 	uint8_t val;
 
-	imx_iomux_v3_setup_multiple_pads(misc_pads, ARRAY_SIZE(misc_pads));
+	/* If there is ever a watchdog reset, cause a full POR */
+	if(strstr(rcause, "WDOG")) {
+		i2c_write(0x28, 30, 2, &val, 1);
+	}
 
 	// Turn off USB hub until hub is reset
 	// Set DC_SEL_USB to use usb on the standard header
@@ -598,24 +751,10 @@ int misc_init_r(void)
 	setbits_le32(&iomuxc_regs->gpr[1], IOMUXC_GPR1_TEST_POWERDOWN);
 	clrbits_le32(&iomuxc_regs->gpr[1], IOMUXC_GPR1_REF_SSP_EN);
 
-	i2c_read(0x28, 51, 2, &val, 1);
-
-	if(!(val & 0x80)) // R39 (LXD)
-		setenv("lcd", "lxd");
-	else
-	setenv("lcd", "microtips");
-
-	//if(!(val & 0x40)) // R34 (WIFI)
-
-	//if(!(val & 0x20)) // R36 Quad
-
-	//if(!(val & 0x10)) // R37 Commercial Temp
-
-
 	return 0;
 }
 
-int bmp_display_post(void)
+void bmp_display_post(void)
 {
 	/* Enable backlight late in boot */
 	gpio_direction_output(TS7990_BKL, 1);
