@@ -213,7 +213,7 @@ static int bmp_info(ulong addr)
 
 __weak void bmp_display_post(void)
 {
-	return 0;
+	return;
 }
 
 /*
