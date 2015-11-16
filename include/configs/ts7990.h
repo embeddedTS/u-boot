@@ -197,12 +197,20 @@
 #define CONFIG_AUTOBOOT_PROMPT "Press Ctrl+C to abort autoboot in %d second(s)\n", bootdelay
 #define CTRL(c) ((c)&0x1F)     
 #define CONFIG_AUTOBOOT_STOP_STR  (char []){CTRL('C'), 0}
-#define CONFIG_PREBOOT                 ""
 #define CONFIG_LOADADDR			       0x12000000
 #define CONFIG_SYS_TEXT_BASE	       0x17800000
 #define CONFIG_MISC_INIT_R
 
 #define CONFIG_NFS_TIMEOUT 10000UL
+
+#define CONFIG_PREBOOT \
+ 	"run splash; " \
+	"if test ${jpuboot} = 'on'; then " \
+		" setenv bootdelay -1; " \
+		" run usbprod; " \
+	" else " \
+		" setenv bootdelay 0; " \
+	"fi" 
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"ip_dyn=yes\0" \
@@ -218,7 +226,6 @@
 	"initrd_addr=0x10800000\0 " \
 	"cmdline_append=console=ttymxc0,115200 ro init=/sbin/init\0" \
 	"splash=sf probe; sf read ${splashaddr} 200000 1de7; bmp display ${splashaddr}\0" \
-	"preboot=run splash\0" \
 	"clearenv=if sf probe; then " \
 		"sf erase 0x100000 0x2000 && " \
 		"echo restored environment to factory default ; fi\0" \
@@ -277,7 +284,6 @@
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 
 #define CONFIG_BOOTCOMMAND \
-	"run usbprod; " \
 	"if test ${jpsdboot} = 'on' ; " \
 		"then run sdboot; " \
 		"else run emmcboot; " \
