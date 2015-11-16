@@ -38,8 +38,9 @@
 #include <lattice.h>
 
 #define TS7990_HUB_RESETN	IMX_GPIO_NR(2, 11)
-#define TS7990_EN_5V		IMX_GPIO_NR(2, 22)
-#define TS7990_SDBOOT		IMX_GPIO_NR(5, 17)
+#define TS7990_ENUSB_5V		IMX_GPIO_NR(2, 22)
+#define TS7990_SDBOOT		IMX_GPIO_NR(2, 26)
+#define TS7990_JPUBOOT		IMX_GPIO_NR(2, 25)
 #define TS7990_SPI_CS		IMX_GPIO_NR(3, 19)
 #define TS7990_PHY_RST		IMX_GPIO_NR(4, 20)
 #define TS7990_RGMII_RXC	IMX_GPIO_NR(6, 30)
@@ -48,7 +49,6 @@
 #define TS7990_RGMII_RD2	IMX_GPIO_NR(6, 28)
 #define TS7990_RGMII_RD3	IMX_GPIO_NR(6, 29)
 #define TS7990_RGMII_RX_CTL	IMX_GPIO_NR(6, 24)
-#define TS7990_EN_SDPWR		IMX_GPIO_NR(2, 28)
 #define TS7990_EN_RTC		IMX_GPIO_NR(3, 23)
 #define TS7990_SCL			IMX_GPIO_NR(3, 21)
 #define TS7990_SDA			IMX_GPIO_NR(3, 28)
@@ -65,7 +65,7 @@ int random_mac = 0;
 	PAD_CTL_SPEED_LOW | PAD_CTL_DSE_80ohm |			\
 	PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
-#define ENET_PAD_CTRL (PAD_CTL_SPEED_MED | PAD_CTL_DSE_240ohm)
+#define ENET_PAD_CTRL (PAD_CTL_SPEED_MED | PAD_CTL_DSE_80ohm)
 
 #define LCD_PAD_CTRL (PAD_CTL_PUS_100K_UP |			\
 	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS)
@@ -88,8 +88,10 @@ iomux_v3_cfg_t const misc_pads[] = {
 	MX6_PAD_SD4_DAT3__GPIO2_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// USB_HUB_RESET#
 	MX6_PAD_EIM_A16__GPIO2_IO22 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// EN_USB_5V
 	MX6_PAD_EIM_RW__GPIO2_IO26 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// JP_SD_BOOT#
+	MX6_PAD_EIM_OE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL), // JP_OPTION
 	MX6_PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL), 	// EN_RTC_PWR#
 	MX6_PAD_GPIO_3__XTALOSC_REF_CLK_24M | MUX_PAD_CTRL(NO_PAD_CTRL), 
+	MX6_PAD_SD4_DAT1__GPIO2_IO09 | MUX_PAD_CTRL(LCD_PAD_CTRL),  // PWM_LOCAL_LCD
 };
 
 /* SD card */
@@ -163,9 +165,6 @@ iomux_v3_cfg_t const lcd_pads[] = {
 	MX6_PAD_DI0_DISP_CLK__IPU1_DI0_DISP_CLK | MUX_PAD_CTRL(LCD_PAD_CTRL),
 	// DE
 	MX6_PAD_DI0_PIN15__IPU1_DI0_PIN15 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-	// PWM
-	MX6_PAD_SD4_DAT1__GPIO2_IO09 | MUX_PAD_CTRL(LCD_PAD_CTRL),
-
 	MX6_PAD_DISP0_DAT2__IPU1_DISP0_DATA02	| MUX_PAD_CTRL(LCD_PAD_CTRL),
 	MX6_PAD_DISP0_DAT3__IPU1_DISP0_DATA03	| MUX_PAD_CTRL(LCD_PAD_CTRL),
 	MX6_PAD_DISP0_DAT4__IPU1_DISP0_DATA04	| MUX_PAD_CTRL(LCD_PAD_CTRL),
@@ -276,15 +275,15 @@ static int detect_lcd(void)
 	if(lcd == -1) {
 		uint8_t val = 0;
 		i2c_read(0x28, 51, 2, &val, 1);
-		if(!(val & 0x80)) { // R39 (LXD)
-			lcd = 0;
-		} else {
+		if(val & 0x8) {
 			i2c_read(0x28, 57, 2, &val, 1);
 			if(val & 8){
 				lcd = 1; // Okaya
 			} else {
 				lcd = 2; // Microtips
 			}
+		} else { // LXD
+			lcd = 0;
 		}
 	}
 	return lcd;
@@ -319,8 +318,6 @@ static void setup_lxd(struct display_info_t const *dev)
 	reg |= IOMUXC_GPR2_DATA_WIDTH_CH0_24BIT;
 	writel(reg, &iomux->gpr[2]);
 
-	printf("Enabling LXD\n");
-
 	// EN_LCD_POWER
 	val = 0x14;
 	i2c_write(0x28, 59, 2, &val, 1);
@@ -329,6 +326,7 @@ static void setup_lxd(struct display_info_t const *dev)
 	val = 0x1c;
 	i2c_write(0x28, 59, 2, &val, 1);
 	udelay(20000);
+
 	// enable LCD_11V
 	val = 0x18;
 	i2c_write(0x28, 59, 2, &val, 1);
@@ -340,15 +338,13 @@ static void setup_lxd(struct display_info_t const *dev)
 	// enable LCD_20V
 	val = 0x1b;
 	i2c_write(0x28, 59, 2, &val, 1);
-	// Wait 20ms more before driving lcd pins
+	// Wait 20ms more before enabling the backlight
 	udelay(20000);
 }
 
 static void setup_microtips(struct display_info_t const *dev)
 {
 	uint8_t val;
-	imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
-
 	// EN_LCD_POWER
 	val = 0x14;
 	i2c_write(0x28, 59, 2, &val, 1);
@@ -370,17 +366,27 @@ static void setup_microtips(struct display_info_t const *dev)
 	i2c_write(0x28, 59, 2, &val, 1);
 	// Wait 20ms more before driving lcd pins
 	udelay(20000);
+
+	imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
+	// Drive MT_LCD_PRESENT to limit the backlight current for 400 nits
+	val = 0x2;
+	i2c_write(0x28, 60, 2, &val, 1);
 }
 
 static void setup_okaya(struct display_info_t const *dev)
 {
 	uint8_t val;
-	imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
 
 	// EN_LCD_POWER
 	val = 0x14;
 	i2c_write(0x28, 59, 2, &val, 1);
 	udelay(50000);
+
+	// Drive MT_LCD_PRESENT low for the 800 nit display
+	val = 0x0;
+	i2c_write(0x28, 60, 2, &val, 1);
+
+	imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
 }
 
 struct display_info_t const displays[] = { {
@@ -402,7 +408,7 @@ struct display_info_t const displays[] = { {
 		.sync           = FB_SYNC_EXT,
 		.vmode          = FB_VMODE_NONINTERLACED
 } }, {
-	.pixfmt	= IPU_PIX_FMT_LVDS666,
+	.pixfmt	= IPU_PIX_FMT_RGB24,
 	.detect	= is_okaya,
 	.enable	= setup_okaya,
 	.mode	= {
@@ -410,17 +416,17 @@ struct display_info_t const displays[] = { {
 		.refresh        = 60,
 		.xres           = 800,
 		.yres           = 480,
-		.pixclock       = 30066,
-		.left_margin    = 50,
-		.right_margin   = 70,
-		.upper_margin   = 0,
-		.lower_margin   = 0,
-		.hsync_len      = 50,
-		.vsync_len      = 50,
+		.pixclock       = 33330,
+		.left_margin    = 40,
+		.right_margin   = 40,
+		.upper_margin   = 29,
+		.lower_margin   = 13,
+		.hsync_len      = 48,
+		.vsync_len      = 3,
 		.sync           = FB_SYNC_EXT,
 		.vmode          = FB_VMODE_NONINTERLACED
 } }, {
-	.pixfmt	= IPU_PIX_FMT_LVDS666,
+	.pixfmt	= IPU_PIX_FMT_RGB24,
 	.detect	= is_microtips,
 	.enable	= setup_microtips,
 	.mode	= {
@@ -428,13 +434,13 @@ struct display_info_t const displays[] = { {
 		.refresh        = 60,
 		.xres           = 800,
 		.yres           = 480,
-		.pixclock       = 30066,
-		.left_margin    = 50,
-		.right_margin   = 70,
-		.upper_margin   = 0,
-		.lower_margin   = 0,
-		.hsync_len      = 50,
-		.vsync_len      = 50,
+		.pixclock       = 30030,
+		.left_margin    = 46,
+		.right_margin   = 210,
+		.upper_margin   = 23,
+		.lower_margin   = 22,
+		.hsync_len      = 1,
+		.vsync_len      = 1,
 		.sync           = FB_SYNC_EXT,
 		.vmode          = FB_VMODE_NONINTERLACED
 } } };
@@ -565,10 +571,6 @@ int board_mmc_init(bd_t *bis)
 	imx_iomux_v3_setup_multiple_pads(usdhc3_pads, 
 		ARRAY_SIZE(usdhc3_pads));
 
-	gpio_direction_output(TS7990_EN_SDPWR, 1); // EN_SD_POWER#
-	udelay(1000);
-	gpio_direction_output(TS7990_EN_SDPWR, 0);
-
 	/*
 	 * According to the board_mmc_init() the following map is done:
 	 * (U-boot device node)    (Physical Port)
@@ -689,10 +691,8 @@ int board_early_init_f(void)
 		imx_iomux_v3_setup_multiple_pads(uart1_gpio_pads, ARRAY_SIZE(uart1_gpio_pads));
 	} else {
 		imx_iomux_v3_setup_multiple_pads(uart1_pads, ARRAY_SIZE(uart1_pads));
-		#if defined(CONFIG_VIDEO_IPUV3)
-		setup_display();
-		#endif
 	}
+	setup_display();
 
 	return 0;
 }
@@ -706,20 +706,18 @@ void reset_misc(void)
 
 int misc_init_r(void)
 {
-	int sdboot = 0;
-	struct iomuxc *iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
+	int sdboot, jpuboot;
 	char *rcause = get_reset_cause(1);
-	uint8_t val;
 
 	/* If there is ever a watchdog reset, cause a full POR */
 	if(strstr(rcause, "WDOG")) {
-		i2c_write(0x28, 30, 2, &val, 1);
+		reset_misc();
 	}
 
 	// Turn off USB hub until hub is reset
 	// Set DC_SEL_USB to use usb on the standard header
 	gpio_direction_input(TS7990_SDBOOT);
-	gpio_direction_output(TS7990_EN_5V, 0);
+	gpio_direction_output(TS7990_ENUSB_5V, 0);
 	gpio_direction_output(TS7990_HUB_RESETN, 0); // hub only needs 1us
 	udelay(1);
 	gpio_set_value(TS7990_HUB_RESETN, 1);
@@ -729,11 +727,14 @@ int misc_init_r(void)
 	// gets a reset and power doesn't.  This *might* not be
 	// enough for some devices
 	udelay(10000); 
-	gpio_set_value(TS7990_EN_5V, 1);
+	gpio_set_value(TS7990_ENUSB_5V, 1);
 	sdboot = gpio_get_value(TS7990_SDBOOT);
-
 	if(sdboot) setenv("jpsdboot", "off");
 	else setenv("jpsdboot", "on");
+
+	jpuboot = gpio_get_value(TS7990_JPUBOOT);
+	if(jpuboot) setenv("jpuboot", "off");
+	else setenv("jpuboot", "on");
 
 	setenv("imx_type", CONFIG_IMX_TYPE);
 
@@ -746,22 +747,26 @@ int misc_init_r(void)
 	setenv("model", "7990");
 	setenv("rcause", get_reset_cause(1));
 
-	/* PCIE does not get properly disabled from a watchdog reset.  This prevents 
-	 * a hang in the kernel if pcie was enabled in a previous boot. */
-	setbits_le32(&iomuxc_regs->gpr[1], IOMUXC_GPR1_TEST_POWERDOWN);
-	clrbits_le32(&iomuxc_regs->gpr[1], IOMUXC_GPR1_REF_SSP_EN);
-
+	if(is_lxd(NULL)) setenv("lcd", "lxd");
+	else if (is_okaya(NULL)) setenv("lcd", "okaya");
+	else if (is_microtips(NULL)) setenv("lcd", "microtips");
 	return 0;
 }
 
 void bmp_display_post(void)
 {
-	/* Enable backlight late in boot */
+	uint8_t val;
+
 	gpio_direction_output(TS7990_BKL, 1);
+	/* Enable backlight late in boot */
+	// (REV A only) backlight enable
+	val = 0x1;
+	i2c_write(0x28, 58, 2, &val, 1);
 }
 
 int board_init(void)
 {
+	uint8_t val;
 	int i;
 
 	imx_iomux_v3_setup_multiple_pads(i2c_pads, ARRAY_SIZE(i2c_pads));
@@ -800,6 +805,9 @@ int board_init(void)
 	#ifdef CONFIG_FPGA
 	ts7990_fpga_init();
 	#endif
+
+	i2c_read(0x28, 51, 2, &val, 1);
+	printf("FPGA Rev: %d\n", val >> 4);
 
 	return 0;
 }
