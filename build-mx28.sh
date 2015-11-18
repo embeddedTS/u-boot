@@ -1,7 +1,7 @@
 #!/bin/bash -x
 
 export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabi-
+export CROSS_COMPILE=arm-none-linux-gnueabi-
 export DATE=$(date +"%b-%d-%Y")
 
 FAIL=0
