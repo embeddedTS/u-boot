@@ -1,5 +1,12 @@
 #!/bin/bash -x
 
+
+if [ $# -lt 1 ] ;  then
+TARGET=ts7680
+else
+TARGET=$1
+fi
+
 export ARCH=arm
 export CROSS_COMPILE=arm-none-linux-gnueabi-
 export DATE=$(date +"%b-%d-%Y")
@@ -10,10 +17,10 @@ rm -rf out
 mkdir out > /dev/null 2>&1
 
 make mrproper
-make ts7680_defconfig
+make "$TARGET"_defconfig
 make -j9 u-boot.sb
 if [ $? -eq 0 ]; then
-	cp u-boot.sb out/ts7680-"$DATE".sb
+	cp u-boot.sb out/$TARGET-"$DATE".sb
 else
 	let FAIL=FAIL+1
 fi
