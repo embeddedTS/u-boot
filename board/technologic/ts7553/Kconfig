@@ -1,7 +1,7 @@
-if TARGET_TS7680
+if TARGET_TS7553
 
 config SYS_BOARD
-	default "ts7680"
+	default "ts7553"
 
 config SYS_VENDOR
 	default "technologic"
@@ -10,6 +10,6 @@ config SYS_SOC
 	default "mxs"
 
 config SYS_CONFIG_NAME
-	default "ts7680"
+	default "ts7553"
 
 endif

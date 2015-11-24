@@ -297,6 +297,11 @@ config TARGET_TS7680
 	select CPU_ARM926EJS
 	select SUPPORT_SPL
 
+config TARGET_TS7553
+	bool "Support TS-7553 v2"
+	select CPU_ARM926EJS
+	select SUPPORT_SPL
+
 config TARGET_TS7695
 	bool "Support TS-7695"
 	select CPU_ARM926EJS
@@ -916,6 +921,7 @@ source "board/freescale/ls1021atwr/Kconfig"
 source "board/freescale/mx23evk/Kconfig"
 source "board/freescale/mx25pdk/Kconfig"
 source "board/freescale/mx28evk/Kconfig"
+source "board/technologic/ts7553/Kconfig"
 source "board/technologic/ts7680/Kconfig"
 source "board/technologic/ts7695/Kconfig"
 source "board/freescale/mx31ads/Kconfig"
