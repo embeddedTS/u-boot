@@ -159,13 +159,7 @@
 #define CONFIG_AUTOBOOT_STOP_STR       (char []){CTRL('C'), 0}
 
 #define CONFIG_PREBOOT \
-	"if gpio input 857; then " \
-		" setenv bootdelay -1; " \
-		" echo UBoot jumper installed, checking usb and stopping boot.; " \
-		" run usbprod; " \
-	" else " \
-		" setenv bootdelay 0; " \
-	"fi" 
+		" setenv bootdelay 5; "
 
 /* Extra Environment */
 #define CONFIG_EXTRA_ENV_SETTINGS \
