@@ -78,7 +78,7 @@ static int do_bbdetect(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 	}
 
 	setenv_hex("baseboardid", id & ~0xc0);
-	setenv_hex("rev", ((id & 0xc0) >> 6));
+	setenv_hex("baseboardrev", ((id & 0xc0) >> 6));
 	return 0;
 }
 
