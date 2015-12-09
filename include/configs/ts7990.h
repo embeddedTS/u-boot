@@ -88,7 +88,7 @@
 #define CONFIG_CMD_LED
 
 #define CONFIG_RED_LED                  IMX_GPIO_NR(1, 2)
-#define CONFIG_GREEN_LED                IMX_GPIO_NR(2, 24)
+#define CONFIG_GREEN_LED                IMX_GPIO_NR(5, 21)
 #define STATUS_LED_RED                  0
 #define STATUS_LED_GREEN                1
 
