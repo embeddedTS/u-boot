@@ -127,6 +127,7 @@
 #define CONFIG_FEC_XCV_TYPE		RGMII
 #define CONFIG_ETHPRIME			"FEC"
 #define CONFIG_FEC_MXC_PHYADDR		7
+#define CONFIG_HAS_ETH1
 #define CONFIG_PHYLIB
 #define CONFIG_PHY_MICREL
 #define PHY_ANEG_TIMEOUT 50000
@@ -238,7 +239,7 @@
 		"fi; " \
 		"load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-${lcd}.dtb; " \
 		"load mmc 0:1 ${loadaddr} /boot/uImage; " \
-		"setenv bootargs smsc95xx.macaddr=${usbethaddr} root=/dev/mmcblk1p1 rootwait rw ${cmdline_append}; " \
+		"setenv bootargs root=/dev/mmcblk1p1 rootwait rw ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 	"emmcboot=echo Booting from eMMC ...; " \
 		"if load mmc 1:1 ${loadaddr} /boot/boot.ub; " \
@@ -250,7 +251,7 @@
 		"fi; " \
 		"load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-${lcd}.dtb; " \
 		"load mmc 1:1 ${loadaddr} /boot/uImage; " \
-		"setenv bootargs smsc95xx.macaddr=${usbethaddr} root=/dev/mmcblk2p1 rootwait rw ${cmdline_append}; " \
+		"setenv bootargs root=/dev/mmcblk2p1 rootwait rw ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 	"sataboot=echo Booting from SATA ...; " \
 		"sata init; " \
@@ -263,7 +264,7 @@
 		"fi; " \
 		"load sata 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-${lcd}.dtb; " \
 		"load sata 0:1 ${loadaddr} /boot/uImage; " \
-		"setenv bootargs smsc95xx.macaddr=${usbethaddr} root=/dev/sda1 rootwait rw ${cmdline_append}; " \
+		"setenv bootargs root=/dev/sda1 rootwait rw ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 	"usbprod=usb start; " \
 		"if usb storage; " \
@@ -279,7 +280,7 @@
 		"dhcp; " \
 		"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts7990-${lcd}.dtb; " \
 		"nfs ${loadaddr} ${nfsroot}/boot/uImage; " \
-		"setenv bootargs smsc95xx.macaddr=${usbethaddr} root=/dev/nfs ip=dhcp nfsroot=${serverip}:${nfsroot} ${cmdline_append}; " \
+		"setenv bootargs root=/dev/nfs ip=dhcp nfsroot=${serverip}:${nfsroot} ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0" \
 
 #define CONFIG_BOOTCOMMAND \

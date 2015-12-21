@@ -673,7 +673,7 @@ int board_eth_init(bd_t *bis)
 				 enetaddr[3],
 				 enetaddr[4],
 				 enetaddr[5]);
-		setenv("usbethaddr", enet1addr);
+		setenv("eth1addr", enet1addr);
 	}
 #endif
 	
