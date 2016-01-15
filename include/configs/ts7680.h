@@ -158,7 +158,6 @@
 #define CTRL(c) ((c)&0x1F)     
 #define CONFIG_AUTOBOOT_STOP_STR       (char []){CTRL('C'), 0}
 
-/*"if gpio input 857; then " \*/
 #define CONFIG_PREBOOT \
 	"if test \"${jpuboot}\" = \"on\"; then " \
 		" setenv bootdelay -1; " \
