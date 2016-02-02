@@ -29,6 +29,7 @@
 
 #define TS7680_EN_SDPWR     MX28_PAD_PWM3__GPIO_3_28
 #define TS7680_SDBOOT_JP    MX28_PAD_LCD_D12__GPIO_1_12
+#define TS7680_UBOOT_JP    MX28_PAD_LCD_D11__GPIO_1_11
 #define TS7680_POWER_FAIL	MX28_PAD_SSP0_DETECT__GPIO_2_9
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -152,6 +153,12 @@ int misc_init_r(void)
 
 	if(sdboot) setenv("jpsdboot", "off");
 	else setenv("jpsdboot", "on");
+	
+	gpio_direction_input(TS7680_UBOOT_JP);
+	sdboot = gpio_get_value(TS7680_UBOOT_JP);
+
+	if(sdboot) setenv("jpuboot", "off");
+	else setenv("jpuboot", "on");
 
 #if defined(CONFIG_FPGA)
 	ts7680_fpga_init();
@@ -245,3 +252,47 @@ int board_eth_init(bd_t *bis)
 }
 
 #endif
+
+
+static int set_mx28_spi(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	unsigned int mode;
+	unsigned char val = 0xa5;
+
+	if(argc != 2) {
+		printf("Requires a single argument\n");
+		return 1;
+	}
+
+	mode = simple_strtoul(argv[1], NULL, 16);
+	switch(mode) {
+	  case 0:
+		val = 0;
+		break;
+	  case 1:
+		val = 0x3;
+		break;
+	  case 2:
+		val = 0x1;
+		break;
+	  case 3:
+		val = 0x4;
+		break;
+	  default:
+		printf("Argument must be 0, 1, 2, or 3\n");
+		return 1;
+		break;
+	}
+
+	i2c_write(0x28, 0x2a, 2, &val, 1);
+	return 0;
+}
+
+U_BOOT_CMD(mx28_prod, 2, 0, set_mx28_spi, 
+	"Production command to set boot SPI settings",
+	"[Mode]\n"
+	"  Where mode is:\n"
+	"    0 - En. SPI CS#, 9468 switch selected\n"
+	"    1 - En. SPI CS#, force on-board SPI\n"
+	"    2 - En. SPI CS#, force off-board SPI\n"
+	"    3 - Dis. SPI CS# output (En. use of UART 2 & 3)\n");
