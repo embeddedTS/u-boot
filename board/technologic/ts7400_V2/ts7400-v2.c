@@ -25,6 +25,7 @@
 #include <spi.h>
 #include <fpga.h>
 #include <lattice.h>
+#include <watchdog.h>
 #include <i2c.h>
 
 #define TS7400_V2_EN_SDPWR     MX28_PAD_PWM3__GPIO_3_28
@@ -83,6 +84,11 @@ int board_init(void)
 {
 	/* Adress of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM_1 + 0x100;
+
+	/* Watchdog initialisation */
+#if defined(CONFIG_HW_WATCHDOG)
+	hw_watchdog_init();
+#endif
 
 	return 0;
 }
