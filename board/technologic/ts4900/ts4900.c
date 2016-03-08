@@ -470,21 +470,43 @@ int board_init(void)
 
 	rev = board_rev();
 
+	/* The Intersil RTC does not behave correctly on every boot.  When it
+	 * fails it locks up the I2C bus by driving it to ~1.5V.  It should only
+	 * be open drain, but the theory is that memory is corrupted on startup
+	 * on the RTC itself causing it to have a seemingly random behavior.
+	 * The >= REVB boards include a FET to toggle on/off power to the RTC.  If
+	 * we catch the force_idle_bus failing, then then off the fet, drive the pins 
+	 * low, wait, turn it back on, and this seems to fix the RTC issues. */
 	if(rev != 'A') {
 		// EN RTC fet
 		gpio_direction_output(TS4900_ENRTC, 0);
 		udelay(1000*2); // 2ms to turn on
 
+		/* 5 is an arbitrary magic number.  2 should be enough, but 5 is 
+		 * including overkill and doesn't take very long if it were to fail up to 5 */
 		for (i = 0; i < 5; i++)
 		{
-			if (force_idle_bus(&i2c_pad_info0) == 0)
+			if (force_idle_bus(&i2c_pad_info0) == 0){
+				if(i != 0)
+					printf("Recovered I2C\n");
 				break;
-			puts("Attempting to reset RTC\n");
+			}
+			puts("Attempting to reset I2C\n");
+
+			// Drive I2C pins low
+			imx_iomux_v3_setup_pad(i2c_pad_info0.sda.gpio_mode);
+			imx_iomux_v3_setup_pad(i2c_pad_info0.scl.gpio_mode);
+			gpio_direction_output(i2c_pad_info0.sda.gp, 0);
+			gpio_direction_output(i2c_pad_info0.scl.gp, 0);
+
 			// Enable RTC FET
 			gpio_direction_output(TS4900_ENRTC, 1);
 			udelay(1000*140); // 140ms to discharge
 			gpio_direction_output(TS4900_ENRTC, 0);
 			udelay(1000*2); // 2ms to turn on
+			imx_iomux_v3_setup_pad(i2c_pad_info0.sda.i2c_mode);
+			imx_iomux_v3_setup_pad(i2c_pad_info0.scl.i2c_mode);
+
 			if(i == 4) puts ("Not able to force bus idle.  Giving up.\n");
 		}
 	}
