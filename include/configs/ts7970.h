@@ -200,7 +200,7 @@
 			"source ${loadaddr}; " \
 		"fi; " \
 		"if load sata 0:1 ${loadaddr} /boot/ts7970-fpga.vme; " \
-			"then fpga load 0 ${loadaddr} ${filesize}" \
+			"then fpga load 0 ${loadaddr} ${filesize}; " \
 		"fi; " \
 		"load sata 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; " \
 		"load sata 0:1 ${loadaddr} ${uimage}; " \

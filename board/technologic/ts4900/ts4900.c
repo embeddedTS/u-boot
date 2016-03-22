@@ -42,6 +42,7 @@
 #define TS4900_SDA			IMX_GPIO_NR(3, 28)
 #define TS4900_ENRTC		IMX_GPIO_NR(3, 23)
 #define TS4900_REVSTRAP		IMX_GPIO_NR(2, 11)
+#define TS4900_REVSTRAPD	IMX_GPIO_NR(6, 5)
 #define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
 #define TS4900_PHY_RST		IMX_GPIO_NR(4, 20)
 #define TS4900_RGMII_RXC	IMX_GPIO_NR(6, 30)
@@ -88,22 +89,34 @@ iomux_v3_cfg_t const misc_pads[] = {
 	MX6_PAD_EIM_RW__GPIO2_IO26 | MUX_PAD_CTRL(NO_PAD_CTRL), // MODE2
 	MX6_PAD_EIM_OE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL), // BD_ID_DATA
 	MX6_PAD_SD4_DAT3__GPIO2_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL), // Rev A/C strap
+	MX6_PAD_CSI0_DAT19__GPIO6_IO05 | MUX_PAD_CTRL(NO_PAD_CTRL), // Rev D strap
 	MX6_PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL), // EN_RTC
 	MX6_PAD_EIM_A16__GPIO2_IO22 | MUX_PAD_CTRL(NO_PAD_CTRL), // EN_USB_5V
 };
 
-char *board_rev(void)
+char board_rev(void)
 {
-	static int dat = -1;	
+	static int rev = -1;
 
-	if(dat == -1) {
+	if(rev == -1) {
+		uint8_t dat;
 		// Read REV strapping pin
 		gpio_direction_input(TS4900_REVSTRAP);
+		gpio_direction_input(TS4900_REVSTRAPD);
 		dat = gpio_get_value(TS4900_REVSTRAP);
+		if(dat) {
+			rev = 'A';
+		} else {
+			dat = gpio_get_value(TS4900_REVSTRAPD);
+			if(dat) {
+				rev = 'C';
+			} else {
+				rev = 'D';
+			}
+		}
 	}
 
-	if(dat) return "A";
-	else return "C";
+	return rev;
 }
 
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
@@ -385,6 +398,7 @@ int board_early_init_f(void)
 int misc_init_r(void)
 {
 	int sdboot;
+	char rev[2] = {0, 0};
 	struct iomuxc *iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
 	
 	imx_iomux_v3_setup_multiple_pads(misc_pads, ARRAY_SIZE(misc_pads));
@@ -416,7 +430,8 @@ int misc_init_r(void)
 
 	setenv("model", "4900");
 	setenv("rcause", get_reset_cause(1));
-	setenv("rev", board_rev());
+	rev[0] = board_rev();
+	setenv("rev", rev);
 
 	/* PCIE does not get properly disabled from a watchdog reset.  This prevents 
 	 * a hang in the kernel if pcie was enabled in a previous boot. */
@@ -447,7 +462,7 @@ struct i2c_pads_info i2c_pad_info0 = {
 int board_init(void)
 {
 	int i;
-	char *rev;
+	char rev;
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 	setup_spi();
@@ -455,21 +470,43 @@ int board_init(void)
 
 	rev = board_rev();
 
-	if(rev[0] != 'A') {
+	/* The Intersil RTC does not behave correctly on every boot.  When it
+	 * fails it locks up the I2C bus by driving it to ~1.5V.  It should only
+	 * be open drain, but the theory is that memory is corrupted on startup
+	 * on the RTC itself causing it to have a seemingly random behavior.
+	 * The >= REVB boards include a FET to toggle on/off power to the RTC.  If
+	 * we catch the force_idle_bus failing, then then off the fet, drive the pins 
+	 * low, wait, turn it back on, and this seems to fix the RTC issues. */
+	if(rev != 'A') {
 		// EN RTC fet
 		gpio_direction_output(TS4900_ENRTC, 0);
 		udelay(1000*2); // 2ms to turn on
 
+		/* 5 is an arbitrary magic number.  2 should be enough, but 5 is 
+		 * including overkill and doesn't take very long if it were to fail up to 5 */
 		for (i = 0; i < 5; i++)
 		{
-			if (force_idle_bus(&i2c_pad_info0) == 0)
+			if (force_idle_bus(&i2c_pad_info0) == 0){
+				if(i != 0)
+					printf("Recovered I2C\n");
 				break;
-			puts("Attempting to reset RTC\n");
+			}
+			puts("Attempting to reset I2C\n");
+
+			// Drive I2C pins low
+			imx_iomux_v3_setup_pad(i2c_pad_info0.sda.gpio_mode);
+			imx_iomux_v3_setup_pad(i2c_pad_info0.scl.gpio_mode);
+			gpio_direction_output(i2c_pad_info0.sda.gp, 0);
+			gpio_direction_output(i2c_pad_info0.scl.gp, 0);
+
 			// Enable RTC FET
 			gpio_direction_output(TS4900_ENRTC, 1);
 			udelay(1000*140); // 140ms to discharge
 			gpio_direction_output(TS4900_ENRTC, 0);
 			udelay(1000*2); // 2ms to turn on
+			imx_iomux_v3_setup_pad(i2c_pad_info0.sda.i2c_mode);
+			imx_iomux_v3_setup_pad(i2c_pad_info0.scl.i2c_mode);
+
 			if(i == 4) puts ("Not able to force bus idle.  Giving up.\n");
 		}
 	}
@@ -490,7 +527,7 @@ int board_late_init(void)
 int checkboard(void)
 {
 	puts("Board: TS-4900\n");
-	printf("Revision: %s\n", board_rev());
+	printf("Revision: %c\n", board_rev());
 
 	return 0;
 }
