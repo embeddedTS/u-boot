@@ -296,3 +296,55 @@ U_BOOT_CMD(mx28_prod, 2, 0, set_mx28_spi,
 	"    1 - En. SPI CS#, force on-board SPI\n"
 	"    2 - En. SPI CS#, force off-board SPI\n"
 	"    3 - Dis. SPI CS# output (En. use of UART 2 & 3)\n");
+
+static int wait_for_supercaps(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	unsigned int pct;
+	unsigned char buf[16] = {0};
+	unsigned int check;
+	unsigned int verbose = 0;
+
+	if (argc < 2) {
+		printf("Usage:\n%s %s", cmdtp->name, cmdtp->help);
+		return 1;
+	}
+
+	i2c_read(0x78, 0x0, 1, &buf[0], 16);
+	check = ((buf[15] >> 3) & 0x1);
+	if(check) {
+		printf("NO CHRG jumper is set, not waiting for SuperCaps to"
+		  " charge\n");
+		return 0;
+	}
+	if(argc == 3) verbose = simple_strtoul(argv[2], NULL, 10);
+	pct = simple_strtoul(argv[1], NULL, 10);
+	if(pct == 0) {
+		printf("Not waiting for SuperCaps to charge\n");
+		return 0;
+	} else {
+		printf("Waiting until SuperCaps are charged to %d%%\n", pct);
+	}
+	if(pct > 100) pct = 100;
+
+	while(1) {
+		i2c_read(0x78, 0x0, 1, &buf[0], 4);
+		check = ((buf[2]<<8|buf[3])*1000/409*2);
+		if(check >= 2500) {
+			check = ((check - 2500)/23);
+			if(check > 100) check = 100;
+			if(verbose) printf("%d%%\n", check);
+			if(check >= pct) return 0;
+		} else {
+			if(verbose) printf("0%%\n");
+		}
+		if(ctrlc()) return 1;
+		udelay(1000000);
+	}
+}
+
+U_BOOT_CMD(wait_chrg, 3, 0, wait_for_supercaps,
+	"Wait until SuperCaps have a specific charge percentage",
+	"[percentage] [verbose]\n"
+	"  Percentage can be 0 to 100. 0 means no delay\n"
+	"  Verbose can be a 1 to output percentage every second; 0 or not\n"
+	"    passed to disable this output and wait silently\n");

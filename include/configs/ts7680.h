@@ -176,6 +176,8 @@
 	"cmdline_append=rw rootwait console=ttyAMA0,115200 loglevel=3\0" \
 	"boot_fdt=yes\0" \
 	"ip_dyn=yes\0" \
+	"chrg_pct=0\0" \
+	"chrg_verb=0\0" \
 	"clearenv=if sf probe; then " \
 		"sf erase 0x100000 0x2000 && " \
 		"echo restored environment to factory default ; fi\0" \
@@ -249,6 +251,7 @@
 		"bootm ${loadaddr} - ${fdtaddr};\0"\
 
 #define CONFIG_BOOTCOMMAND \
+	"wait_chrg ${chrg_pct} ${chrg_verb}; " \
 	"if test ${jpsdboot} = 'on' ; " \
 		"then run sdboot; " \
 		"else run emmcboot; " \
