@@ -260,7 +260,7 @@ static int set_mx28_spi(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 	unsigned char val = 0xa5;
 
 	if(argc != 2) {
-		printf("Requires a single argument\n");
+		printf("Usage:\n%s %s", cmdtp->name, cmdtp->help);
 		return 1;
 	}
 
@@ -290,7 +290,7 @@ static int set_mx28_spi(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 
 U_BOOT_CMD(mx28_prod, 2, 0, set_mx28_spi, 
 	"Production command to set boot SPI settings",
-	"[Mode]\n"
+	"[mode]\n"
 	"  Where mode is:\n"
 	"    0 - En. SPI CS#, 9468 switch selected\n"
 	"    1 - En. SPI CS#, force on-board SPI\n"
