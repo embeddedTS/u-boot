@@ -94,6 +94,14 @@ iomux_v3_cfg_t const misc_pads[] = {
 	MX6_PAD_EIM_A16__GPIO2_IO22 | MUX_PAD_CTRL(NO_PAD_CTRL), // EN_USB_5V
 };
 
+
+#ifdef CONFIG_CMD_BMODE
+static const struct boot_mode board_boot_modes[] = {
+	{"emmc", MAKE_CFGVAL(0x60, 0x30, 0x00, 0x00)},
+	{NULL,   0},
+};
+#endif
+
 char board_rev(void)
 {
 	static int rev = -1;
@@ -514,6 +522,10 @@ int board_init(void)
 
 	#ifdef CONFIG_CMD_SATA
 	setup_sata();
+	#endif
+
+	#ifdef CONFIG_CMD_BMODE
+	add_board_boot_modes(board_boot_modes);
 	#endif
 
 	return 0;
