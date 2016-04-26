@@ -153,7 +153,7 @@
 #define CONFIG_AUTOBOOT_STOP_STR       (char []){CTRL('C'), 0}
 
 #define CONFIG_PREBOOT \
-	"if gpio input 857; then " \
+	"if test \"${jpuboot}\" = \"on\"; then " \
 		" setenv bootdelay -1; " \
 		" echo UBoot jumper installed, checking usb and stopping boot.; " \
 		" run usbprod; " \
@@ -170,10 +170,20 @@
 	"cmdline_append=rw rootwait console=ttyAMA0,115200 loglevel=3\0" \
 	"boot_fdt=yes\0" \
 	"ip_dyn=yes\0" \
+	"chrg_pct=0\0" \
+	"chrg_verb=0\0" \
 	"clearenv=if sf probe; then " \
 		"sf erase 0x100000 0x2000 && " \
 		"echo restored environment to factory default ; fi\0" \
-	"update-uboot=echo Updating u-boot from /boot/u-boot.sb; " \
+	"update-uboot=if test \"${spi}\" = \"onboard\"; " \
+			"then mx28_prod 1; " \
+			"echo Overriding SPI sel., writing to onboard SPI; " \
+		"else if test \"${spi}\" = \"offboard\"; " \
+			"then mx28_prod 2; " \
+			"echo Overriding SPI sel., writing to offboard SPI; " \
+		"fi; " \
+		"fi; " \
+		"echo Updating u-boot from /boot/u-boot.sb; " \
 		"if test ${jpsdboot} = 'on' ; " \
 			"then if load mmc 0:2 ${loadaddr} /boot/u-boot.sb; " \
 				"then sf probe; " \
@@ -186,7 +196,8 @@
 				"sf erase 0 80000; " \
 				"sf write ${loadaddr} 0 ${filesize}; " \
 			"fi; " \
-		"fi;\0" \
+		"fi;" \
+		"mx28_prod 0;\0 " \
 	"emmcboot=echo Booting from the onboard eMMC  ...; " \
 		"if load mmc 1:2 ${loadaddr} /boot/boot.ub; " \
 			"then echo Booting from custom /boot/boot.ub; " \
@@ -195,6 +206,7 @@
 		"load mmc 1:2 ${loadaddr} /boot/uImage; " \
 		"load mmc 1:2 ${fdtaddr} /boot/imx28-ts7553.dtb; " \
 		"setenv bootargs root=/dev/mmcblk2p2 ${cmdline_append}; " \
+		"mx28_prod 3;" \
 		"bootm ${loadaddr} - ${fdtaddr}; \0"\
 	"sdboot=echo Booting from the SD Card ...; " \
 		"if load mmc 0:2 ${loadaddr} /boot/boot.ub; " \
@@ -204,6 +216,7 @@
 		"load mmc 0:2 ${loadaddr} /boot/uImage; " \
 		"load mmc 0:2 ${fdtaddr} /boot/imx28-ts7553.dtb; " \
 		"setenv bootargs root=/dev/mmcblk0p2 ${cmdline_append}; " \
+		"mx28_prod 3;" \
 		"bootm ${loadaddr} - ${fdtaddr}; \0"\
 	"usbprod=usb start; " \
 		"if usb storage; " \
@@ -222,9 +235,11 @@
 		"setenv bootargs root=/dev/nfs ip=dhcp " \
 		  "nfsroot=${serverip}:${nfsroot},vers=2,nolock ${cmdline_append}; " \
 		"nfs ${fdtaddr} ${nfsroot}/boot/imx28-ts7553.dtb; " \
+		"mx28_prod 3;" \
 		"bootm ${loadaddr} - ${fdtaddr};\0"\
 
 #define CONFIG_BOOTCOMMAND \
+	"wait_chrg ${chrg_pct} ${chrg_verb}; " \
 	"if test ${jpsdboot} = 'on' ; " \
 		"then run sdboot; " \
 		"else run emmcboot; " \
