@@ -108,6 +108,11 @@
 #define CONFIG_MX28_FEC_MAC_IN_OCOTP
 #endif
 
+/* NFS */
+#ifdef CONFIG_CMD_NFS
+#define CONFIG_NFS_TIMEOUT 100UL
+#endif
+
 /* USB */
 #ifdef	CONFIG_CMD_USB
 #define CONFIG_EHCI_MXS_PORT1
