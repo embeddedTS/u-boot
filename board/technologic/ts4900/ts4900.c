@@ -385,7 +385,10 @@ int board_eth_init(bd_t *bis)
 		}
 		enetaddr[5]++;
 
-		snprintf(enet1addr, 18, "00:d0:69:%02x:%02x:%02x",
+		snprintf(enet1addr, 18, "%02x:%02x:%02x:%02x:%02x:%02x",
+				 enetaddr[0],
+				 enetaddr[1],
+				 enetaddr[2],
 				 enetaddr[3],
 				 enetaddr[4],
 				 enetaddr[5]);
