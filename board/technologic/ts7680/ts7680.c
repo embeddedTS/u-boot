@@ -206,11 +206,16 @@ int board_mmc_init(bd_t *bis)
 
 #ifdef	CONFIG_CMD_NET
 
+#define MXS_OCOTP_MAX_TIMEOUT   1000000
+
 int board_eth_init(bd_t *bis)
 {
 	struct mxs_clkctrl_regs *clkctrl_regs =
 		(struct mxs_clkctrl_regs *)MXS_CLKCTRL_BASE;
 	struct eth_device *dev;
+	struct mxs_ocotp_regs *ocotp_regs =
+		(struct mxs_ocotp_regs *)MXS_OCOTP_BASE;
+	uint32_t data;
 	int ret;
 	uchar enetaddr[6];
 	uint8_t val = 0x2;
@@ -239,14 +244,28 @@ int board_eth_init(bd_t *bis)
 	}
 
 	eth_parse_enetaddr(getenv("ethaddr"), enetaddr);
-        if (!enetaddr[3] && !enetaddr[4] && !enetaddr[5]) {
-                printf("No MAC address set in fuses.  Using random mac address.\n");
-                eth_random_addr(enetaddr);
-                random_mac = 1;
-                if (eth_setenv_enetaddr("ethaddr", enetaddr)) {
-                        printf("Failed to set ethernet address\n");
-                }
-        }
+	if (!enetaddr[3] && !enetaddr[4] && !enetaddr[5]) {
+		printf("No MAC address set in fuses.  Using random mac address.\n");
+
+		writel(OCOTP_CTRL_RD_BANK_OPEN, &ocotp_regs->hw_ocotp_ctrl_set);
+
+		if (mxs_wait_mask_clr(&ocotp_regs->hw_ocotp_ctrl_reg,
+		  OCOTP_CTRL_BUSY, MXS_OCOTP_MAX_TIMEOUT)) {
+			printf("MXS FEC: Can't get MAC from OCOTP\n");
+			return;
+		}
+
+		data = readl(&ocotp_regs->hw_ocotp_ops2);
+
+		enetaddr[3] = 0x4f;
+		enetaddr[4] = (data >> 8) & 0xff;
+		enetaddr[5] = data & 0xff;
+		mx28_adjust_mac(0, enetaddr);
+
+		if (eth_setenv_enetaddr("ethaddr", enetaddr)) {
+			printf("Failed to set ethernet address\n");
+		}
+	}
 
 	return ret;
 }
