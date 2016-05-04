@@ -147,7 +147,7 @@
 #define CONFIG_LOADADDR			       0x12000000
 #define CONFIG_SYS_TEXT_BASE	       0x17800000
 #define CONFIG_MISC_INIT_R
-#define CONFIG_NFS_TIMEOUT             10000UL
+#define CONFIG_NFS_TIMEOUT 100UL
 
 #define CONFIG_PREBOOT \
 	"if test ${pushsw} = 'on'; then " \
