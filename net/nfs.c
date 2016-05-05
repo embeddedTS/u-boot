@@ -376,7 +376,7 @@ NfsSend(void)
 		nfs_mount_req(nfs_path);
 		break;
 	case STATE_UMOUNT_REQ:
-		nfs_umountall_req();
+		net_set_state(nfs_download_state);
 		break;
 	case STATE_LOOKUP_REQ:
 		nfs_lookup_req(nfs_filename);
