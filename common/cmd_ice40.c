@@ -24,7 +24,7 @@ static int do_ice40_load(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv
 	gpio_direction_output(CONFIG_ICE40_CS, 0); // spi cs# low
 	udelay(1); // at least 200ns
 	gpio_set_value(CONFIG_ICE40_FPGA_RESET, 1); // reset high
-	udelay(800);
+	mdelay(2);
 
 	ret_val = spi_xfer(slave, len * 8, (void *)data, NULL, 0);
 
