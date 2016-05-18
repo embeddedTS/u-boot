@@ -1,0 +1,15 @@
+if TARGET_TRAFFICNET
+
+config SYS_BOARD
+	default "trafficnet"
+
+config SYS_VENDOR
+	default "technologic"
+
+config SYS_SOC
+	default "mxs"
+
+config SYS_CONFIG_NAME
+	default "trafficnet"
+
+endif

@@ -1,5 +1,5 @@
 /*
- * Technologic TS-7680 Single-board Computer
+ * Technologic Trafficnet BAT-433 (TS-7553) Single-board Computer
  *
  * (C) Copyright 2015 Technologic Systems
  * Based on work by:
@@ -25,13 +25,13 @@
 #include <spi.h>
 #include <i2c.h>
 
-#define TS7553_EN_SDPWR		MX28_PAD_PWM3__GPIO_3_28
-#define TS7553_SDBOOT_JP	MX28_PAD_LCD_D12__GPIO_1_12
-#define TS7553_UBOOT_JP		MX28_PAD_LCD_D11__GPIO_1_11
-#define TS7553_POWER_FAIL	MX28_PAD_SSP0_DETECT__GPIO_2_9
+#define TRAFFICNET_EN_SDPWR		MX28_PAD_PWM3__GPIO_3_28
+#define TRAFFICNET_SDBOOT_JP		MX28_PAD_LCD_D12__GPIO_1_12
+#define TRAFFICNET_UBOOT_JP		MX28_PAD_LCD_D11__GPIO_1_11
+#define TRAFFICNET_POWER_FAIL		MX28_PAD_SSP0_DETECT__GPIO_2_9
 
-#define TS7553_OFFBDSPI_SELN	MX28_PAD_GPMI_RDN__GPIO_0_24
-#define TS7553_EN_BOOT_FLASH	MX28_PAD_GPMI_D04__GPIO_0_4
+#define TRAFFICNET_OFFBDSPI_SELN	MX28_PAD_GPMI_RDN__GPIO_0_24
+#define TRAFFICNET_EN_BOOT_FLASH	MX28_PAD_GPMI_D04__GPIO_0_4
 
 DECLARE_GLOBAL_DATA_PTR;
 int random_mac = 0;
@@ -71,16 +71,16 @@ int misc_init_r(void)
 {
 	int sdboot = 0;
 
-	setenv("model", "7553");
+	setenv("model", "7554");
 
-	gpio_direction_input(TS7553_SDBOOT_JP);
-	sdboot = gpio_get_value(TS7553_SDBOOT_JP);
+	gpio_direction_input(TRAFFICNET_SDBOOT_JP);
+	sdboot = gpio_get_value(TRAFFICNET_SDBOOT_JP);
 
 	if(sdboot) setenv("jpsdboot", "off");
 	else setenv("jpsdboot", "on");
 
-	gpio_direction_input(TS7553_UBOOT_JP);
-	sdboot = gpio_get_value(TS7553_UBOOT_JP);
+	gpio_direction_input(TRAFFICNET_UBOOT_JP);
+	sdboot = gpio_get_value(TRAFFICNET_UBOOT_JP);
 
 	if(sdboot) setenv("jpuboot", "off");
 	else setenv("jpuboot", "on");
@@ -96,27 +96,27 @@ int board_init(void)
 	return 0;
 }
 
-static int TS7553_mmc_cd(int id) {
+static int TRAFFICNET_mmc_cd(int id) {
 	return 1;
 }
 
 int board_mmc_init(bd_t *bis)
 {
 	int ret;
-	mxs_iomux_setup_pad(TS7553_EN_SDPWR);
+	mxs_iomux_setup_pad(TRAFFICNET_EN_SDPWR);
 
-	gpio_direction_output(TS7553_EN_SDPWR, 1); // EN_SD_POWER#
+	gpio_direction_output(TRAFFICNET_EN_SDPWR, 1); // EN_SD_POWER#
 	udelay(1000);
-	gpio_direction_output(TS7553_EN_SDPWR, 0);
+	gpio_direction_output(TRAFFICNET_EN_SDPWR, 0);
 
 	/* SD card */
-	ret = mxsmmc_initialize(bis, 0, NULL, TS7553_mmc_cd);
+	ret = mxsmmc_initialize(bis, 0, NULL, TRAFFICNET_mmc_cd);
 	if(ret != 0) {
 		printf("SD controller initialized with %d\n", ret);
 	}
 
 	/* eMMC */
-	ret = mxsmmc_initialize(bis, 1, NULL, TS7553_mmc_cd);
+	ret = mxsmmc_initialize(bis, 1, NULL, TRAFFICNET_mmc_cd);
 	if(ret != 0) {
 		printf("eMMC controller initialized with %d\n", ret);
 	}
@@ -172,7 +172,7 @@ int board_eth_init(bd_t *bis)
 		if (mxs_wait_mask_clr(&ocotp_regs->hw_ocotp_ctrl_reg,
 		  OCOTP_CTRL_BUSY, MXS_OCOTP_MAX_TIMEOUT)) {
 			printf("MXS FEC: Can't get MAC from OCOTP\n");
-			return;
+			return -EINVAL;
 		}
 
 		data = readl(&ocotp_regs->hw_ocotp_ops2);
@@ -203,20 +203,20 @@ static int set_mx28_spi(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 	mode = simple_strtoul(argv[1], NULL, 16);
 	switch(mode) {
 	  case 0:
-		gpio_direction_output(TS7553_EN_BOOT_FLASH, 1);
-		gpio_direction_input(TS7553_OFFBDSPI_SELN);
+		gpio_direction_output(TRAFFICNET_EN_BOOT_FLASH, 1);
+		gpio_direction_input(TRAFFICNET_OFFBDSPI_SELN);
 		break;
 	  case 1:
-		gpio_direction_output(TS7553_EN_BOOT_FLASH, 1);
-		gpio_direction_output(TS7553_OFFBDSPI_SELN, 1);
+		gpio_direction_output(TRAFFICNET_EN_BOOT_FLASH, 1);
+		gpio_direction_output(TRAFFICNET_OFFBDSPI_SELN, 1);
 		break;
 	  case 2:
-		gpio_direction_output(TS7553_EN_BOOT_FLASH, 1);
-		gpio_direction_output(TS7553_OFFBDSPI_SELN, 0);
+		gpio_direction_output(TRAFFICNET_EN_BOOT_FLASH, 1);
+		gpio_direction_output(TRAFFICNET_OFFBDSPI_SELN, 0);
 		break;
 	  case 3:
-		gpio_direction_output(TS7553_EN_BOOT_FLASH, 0);
-		gpio_direction_input(TS7553_OFFBDSPI_SELN);
+		gpio_direction_output(TRAFFICNET_EN_BOOT_FLASH, 0);
+		gpio_direction_input(TRAFFICNET_OFFBDSPI_SELN);
 		break;
 	  default:
 		printf("Argument must be 0, 1, 2, or 3\n");

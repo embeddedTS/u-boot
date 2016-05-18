@@ -1,13 +1,13 @@
 /*
  * (C) Copyright 2011 Freescale Semiconductor, Inc.
  *
- * TS-7680 config
+ * Trafficnet config
  * Based on m28evk.h
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
-#ifndef __CONFIGS_TS7680_H__
-#define __CONFIGS_TS7680_H__
+#ifndef __CONFIGS_TRAFFICNET_H__
+#define __CONFIGS_TRAFFICNET_H__
 
 /* System configurations */
 #define CONFIG_MX28				/* i.MX28 SoC */
@@ -26,12 +26,8 @@
 
 #define CONFIG_RED_LED                  MX28_PAD_GPMI_D07__GPIO_0_7
 #define CONFIG_GREEN_LED                MX28_PAD_GPMI_D05__GPIO_0_5
-#define CONFIG_YEL_LED                  MX28_PAD_LCD_RS__GPIO_1_26
-#define CONFIG_BLUE_LED                 MX28_PAD_LCD_VSYNC__GPIO_1_28
 #define STATUS_LED_RED			0
 #define STATUS_LED_GREEN		1
-#define STATUS_LED_YELLOW		2
-#define STATUS_LED_BLUE			3
 
 #define STATUS_LED_BIT                  STATUS_LED_RED
 #define STATUS_LED_STATE                STATUS_LED_ON
@@ -40,21 +36,6 @@
 #define STATUS_LED_BIT1                 STATUS_LED_GREEN
 #define STATUS_LED_STATE1               STATUS_LED_OFF
 #define STATUS_LED_PERIOD1              (CONFIG_SYS_HZ / 2)
-
-#define STATUS_LED_BIT2                 STATUS_LED_YELLOW
-#define STATUS_LED_STATE2               STATUS_LED_OFF
-#define STATUS_LED_PERIOD2              (CONFIG_SYS_HZ / 2)
-
-#define STATUS_LED_BIT3                 STATUS_LED_BLUE
-#define STATUS_LED_STATE3               STATUS_LED_OFF
-#define STATUS_LED_PERIOD3              (CONFIG_SYS_HZ / 2)
-
-#define CONFIG_FPGA
-#define CONFIG_FPGA_LATTICE
-#define CONFIG_FPGA_TDI                 MX28_PAD_LCD_D17__GPIO_1_17
-#define CONFIG_FPGA_TMS                 MX28_PAD_LCD_D18__GPIO_1_18
-#define CONFIG_FPGA_TCK                 MX28_PAD_LCD_D23__GPIO_1_23
-#define CONFIG_FPGA_TDO                 MX28_PAD_LCD_D21__GPIO_1_21
 
 #define CONFIG_CMD_CACHE
 #define CONFIG_CMD_DHCP
@@ -95,7 +76,7 @@
 /* Environemnt is in SPI flash */
 #define CONFIG_ENV_IS_IN_SPI_FLASH
 #define CONFIG_ENV_OFFSET		0x100000	
-#define CONFIG_ENV_SECT_SIZE	(4 * 1024)
+#define CONFIG_ENV_SECT_SIZE		(4 * 1024)
 #define CONFIG_ENV_SPI_CS		0
 #define CONFIG_ENV_SPI_BUS		2
 #define CONFIG_ENV_SPI_MAX_HZ		24000000
@@ -178,7 +159,7 @@
 	"nfsroot=/nfsroot/\0" \
 	"nfsip=192.168.0.1\0" \
 	"fdtaddr=0x41000000\0" \
-	"cmdline_append=rw rootwait console=ttyAMA0,115200 loglevel=3\0" \
+	"cmdline_append=rw rootwait console=ttyAMA0,115200 loglevel=3 usbcore.autosuspend=-1\0" \
 	"boot_fdt=yes\0" \
 	"ip_dyn=yes\0" \
 	"chrg_pct=0\0" \
@@ -188,10 +169,10 @@
 		"echo restored environment to factory default ; fi\0" \
 	"update-uboot=if test \"${spi}\" = \"onboard\"; " \
 			"then mx28_prod 1; " \
-			"echo Overriding SPI selection and writing to onboard SPI; " \
+			"echo Overriding SPI sel., writing to onboard SPI; " \
 		"else if test \"${spi}\" = \"offboard\"; " \
 			"then mx28_prod 2; " \
-			"echo Overriding SPI selection and writing to offboard SPI; " \
+			"echo Overriding SPI sel., writing to offboard SPI; " \
 		"fi; " \
 		"fi; " \
 		"echo Updating u-boot from /boot/u-boot.sb; " \
@@ -214,11 +195,8 @@
 			"then echo Booting from custom /boot/boot.ub; " \
 			"source ${loadaddr}; " \
 		"fi; " \
-		"if load mmc 1:2 ${loadaddr} /boot/ts7680-fpga.vme; " \
-			"then fpga load 0 ${loadaddr} ${filesize}; " \
-		"fi; " \
 		"load mmc 1:2 ${loadaddr} /boot/uImage; " \
-		"load mmc 1:2 ${fdtaddr} /boot/imx28-ts7680.dtb; " \
+		"load mmc 1:2 ${fdtaddr} /boot/imx28-tstrafficnet.dtb; " \
 		"setenv bootargs root=/dev/mmcblk2p2 ${cmdline_append}; " \
 		"mx28_prod 3;" \
 		"bootm ${loadaddr} - ${fdtaddr}; \0"\
@@ -227,11 +205,8 @@
 			"then echo Booting from custom /boot/boot.ub; " \
 			"source ${loadaddr}; " \
 		"fi; " \
-		"if load mmc 0:2 ${loadaddr} /boot/ts7680-fpga.vme; " \
-			"then fpga load 0 ${loadaddr} ${filesize}; " \
-		"fi; " \
 		"load mmc 0:2 ${loadaddr} /boot/uImage; " \
-		"load mmc 0:2 ${fdtaddr} /boot/imx28-ts7680.dtb; " \
+		"load mmc 0:2 ${fdtaddr} /boot/imx28-tstrafficnet.dtb; " \
 		"setenv bootargs root=/dev/mmcblk0p2 ${cmdline_append}; " \
 		"mx28_prod 3;" \
 		"bootm ${loadaddr} - ${fdtaddr}; \0"\
@@ -251,7 +226,7 @@
 		"nfs ${loadaddr} ${nfsroot}/boot/uImage; " \
 		"setenv bootargs root=/dev/nfs ip=dhcp " \
 		  "nfsroot=${serverip}:${nfsroot},vers=2,nolock ${cmdline_append}; " \
-		"nfs ${fdtaddr} ${nfsroot}/boot/imx28-ts7680.dtb; " \
+		"nfs ${fdtaddr} ${nfsroot}/boot/imx28-tstrafficnet.dtb; " \
 		"mx28_prod 3;" \
 		"bootm ${loadaddr} - ${fdtaddr};\0"\
 
@@ -265,4 +240,4 @@
 /* The rest of the configuration is shared */
 #include <configs/mxs.h>
 
-#endif /* __CONFIGS_TS7680_H__ */
+#endif /* __CONFIGS_TRAFFICNET_H__ */
