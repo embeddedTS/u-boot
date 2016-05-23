@@ -1,0 +1,208 @@
+--- ../trafficnet/trafficnet.c	2016-05-12 11:27:48.330905912 -0700
++++ sage.c	2016-05-23 15:13:33.012109267 -0700
+@@ -1,5 +1,5 @@
+ /*
+- * Technologic Trafficnet BAT-433 (TS-7553) Single-board Computer
++ * Sage_ETH_CAN based on TS-7680
+  *
+  * (C) Copyright 2015 Technologic Systems
+  * Based on work by:
+@@ -25,13 +25,12 @@
+ #include <spi.h>
+ #include <i2c.h>
+ 
+-#define TRAFFICNET_EN_SDPWR		MX28_PAD_PWM3__GPIO_3_28
+-#define TRAFFICNET_SDBOOT_JP		MX28_PAD_LCD_D12__GPIO_1_12
+-#define TRAFFICNET_UBOOT_JP		MX28_PAD_LCD_D11__GPIO_1_11
+-#define TRAFFICNET_POWER_FAIL		MX28_PAD_SSP0_DETECT__GPIO_2_9
++#define SAGE_EN_SDPWR		MX28_PAD_PWM3__GPIO_3_28
++#define SAGE_SDBOOT_JP		MX28_PAD_LCD_D12__GPIO_1_12
++#define SAGE_UBOOT_JP		MX28_PAD_LCD_D11__GPIO_1_11
+ 
+-#define TRAFFICNET_OFFBDSPI_SELN	MX28_PAD_GPMI_RDN__GPIO_0_24
+-#define TRAFFICNET_EN_BOOT_FLASH	MX28_PAD_GPMI_D04__GPIO_0_4
++#define SAGE_OFFBDSPI_SELN	MX28_PAD_GPMI_RDN__GPIO_0_24
++#define SAGE_EN_BOOT_FLASH	MX28_PAD_GPMI_D04__GPIO_0_4
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ int random_mac = 0;
+@@ -43,8 +42,6 @@
+ 	mac[2] = 0x69;
+ }
+ 
+-
+-
+ int board_early_init_f(void)
+ {
+ 	/* IO0 clock at 480MHz */
+@@ -71,16 +68,16 @@
+ {
+ 	int sdboot = 0;
+ 
+-	setenv("model", "7554");
++	setenv("model", "7680");
+ 
+-	gpio_direction_input(TRAFFICNET_SDBOOT_JP);
+-	sdboot = gpio_get_value(TRAFFICNET_SDBOOT_JP);
++	gpio_direction_input(SAGE_SDBOOT_JP);
++	sdboot = gpio_get_value(SAGE_SDBOOT_JP);
+ 
+ 	if(sdboot) setenv("jpsdboot", "off");
+ 	else setenv("jpsdboot", "on");
+-
+-	gpio_direction_input(TRAFFICNET_UBOOT_JP);
+-	sdboot = gpio_get_value(TRAFFICNET_UBOOT_JP);
++	
++	gpio_direction_input(SAGE_UBOOT_JP);
++	sdboot = gpio_get_value(SAGE_UBOOT_JP);
+ 
+ 	if(sdboot) setenv("jpuboot", "off");
+ 	else setenv("jpuboot", "on");
+@@ -96,27 +93,27 @@
+ 	return 0;
+ }
+ 
+-static int TRAFFICNET_mmc_cd(int id) {
++static int sage_mmc_cd(int id) {
+ 	return 1;
+ }
+ 
+ int board_mmc_init(bd_t *bis)
+ {
+ 	int ret;
+-	mxs_iomux_setup_pad(TRAFFICNET_EN_SDPWR);
++	mxs_iomux_setup_pad(SAGE_EN_SDPWR);
+ 
+-	gpio_direction_output(TRAFFICNET_EN_SDPWR, 1); // EN_SD_POWER#
++	gpio_direction_output(SAGE_EN_SDPWR, 1); // EN_SD_POWER#
+ 	udelay(1000);
+-	gpio_direction_output(TRAFFICNET_EN_SDPWR, 0);
++	gpio_direction_output(SAGE_EN_SDPWR, 0);
+ 
+ 	/* SD card */
+-	ret = mxsmmc_initialize(bis, 0, NULL, TRAFFICNET_mmc_cd);
++	ret = mxsmmc_initialize(bis, 0, NULL, sage_mmc_cd);
+ 	if(ret != 0) {
+ 		printf("SD controller initialized with %d\n", ret);
+ 	}
+ 
+ 	/* eMMC */
+-	ret = mxsmmc_initialize(bis, 1, NULL, TRAFFICNET_mmc_cd);
++	ret = mxsmmc_initialize(bis, 1, NULL, sage_mmc_cd);
+ 	if(ret != 0) {
+ 		printf("eMMC controller initialized with %d\n", ret);
+ 	}
+@@ -133,9 +130,9 @@
+ 	struct mxs_clkctrl_regs *clkctrl_regs =
+ 		(struct mxs_clkctrl_regs *)MXS_CLKCTRL_BASE;
+ 	struct eth_device *dev;
+-        struct mxs_ocotp_regs *ocotp_regs =
+-                (struct mxs_ocotp_regs *)MXS_OCOTP_BASE;
+-        uint32_t data;
++	struct mxs_ocotp_regs *ocotp_regs =
++		(struct mxs_ocotp_regs *)MXS_OCOTP_BASE;
++	uint32_t data;
+ 	int ret;
+ 	uchar enetaddr[6];
+ 	uint8_t val = 0x2;
+@@ -164,15 +161,15 @@
+ 	}
+ 
+ 	eth_parse_enetaddr(getenv("ethaddr"), enetaddr);
+-        if (!enetaddr[3] && !enetaddr[4] && !enetaddr[5]) {
+-                printf("No MAC address set in fuses.  Using random mac address.\n");
++	if (!enetaddr[3] && !enetaddr[4] && !enetaddr[5]) {
++		printf("No MAC address set in fuses.  Using random mac address.\n");
+ 
+ 		writel(OCOTP_CTRL_RD_BANK_OPEN, &ocotp_regs->hw_ocotp_ctrl_set);
+ 
+ 		if (mxs_wait_mask_clr(&ocotp_regs->hw_ocotp_ctrl_reg,
+ 		  OCOTP_CTRL_BUSY, MXS_OCOTP_MAX_TIMEOUT)) {
+ 			printf("MXS FEC: Can't get MAC from OCOTP\n");
+-			return -EINVAL;
++			return;
+ 		}
+ 
+ 		data = readl(&ocotp_regs->hw_ocotp_ops2);
+@@ -182,18 +179,21 @@
+ 		enetaddr[5] = data & 0xff;
+ 		mx28_adjust_mac(0, enetaddr);
+ 
+-                if (eth_setenv_enetaddr("ethaddr", enetaddr)) {
+-                        printf("Failed to set ethernet address\n");
+-                }
+-        }
++		if (eth_setenv_enetaddr("ethaddr", enetaddr)) {
++			printf("Failed to set ethernet address\n");
++		}
++	}
+ 
+ 	return ret;
+ }
++
+ #endif
+ 
++
+ static int set_mx28_spi(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+ {
+ 	unsigned int mode;
++	unsigned char val = 0xa5;
+ 
+ 	if(argc != 2) {
+ 		printf("Usage:\n%s %s", cmdtp->name, cmdtp->help);
+@@ -235,55 +235,3 @@
+ 	"    1 - En. SPI CS#, force on-board SPI\n"
+ 	"    2 - En. SPI CS#, force off-board SPI\n"
+ 	"    3 - Dis. SPI CS# output (En. use of UART 2 & 3)\n");
+-
+-static int wait_for_supercaps(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+-{
+-	unsigned int pct;
+-	unsigned char buf[16] = {0};
+-	unsigned int check;
+-	unsigned int verbose = 0;
+-
+-	if (argc < 2) {
+-		printf("Usage:\n%s %s", cmdtp->name, cmdtp->help);
+-		return 1;
+-	}
+-
+-	i2c_read(0x78, 0x0, 1, &buf[0], 16);
+-	check = ((buf[15] >> 3) & 0x1);
+-	if(check) {
+-		printf("NO CHRG jumper is set, not waiting for SuperCaps to"
+-		  " charge\n");
+-		return 0;
+-	}
+-	if(argc == 3) verbose = simple_strtoul(argv[2], NULL, 10);
+-	pct = simple_strtoul(argv[1], NULL, 10);
+-	if(pct == 0) {
+-		printf("Not waiting for SuperCaps to charge\n");
+-		return 0;
+-	} else {
+-		printf("Waiting until SuperCaps are charged to %d%%\n", pct);
+-	}
+-	if(pct > 100) pct = 100;
+-
+-	while(1) {
+-		i2c_read(0x78, 0x0, 1, &buf[0], 4);
+-		check = ((buf[2]<<8|buf[3])*1000/409*2);
+-		if(check >= 2500) {
+-			check = ((check - 2500)/23);
+-			if(check > 100) check = 100;
+-			if(verbose) printf("%d%%\n", check);
+-			if(check >= pct) return 0;
+-		} else {
+-			if(verbose) printf("0%%\n");
+-		}
+-		if(ctrlc()) return 1;
+-		udelay(1000000);
+-	}
+-}
+-
+-U_BOOT_CMD(wait_chrg, 3, 0, wait_for_supercaps,
+-	"Wait until SuperCaps have a specific charge percentage",
+-	"[percentage] [verbose]\n"
+-	"  Percentage can be 0 to 100. 0 means no delay\n"
+-	"  Verbose can be a 1 to output percentage every second; 0 or not\n"
+-	"    passed to disable this output and wait silently\n");
