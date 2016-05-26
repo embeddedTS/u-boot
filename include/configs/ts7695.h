@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2011 Freescale Semiconductor, Inc.
+ * Copyright (C) 2016 Technologic Systems
  *
  * TS-7695 config
  * Based on m28evk.h

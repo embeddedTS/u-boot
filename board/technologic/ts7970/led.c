@@ -1,3 +1,9 @@
+/*
+ * Copyright (C) 2016 Technologic Systems
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
+
 #include <common.h>
 #include <asm/io.h>
 #include <asm/arch/gpio.h>

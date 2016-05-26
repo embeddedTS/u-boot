@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2010-2011 Freescale Semiconductor, Inc.
+ * Copyright (C)  * Copyright (C) 2016 Technologic Systems
+
  *
  * Configuration settings for the Technologic Systems TS-4900
  *

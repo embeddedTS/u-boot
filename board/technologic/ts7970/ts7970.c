@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Freescale Semiconductor, Inc.
+ * Copyright (C) 2016 Technologic Systems
  *
  * Author: Mark Featherston <mark@embeddedarm.com>
  *
