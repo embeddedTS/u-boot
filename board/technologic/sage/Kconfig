@@ -1,0 +1,15 @@
+if TARGET_SAGE
+
+config SYS_BOARD
+	default "sage"
+
+config SYS_VENDOR
+	default "technologic"
+
+config SYS_SOC
+	default "mxs"
+
+config SYS_CONFIG_NAME
+	default "sage"
+
+endif
