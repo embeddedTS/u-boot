@@ -59,6 +59,8 @@ int board_early_init_f(void)
 	/* SSP2 clock at 160MHz */
 	mxs_set_sspclk(MXC_SSPCLK2, 160000, 0);
 
+	gpio_direction_output(MX28_PAD_LCD_WR_RWN__GPIO_1_25, 1);
+
 	return 0;
 }
 
