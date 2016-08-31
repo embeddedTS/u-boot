@@ -175,7 +175,7 @@
 		"fi; " \
 		"echo Updating u-boot from /boot/u-boot.sb; " \
 		"if test ${jpsdboot} = 'on' ; " \
-			"then if load mmc 0:2 ${loadaddr} /boot/u-boot.sb; " \
+			"then if load usb 0:2 ${loadaddr} /boot/u-boot.sb; " \
 				"then sf probe; " \
 				"sf erase 0 80000; " \
 				"sf write ${loadaddr} 0 ${filesize}; " \
@@ -208,6 +208,17 @@
 		"setenv bootargs root=/dev/mmcblk0p2 ${cmdline_append}; " \
 		"mx28_prod 3;" \
 		"bootm ${loadaddr} - ${fdtaddr}; \0"\
+	"usbboot=echo Booting from USB ...; " \
+		"usb start;" \
+		"if load usb 0:2 ${loadaddr} /boot/boot.ub; " \
+			"then echo Booting from custom /boot/boot.ub; " \
+			"source ${loadaddr}; " \
+		"fi; " \
+		"load usb 0:2 ${loadaddr} /boot/uImage; " \
+		"load usb 0:2 ${fdtaddr} /boot/imx28-tsngmini.dtb; " \
+		"setenv bootargs root=/dev/sda2 ${cmdline_append}; " \
+		"mx28_prod 3;" \
+		"bootm ${loadaddr} - ${fdtaddr}; \0"\
 	"usbprod=usb start; " \
 		"if usb storage; " \
 			"then echo Checking USB storage for updates; " \
@@ -230,7 +241,7 @@
 
 #define CONFIG_BOOTCOMMAND \
 	"if test ${jpsdboot} = 'on' ; " \
-		"then run sdboot; " \
+		"then run usbboot; " \
 		"else run emmcboot; " \
 	"fi;"
 	
