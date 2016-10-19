@@ -22,6 +22,10 @@
 
 #include "post.h"
 
+int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+int do_mem_mtest(cmd_tbl_t *cmdtp, int flag, int argc,
+			char * const argv[]);
+
 #define LOOP_PAD_CTRL (PAD_CTL_HYS | PAD_CTL_PUS_100K_UP | PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_SRE_FAST)
 
 iomux_v3_cfg_t const posttest_pads[] = {
@@ -406,7 +410,7 @@ int emmc_test(void)
 
 int wifi_test(void)
 {
-	int ret = 0, i;
+	int ret = 0;
 	uint8_t val;
 	printf("WIFI test starting...\n");
 
@@ -502,6 +506,9 @@ static int do_post_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 
 	if(emmc_present){
 		ret |= emmc_test();
+	}
+
+	if(wifi_present){
 		ret |= wifi_test();
 	}
 
