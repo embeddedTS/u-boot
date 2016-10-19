@@ -992,7 +992,7 @@ static ulong mem_test_quick(vu_long *buf, ulong start_addr, ulong end_addr,
  * configured using CONFIG_SYS_ALT_MEMTEST. The complete test loops until
  * interrupted by ctrl-c or by a failure of one of the sub-tests.
  */
-static int do_mem_mtest(cmd_tbl_t *cmdtp, int flag, int argc,
+int do_mem_mtest(cmd_tbl_t *cmdtp, int flag, int argc,
 			char * const argv[])
 {
 	ulong start, end;
