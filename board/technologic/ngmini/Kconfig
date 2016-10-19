@@ -1,0 +1,15 @@
+if TARGET_NGMINI
+
+config SYS_BOARD
+	default "ngmini"
+
+config SYS_VENDOR
+	default "technologic"
+
+config SYS_SOC
+	default "mxs"
+
+config SYS_CONFIG_NAME
+	default "ngmini"
+
+endif

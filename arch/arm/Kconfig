@@ -307,6 +307,11 @@ config TARGET_TRAFFICNET
 	select CPU_ARM926EJS
 	select SUPPORT_SPL
 
+config TARGET_NGMINI
+	bool "Support NGmini (TS-7553/TS-7680)"
+	select CPU_ARM926EJS
+	select SUPPORT_SPL
+
 config TARGET_SAGE
 	bool "Support Sage_ETH_CAN (TS-7680)"
 	select CPU_ARM926EJS
@@ -939,6 +944,7 @@ source "board/freescale/mx28evk/Kconfig"
 source "board/technologic/ts7400_V2/Kconfig"
 source "board/technologic/ts7553/Kconfig"
 source "board/technologic/trafficnet/Kconfig"
+source "board/technologic/ngmini/Kconfig"
 source "board/technologic/sage/Kconfig"
 source "board/technologic/ts7680/Kconfig"
 source "board/technologic/ts7695/Kconfig"
