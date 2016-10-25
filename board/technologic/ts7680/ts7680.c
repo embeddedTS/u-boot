@@ -220,18 +220,19 @@ int board_eth_init(bd_t *bis)
 	uchar enetaddr[6];
 	uint8_t val = 0x2;
 
-	/* Take switch out of reset */
-	i2c_write(0x28, 0x2b, 2, &val, 1);
-
+	/* This function sets up clocks */
 	ret = cpu_eth_init(bis);
 	if (ret)
 		return ret;
 
-	/* MX28EVK uses ENET_CLK PAD to drive FEC clock */
-	writel(CLKCTRL_ENET_TIME_SEL_RMII_CLK | CLKCTRL_ENET_CLK_OUT_EN,
-	       &clkctrl_regs->hw_clkctrl_enet);
+	/* Wait for a number of clocks to the switch */
+	mdelay(1);
+	/* Take switch out of reset */
+	i2c_write(0x28, 0x2b, 2, &val, 1);
+	mdelay(15);
 
-	ret = fecmxc_initialize_multi(bis, 0, 0, MXS_ENET0_BASE);
+	ret = fecmxc_initialize_multi(bis, 0, CONFIG_FEC_MXC_PHYADDR,
+	  MXS_ENET0_BASE);
 	if (ret) {
 		puts("FEC MXS: Unable to init FEC0\n");
 		return ret;

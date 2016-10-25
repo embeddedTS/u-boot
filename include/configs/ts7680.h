@@ -82,6 +82,9 @@
 #define CONFIG_SUPPORT_RAW_INITRD
 
 /* Memory configuration */
+#define CONFIG_SYS_ALT_MEMTEST
+#define CONFIG_CMD_MEMTEST
+
 #define CONFIG_NR_DRAM_BANKS		1		/* 1 bank of DRAM */
 #define PHYS_SDRAM_1			0x40000000	/* Base address */
 #define PHYS_SDRAM_1_SIZE		0x40000000	/* Max 1 GB RAM */
@@ -104,6 +107,9 @@
 /* FEC Ethernet on SoC */
 #ifdef	CONFIG_CMD_NET
 #define CONFIG_FEC_MXC
+#define CONFIG_PHYLIB
+#define CONFIG_FEC_MXC_PHYADDR		0x18
+#define IMX_FEC_BASE			0
 #define CONFIG_NET_MULTI
 #define CONFIG_MX28_FEC_MAC_IN_OCOTP
 #endif

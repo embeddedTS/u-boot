@@ -6,7 +6,7 @@
 #
 
 ifndef	CONFIG_SPL_BUILD
-obj-y	:= ts7680.o led.o
+obj-y	:= ts7680.o led.o post.o
 else
 obj-y	:= iomux.o
 endif
