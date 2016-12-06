@@ -1,7 +1,7 @@
 /*
- * Technologic TS-7680 Single-board Computer
+ * Technologic TS-7680/82 Single-board Computer
  *
- * (C) Copyright 2015 Technologic Systems
+ * (C) Copyright 2015-2016 Technologic Systems
  * Based on work by:
  * Stuart Longland of VRT Systems <stuartl@vrt.com.au>
  *
@@ -145,8 +145,7 @@ int dram_init(void)
 int misc_init_r(void)
 {
 	int sdboot = 0;
-
-	setenv("model", "7680");
+	uint8_t model;
 
 	gpio_direction_input(TS7680_SDBOOT_JP);
 	sdboot = gpio_get_value(TS7680_SDBOOT_JP);
@@ -164,6 +163,12 @@ int misc_init_r(void)
 	ts7680_fpga_init();
 #endif
 	enable_fpga_clk();
+
+	udelay(1000);
+	i2c_read(0x28, 0x7D, 2, &model, 1);
+	if(model == 0x82) setenv("model", "7682");
+	else setenv("model", "7680");
+
 
 	return 0;
 }

@@ -55,18 +55,45 @@ int ts7680_loopback_test(void)
 	return ret;
 }
 
-int fpga_test(void)
+int ts7682_loopback_test(void)
 {
 	int ret = 0;
 	uint8_t val;
+
+	printf("Testing LS inputs\n");
+
+	ret |= i2c_read(0x28, 0xE, 2, &val, 1);
+	if((val & 0x3F) != 0x3F)
+		ret = 1;
+
+	val = 3;
+	ret |= i2c_write(0x28, 0x0, 2, &val, 1);
+	ret |= i2c_write(0x28, 0x1, 2, &val, 1);
+	ret |= i2c_write(0x28, 0x2, 2, &val, 1);
+	ret |= i2c_write(0x28, 0x3, 2, &val, 1);
+	ret |= i2c_write(0x28, 0x4, 2, &val, 1);
+	ret |= i2c_write(0x28, 0x5, 2, &val, 1);
+
+	ret |= i2c_read(0x28, 0xE, 2, &val, 1);
+	if((val & 0x3F) != 0x0)
+		ret = 1;
+
+	if (ret == 0) printf("GPIO test passed\n");
+	else printf("GPIO test failed\n");
+	return ret;
+}
+
+int fpga_test(void)
+{
+	int ret = 0;
+	uint8_t val, model;
 	printf("FPGA test starting...\n");
 
-	/* FPGA should be loaded before running this test.  
-	 * Tested with: /boot/ts4900-fpga.bin bf93c03ef914cf008287c8cd60781cc8 
-	 * Expects addr d51 to include rev 4 */
+	/* FPGA should be loaded before running this test. */
+	ret |= i2c_read(0x28, 0x7D, 2, &model, 1);
 	ret |= i2c_read(0x28, 0x7F, 2, &val, 1);
-	if(val != 0xA) {
-		printf("Wrong rev detected, expected 0x0 and got 0x%X\n", val);
+	if((val != 0xA) && (model == 0x82 && val != 0x0)) {
+		printf("Wrong rev detected, got 0x%X\n", val);
 		ret = 1;
 	}
 
@@ -203,11 +230,11 @@ static int do_post_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 	int ret = 0;
 	int emmc_present = 0;
 	int wifi_present = 0;
+	uint8_t val;
 
 	mxs_iomux_setup_multiple_pads(posttest_pads, ARRAY_SIZE(posttest_pads));
 
 
-	uint8_t val;
 	/* Make sure the FPGA is sane before running these tests */
 	ret |= fpga_test();
 	ret |= i2c_read(0x28, 0x7E, 2, &val, 1);
@@ -222,7 +249,9 @@ static int do_post_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 		ret |= wifi_test();
 	}
 
-	ret |= ts7680_loopback_test();
+	ret |= i2c_read(0x28, 0x7D, 2, &val, 1);
+	if(val == 0x82) ret |= ts7682_loopback_test();
+	else ret |= ts7680_loopback_test();
 
 	ret |= mem_test();
 
