@@ -27,7 +27,7 @@
 #define CONFIG_RED_LED                  MX28_PAD_GPMI_D07__GPIO_0_7
 #define CONFIG_GREEN_LED                MX28_PAD_GPMI_D05__GPIO_0_5
 #define CONFIG_YEL_LED                  MX28_PAD_LCD_RS__GPIO_1_26
-#define CONFIG_BLUE_LED                 MX28_PAD_LCD_VSYNC__GPIO_1_28
+#define CONFIG_BLUE_LED                 MX28_PAD_LCD_RD_E__GPIO_1_24
 #define STATUS_LED_RED			0
 #define STATUS_LED_GREEN		1
 #define STATUS_LED_YELLOW		2
