@@ -2220,6 +2220,17 @@ int ext4fs_mount(unsigned part_length)
 	if (__le16_to_cpu(data->sblock.magic) != EXT2_MAGIC)
 		goto fail;
 
+	/*
+	 * The 64bit feature was enabled when metadata_csum was enabled
+	 * and we do not support metadata_csum (and cannot reliably find
+	 * files when it is set.  Refuse to mount.
+	 */
+	if (data->sblock.feature_incompat & EXT4_FEATURE_INCOMPAT_64BIT) {
+		printf("Unsupported EXT4 feature detected.  Refusing to access.\n");
+		printf("\tTry creating the filesystem with mkfs.ext4 -O ^metadata_csum,^64bit\n");
+		goto fail;
+	}
+
 	if (__le32_to_cpu(data->sblock.revision_level == 0))
 		fs->inodesz = 128;
 	else
