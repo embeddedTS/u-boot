@@ -68,7 +68,7 @@ int misc_init_r(void)
 {
 	int sdboot = 0;
 
-	setenv("model", "7680");
+	setenv("model", "sage");
 
 	gpio_direction_input(SAGE_SDBOOT_JP);
 	sdboot = gpio_get_value(SAGE_SDBOOT_JP);
