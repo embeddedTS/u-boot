@@ -52,6 +52,7 @@
 #define TS4900_RGMII_RD3	IMX_GPIO_NR(6, 29)
 #define TS4900_RGMII_RX_CTL	IMX_GPIO_NR(6, 24)
 #define TS4900_EN_SDPWR		IMX_GPIO_NR(2, 28)
+#define TS4900_OTG_ID		IMX_GPIO_NR(1, 1)
 
 DECLARE_GLOBAL_DATA_PTR;
 int random_mac = 0;
@@ -73,6 +74,10 @@ int random_mac = 0;
 	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS |   \
 	PAD_CTL_ODE | PAD_CTL_SRE_FAST)
 
+#define OTG_ID_PAD_CTRL (PAD_CTL_PKE | PAD_CTL_PUE |		\
+	PAD_CTL_PUS_47K_UP  | PAD_CTL_SPEED_LOW |		\
+	PAD_CTL_DSE_80ohm   | PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
+
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
 
 iomux_v3_cfg_t const ecspi1_pads[] = {
@@ -92,8 +97,8 @@ iomux_v3_cfg_t const misc_pads[] = {
 	MX6_PAD_CSI0_DAT19__GPIO6_IO05 | MUX_PAD_CTRL(NO_PAD_CTRL), // Rev D strap
 	MX6_PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL), // EN_RTC
 	MX6_PAD_EIM_A16__GPIO2_IO22 | MUX_PAD_CTRL(NO_PAD_CTRL), // EN_USB_5V
+	MX6_PAD_GPIO_1__USB_OTG_ID | MUX_PAD_CTRL(OTG_ID_PAD_CTRL), // USB_OTG_ID
 };
-
 
 #ifdef CONFIG_CMD_BMODE
 static const struct boot_mode board_boot_modes[] = {
@@ -413,13 +418,12 @@ int misc_init_r(void)
 	int sdboot;
 	char rev[2] = {0, 0};
 	struct iomuxc *iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
-	
 	imx_iomux_v3_setup_multiple_pads(misc_pads, ARRAY_SIZE(misc_pads));
 
 	// Set OFF_BD_RESET low and check if the SD boot jumper is on
 	gpio_direction_output(TS4900_OFFBD_RST, 0);
 	gpio_direction_input(TS4900_SDBOOT);
-	gpio_direction_output(TS4900_EN_5V, 0); // EN_USB_5V
+	gpio_direction_output(TS4900_EN_5V, 0);
 	udelay(1000);
 	sdboot = gpio_get_value(TS4900_SDBOOT);
 	// OFF_BD_RESET should be left high to diable reset of offboard peripherals
@@ -472,6 +476,15 @@ struct i2c_pads_info i2c_pad_info0 = {
 	}
 };
 
+void setup_usb(void)
+{
+	struct iomuxc *const iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
+	// Pick GPIO1 for USB OTG id
+	clrsetbits_le32(&iomuxc_regs->gpr[1],
+			IOMUXC_GPR1_OTG_ID_MASK,
+			IOMUXC_GPR1_OTG_ID_GPIO1);
+}
+
 int board_init(void)
 {
 	int i;
@@ -480,6 +493,7 @@ int board_init(void)
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 	setup_spi();
 	setup_fpga();
+	setup_usb();
 
 	rev = board_rev();
 
