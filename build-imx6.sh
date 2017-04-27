@@ -1,7 +1,8 @@
 #!/bin/bash -x
 
 export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
+#export CROSS_COMPILE=arm-linux-gnueabihf-
+export CROSS_COMPILE=/opt/poky/2.2.1/sysroots/x86_64-pokysdk-linux/usr/bin/arm-poky-linux-gnueabi/arm-poky-linux-gnueabi-
 export DATE=$(date +"%b-%d-%Y")
 
 FAIL=0
