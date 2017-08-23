@@ -360,6 +360,18 @@ int micrel_phy_test(void)
 	return ret;
 }
 
+
+/* On the TS-9550 the test results blink LEDs
+ * and run loopback tests not present on other boards */
+int is_9550(void)
+{
+	if(strcmp("15", getenv("baseboardid")) == 0){
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 int emmc_test(void)
 {
 	int ret = 0, i;
@@ -373,33 +385,35 @@ int emmc_test(void)
 	/* This tests simple enumeration */
 	ret |= do_mmcops(0, 0, 3, query_argv);
 
-	memset(loadaddr, 0xAAAAAAAA, 1024*1024*4);
-	ret |= do_mmcops(0, 0, 5, write_argv);
-	memset(loadaddr, 0x00000000, 1024*1024*4);
-	ret |= do_mmcops(0, 0, 5, read_argv);
+	if(is_9550()) {
+		memset(loadaddr, 0xAAAAAAAA, 1024*1024*4);
+		ret |= do_mmcops(0, 0, 5, write_argv);
+		memset(loadaddr, 0x00000000, 1024*1024*4);
+		ret |= do_mmcops(0, 0, 5, read_argv);
 
-	for (i = 0; i < (1024*1024)/4; i++)
-	{
-		if (loadaddr[i] != 0xAAAAAAAA)
+		for (i = 0; i < (1024*1024)/4; i++)
 		{
-			printf("\tWrong value at %d\n", i);
-			printf("got 0x%X, expected 0xAAAAAAAA\n", loadaddr[i]);
-			ret = 1;
+			if (loadaddr[i] != 0xAAAAAAAA)
+			{
+				printf("\tWrong value at %d\n", i);
+				printf("got 0x%X, expected 0xAAAAAAAA\n", loadaddr[i]);
+				ret = 1;
+			}
 		}
-	}
 
-	memset(loadaddr, 0x55555555, 1024*1024*4);
-	ret |= do_mmcops(0, 0, 5, write_argv);
-	memset(loadaddr, 0x00000000, 1024*1024*4);
-	ret |= do_mmcops(0, 0, 5, read_argv);
+		memset(loadaddr, 0x55555555, 1024*1024*4);
+		ret |= do_mmcops(0, 0, 5, write_argv);
+		memset(loadaddr, 0x00000000, 1024*1024*4);
+		ret |= do_mmcops(0, 0, 5, read_argv);
 
-	for (i = 0; i < (1024*1024)/4; i++)
-	{
-		if (loadaddr[i] != 0x55555555)
+		for (i = 0; i < (1024*1024)/4; i++)
 		{
-			printf("\tWrong value at %d\n", i);
-			printf("got 0x%X, expected 0x55555555\n", loadaddr[i]);
-			ret = 1;
+			if (loadaddr[i] != 0x55555555)
+			{
+				printf("\tWrong value at %d\n", i);
+				printf("got 0x%X, expected 0x55555555\n", loadaddr[i]);
+				ret = 1;
+			}
 		}
 	}
 
@@ -448,17 +462,6 @@ int mem_test(void)
 	if (ret == 0) printf("RAM test passed\n");
 	else printf("RAM test failed\n");
 	return ret;
-}
-
-/* On the TS-9550 the test results blink LEDs
- * and run loopback tests not present on other boards */
-int is_9550(void)
-{
-	if(strcmp("15", getenv("baseboardid")) == 0){
-		return 1;
-	} else {
-		return 0;
-	}
 }
 
 void post_pass(void)
