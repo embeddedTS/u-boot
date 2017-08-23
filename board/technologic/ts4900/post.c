@@ -150,7 +150,7 @@ int test_gpio_once(int gpio1, int gpio2, const char *gpio1_name, const char *gpi
 int test_gpio_once_fpga(int gpio1, int gpio2, const char *gpio1_name, const char *gpio2_name)
 {
 	int ret = 0;
-	uint8_t val;
+	uint8_t val = 0;
 
 	// Set crossbar as a GPIO and set OE
 	val = 0xf9;
@@ -195,7 +195,7 @@ int test_gpio_2(int gpio1, int gpio2, const char *gpio1_name, const char *gpio2_
 int test_gpio_2_fpga(int fpga_gpio, int cpu_gpio, const char *fpga_name, const char *cpu_name)
 {
 	int ret = 0;
-	uint8_t val;
+	uint8_t val = 0;
 
 	// Set crossbar as a GPIO and set OE
 	val = 0xf9;
@@ -322,7 +322,7 @@ int ts9550_loopback_test(void)
 int fpga_test(void)
 {
 	int ret = 0;
-	uint8_t val;
+	uint8_t val = 0;
 	printf("FPGA test starting...\n");
 
 	/* FPGA should be loaded before running this test.  
@@ -425,7 +425,7 @@ int emmc_test(void)
 int wifi_test(void)
 {
 	int ret = 0;
-	uint8_t val;
+	uint8_t val = 0;
 	printf("WIFI test starting...\n");
 
 	/* Wifi is very complex and implementing a real test in u-boot is probably 
