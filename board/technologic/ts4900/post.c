@@ -375,7 +375,6 @@ int is_9550(void)
 int emmc_test(void)
 {
 	int ret = 0, i;
-	printf("eMMC test starting...\n");
 	uint32_t *loadaddr = (uint32_t *)0x12000000;
 
 	char *query_argv[3] = { "mmc", "dev", "1" };
@@ -385,7 +384,7 @@ int emmc_test(void)
 	/* This tests simple enumeration */
 	ret |= do_mmcops(0, 0, 3, query_argv);
 
-	if(is_9550()) {
+	if(!getenv("post_nowrite")) {
 		memset(loadaddr, 0xAAAAAAAA, 1024*1024*4);
 		ret |= do_mmcops(0, 0, 5, write_argv);
 		memset(loadaddr, 0x00000000, 1024*1024*4);
