@@ -467,7 +467,7 @@ int mem_test(void)
 void post_pass(void)
 {
 	printf("POST test passed\n");
-	red_led_off();
+	red_led_on();
 	while(is_9550()) {
 		mdelay(500);
 		green_led_off();
@@ -479,7 +479,7 @@ void post_pass(void)
 void post_fail(void)
 {
 	printf("POST test failed\n");
-	green_led_off();
+	green_led_on();
 	while(is_9550()) {
 		mdelay(500);
 		red_led_off();
@@ -495,6 +495,8 @@ static int do_post_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 	int wifi_present = 0;
 
 	imx_iomux_v3_setup_multiple_pads(posttest_pads, ARRAY_SIZE(posttest_pads));
+	green_led_on();
+	red_led_on();
 
 	uint8_t val;
 	// Make sure the "ice40" command has been run with a valid
