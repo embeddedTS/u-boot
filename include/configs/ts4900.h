@@ -40,6 +40,11 @@
 #define CONFIG_SPI_FLASH_STMICRO
 #define CONFIG_MXC_SPI
 
+#define CONFIG_CMD_FUSE
+#ifdef CONFIG_CMD_FUSE
+#define CONFIG_MXC_OCOTP
+#endif
+
 /* I2C Configs */
 #define CONFIG_CMD_I2C
 #define CONFIG_SYS_I2C
