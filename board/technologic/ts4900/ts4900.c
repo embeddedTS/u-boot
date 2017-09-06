@@ -55,7 +55,6 @@
 #define TS4900_OTG_ID		IMX_GPIO_NR(1, 1)
 
 DECLARE_GLOBAL_DATA_PTR;
-int random_mac = 0;
 
 #define UART_PAD_CTRL (PAD_CTL_PUS_100K_UP |			\
 	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm |			\
@@ -377,7 +376,6 @@ int board_eth_init(bd_t *bis)
 	if (!eth_getenv_enetaddr("ethaddr", enetaddr)) {
 		printf("No MAC address set in fuses.  Using random mac address.\n");
 		eth_random_addr(enetaddr);
-		random_mac = 1;
 		if (eth_setenv_enetaddr("ethaddr", enetaddr)) {
 			printf("Failed to set ethernet address\n");
 		}

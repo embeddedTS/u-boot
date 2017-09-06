@@ -201,8 +201,6 @@ int genphy_config_aneg(struct phy_device *phydev)
 	return result;
 }
 
-extern int random_mac;
-
 /**
  * genphy_update_link - update link status in @phydev
  * @phydev: target phy_device struct
@@ -256,14 +254,6 @@ int genphy_update_link(struct phy_device *phydev)
 			mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMSR);
 		}
 		printf(" done (%dms)\n", i);
-
-		/* The timer used in eth_random_addr doesn't work very well from poweron.  If
-		 * I need a random mac, getting it with linkup seems much more unique */
-		if(random_mac) {
-			uchar enetaddr[6];
-			eth_random_addr(enetaddr);
-			eth_setenv_enetaddr("ethaddr", enetaddr);
-		}
 		phydev->link = 1;
 	} else {
 		/* Read the link a second time to clear the latched state */
