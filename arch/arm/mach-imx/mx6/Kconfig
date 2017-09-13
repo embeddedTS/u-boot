@@ -354,6 +354,13 @@ config TARGET_SECOMX6
 config TARGET_TBS2910
 	bool "TBS2910 Matrix ARM mini PC"
 
+config TARGET_TS4900
+	bool "ts4900"
+	select DM
+	select DM_THERMAL
+	imply USB_HOST_ETHER
+	imply USB_ETHER_SMSC95XX
+
 config TARGET_TITANIUM
 	bool "titanium"
 
@@ -454,6 +461,7 @@ source "board/logicpd/imx6/Kconfig"
 source "board/seco/Kconfig"
 source "board/solidrun/mx6cuboxi/Kconfig"
 source "board/technexion/pico-imx6ul/Kconfig"
+source "board/technologic/ts4900/Kconfig"
 source "board/tbs/tbs2910/Kconfig"
 source "board/tqc/tqma6/Kconfig"
 source "board/toradex/apalis_imx6/Kconfig"
