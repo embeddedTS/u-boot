@@ -31,6 +31,15 @@ config FPGA_CYCLON2
 	  Enable FPGA driver for loading bitstream in BIT and BIN format
 	  on Altera Cyclone II device.
 
+config FPGA_LATTICE
+	bool "Enable Lattice FPGA drivers"
+	select FPGA
+	help
+	  Say Y here to enable the Lattice FPGA driver
+
+	  This supports loading VME files for series like the XP2, or bin
+	  files for the ICE40 series
+
 config FPGA_XILINX
 	bool "Enable Xilinx FPGA drivers"
 	select FPGA
