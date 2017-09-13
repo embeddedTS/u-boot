@@ -15,6 +15,7 @@
 #include <malloc.h>
 #include <fpga.h>
 #include <lattice.h>
+#include <spi.h>
 
 static lattice_board_specific_func *pfns;
 static const char *fpga_image;
@@ -256,6 +257,69 @@ signed char ispVM(void)
 	return cRetCode;
 }
 
+/*
+ * This is the interface used by FPGA driver.
+ * Return 0 for sucess, non-zero for error.
+ */
+int ice40_load(Lattice_desc *desc, const void *data, size_t len)
+{
+	int spi_bus;
+	int spi_dev;
+	struct spi_slave *slave;
+	int ret = 0;
+	int i;
+	char zeroes[100];
+
+	spi_bus = ICE40_COOKIE2SPI_BUS(desc->cookie);
+	spi_dev = ICE40_COOKIE2SPI_DEV(desc->cookie);
+
+	slave = spi_setup_slave(spi_bus, spi_dev, 25000000, SPI_MODE_3);
+	if (spi_claim_bus(slave)){
+		printf("Failed to claim the SPI bus\n");
+		return 1;
+	}
+
+	/* Set cs to output
+	 * set done to input
+	 * set fpga_reset to output
+	 */
+	(pfns->spi_init)();
+	(pfns->spi_set_rst)(0);
+	/* We do not use the controller's SPI because the
+	 * ice40 has timing requirements on the RESET io while cs
+	 * is asserted */
+	(pfns->spi_set_cs)(0);
+	/* At least 200ns */
+	udelay(1);
+	(pfns->spi_set_rst)(1);
+	mdelay(2);
+
+	ret = spi_xfer(slave, len * 8, (void *)data, NULL, 0);
+
+	/* FPGA requires additional spi clocks after bitstream */
+	memset(zeroes, 0, 100);
+	ret |= spi_xfer(slave, 100 * 8, zeroes, NULL, 0);
+
+	(pfns->spi_set_cs)(1);
+
+	for (i = 0; i <= 3000; i++)
+	{
+		if ((pfns->spi_get_done)()){
+			printf("ICE40 FPGA reloaded successfully\n");
+			break;
+		}
+		if (i == 3000){ 
+			printf("FPGA_DONE never asserted\n");
+			ret = 1;
+		}
+		udelay(1000);
+	}
+
+	spi_release_bus(slave);
+
+	return ret;
+}
+
 static int lattice_validate(Lattice_desc *desc, const char *fn)
 {
 	int ret_val = false;
@@ -295,6 +359,9 @@ int lattice_load(Lattice_desc *desc, const void *buf, size_t bsize)
 		pfns = desc->iface_fns;
 
 		switch (desc->family) {
+		case ICE40:
+			ret_val = ice40_load(desc, buf, bsize);
+			break;
 		case Lattice_XP2:
 			fpga_image = buf;
 			read_bytes = 0;
@@ -303,17 +370,18 @@ int lattice_load(Lattice_desc *desc, const void *buf, size_t bsize)
 				" addr %p size 0x%lx...\n",
 				__func__, fpga_image, bufsize);
 			ret_val = ispVM();
-			if (ret_val)
-				printf("%s: error %d downloading FPGA image\n",
-					__func__, ret_val);
-			else
-				puts("FPGA downloaded successfully\n");
 			break;
 		default:
 			printf("%s: Unsupported family type, %d\n",
 					__func__, desc->family);
 		}
 	}
+
+	if (ret_val)
+		printf("%s: error %d downloading FPGA image\n",
+			__func__, ret_val);
+	else
+		puts("FPGA downloaded successfully\n");
 
 	return ret_val;
 }
@@ -336,6 +404,9 @@ int lattice_info(Lattice_desc *desc)
 		case Lattice_XP2:
 			puts("XP2\n");
 			break;
+		case ICE40:
+			puts("iCE40\n");
+			break;
 			/* Add new family types here */
 		default:
 			printf("Unknown family type, %d\n", desc->family);
@@ -345,6 +416,9 @@ int lattice_info(Lattice_desc *desc)
 		switch (desc->iface) {
 		case lattice_jtag_mode:
 			puts("JTAG Mode\n");
+			break;
+		case lattice_spi_mode:
+			puts("SPI Mode\n");
 			break;
 			/* Add new interface types here */
 		default:

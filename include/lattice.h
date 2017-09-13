@@ -242,14 +242,28 @@ typedef struct {
 typedef enum {
 	min_lattice_iface_type,		/* insert all new types after this */
 	lattice_jtag_mode,		/* jtag/tap  */
+	lattice_spi_mode,		/* spi */
 	max_lattice_iface_type		/* insert all new types before this */
 } Lattice_iface;
 
 typedef enum {
 	min_lattice_type,
 	Lattice_XP2,			/* Lattice XP2 Family */
+	ICE40,				/* Lattice XP2 Family */
 	max_lattice_type		/* insert all new types before this */
 } Lattice_Family;
+
+/*
+ * For the StratixV FPGA programming via SPI, the following
+ * information is coded in the 32bit cookie:
+ * Bit 31 ... Bit 0
+ * SPI-Bus | SPI-Dev | Config-Pin | Done-Pin
+ */
+#define ICE40_SPI_COOKIE(bus, dev)			\
+	((bus) << 24) | ((dev) << 16)
+
+#define ICE40_COOKIE2SPI_BUS(c)	(((c) >> 24) & 0xff)
+#define ICE40_COOKIE2SPI_DEV(c)	(((c) >> 16) & 0xff)
 
 typedef struct {
 	Lattice_Family	family;	/* part type */
@@ -267,6 +281,10 @@ typedef void (*Lattice_jtag_set_tdi)(int v);
 typedef void (*Lattice_jtag_set_tms)(int v);
 typedef void (*Lattice_jtag_set_tck)(int v);
 typedef int (*Lattice_jtag_get_tdo)(void);
+typedef int (*Lattice_spi_get_done)(void);
+typedef void (*Lattice_spi_set_cs)(int v);
+typedef void (*Lattice_spi_set_rst)(int v);
+typedef void (*Lattice_spi_init)(void);
 
 typedef struct {
 	Lattice_jtag_init	jtag_init;
@@ -274,6 +292,10 @@ typedef struct {
 	Lattice_jtag_set_tms	jtag_set_tms;
 	Lattice_jtag_set_tck	jtag_set_tck;
 	Lattice_jtag_get_tdo	jtag_get_tdo;
+	Lattice_spi_init	spi_init;
+	Lattice_spi_get_done	spi_get_done;
+	Lattice_spi_set_cs	spi_set_cs;
+	Lattice_spi_set_rst	spi_set_rst;
 } lattice_board_specific_func;
 
 void writePort(unsigned char pins, unsigned char value);
