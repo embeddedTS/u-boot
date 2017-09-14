@@ -196,104 +196,32 @@
 #define CONFIG_NFS_TIMEOUT 100UL
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
-	"uimage=/boot/uImage\0" \
-	"ip_dyn=yes\0" \
-	"initrd_high=0xffffffff\0" \
-	"fdtaddr=0x18000000\0" \
-	"fdt_high=0xffffffff\0" \
-	"serverip=192.168.0.11\0" \
-	"nfsroot=/u/x/ts4900/rootfs/\0" \
-	"autoload=no\0" \
-	"disable_giga=1\0" \
 	"initrd_addr=0x10800000\0 " \
-	"cmdline_append=console=ttymxc0,115200 ro init=/sbin/init\0" \
+	ENV_CPU_TYPE \
+	"model=4900\0" \
+	"autoload=no\0" \
+	"cmdline_append=console=ttymxc0,115200 init=/sbin/init\0" \
 	"clearenv=if sf probe; then " \
 		"sf erase 0x100000 0x2000 && " \
-		"echo restored environment to factory default ; fi\0" \
-	"sdboot=echo Booting from the SD card ...; " \
-		"bbdetect; " \
-		"if load mmc 0:1 ${loadaddr} /boot/boot.ub; " \
-			"then echo Booting from custom /boot/boot.ub; " \
-			"source ${loadaddr}; " \
-		"fi; " \
-		"if load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
-			"then echo $baseboardid detected; " \
-		"else " \
-			"echo Booting default device tree; " \
-			"load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb; " \
-		"fi; " \
-		"load mmc 0:1 ${loadaddr} /boot/ts4900-fpga.bin; " \
+		"echo restored environment to factory default;fi\0" \
+	"mmcboot=echo Booting from the mmc ...;" \
+		"if load ${mender_uboot_root} ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb;" \
+			"then echo $baseboardid detected;" \
+		"else" \
+			"echo Booting default device tree;" \
+			"load ${mender_uboot_root}  ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb;" \
+		"fi;" \
+		"load ${mender_uboot_root}  ${loadaddr} /boot/ts4900-fpga.bin;" \
 		"ice40 ${loadaddr} ${filesize}; " \
-		"load mmc 0:1 ${loadaddr} ${uimage}; " \
-		"setenv bootargs root=/dev/mmcblk1p1 rootwait rw ${cmdline_append}; " \
-		"bootm ${loadaddr} - ${fdtaddr}; \0" \
-	"emmcboot=echo Booting from the eMMC ...; " \
-		"bbdetect; " \
-		"if load mmc 1:1 ${loadaddr} /boot/boot.ub; " \
-			"then echo Booting from custom /boot/boot.ub; " \
-			"source ${loadaddr}; " \
-		"fi; " \
-		"if load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
-			"then echo $baseboardid detected; " \
-		"else " \
-			"echo Booting default device tree; " \
-			"load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb; " \
-		"fi; " \
-		"load mmc 1:1 ${loadaddr} /boot/ts4900-fpga.bin; " \
-		"ice40 ${loadaddr} ${filesize}; " \
-		"load mmc 1:1 ${loadaddr} ${uimage}; " \
-		"setenv bootargs root=/dev/mmcblk2p1 rootwait rw ${cmdline_append}; " \
-		"bootm ${loadaddr} - ${fdtaddr}; \0" \
-	"sataboot=echo Booting from SATA ...; " \
-		"bbdetect; " \
-		"if load sata 0:1 ${loadaddr} /boot/boot.ub; " \
-			"then echo Booting from custom /boot/boot.ub; " \
-			"source ${loadaddr}; " \
-		"fi; " \
-		"if load sata 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
-			"then echo $baseboardid detected; " \
-		"else " \
-			"echo Booting default device tree; " \
-			"load sata 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb; " \
-		"fi; " \
-		"load sata 0:1 ${loadaddr} /boot/ts4900-fpga.bin; " \
-		"ice40 ${loadaddr} ${filesize}; " \
-		"load sata 0:1 ${loadaddr} ${uimage}; " \
-		"setenv bootargs root=/dev/sda1 rootwait rw ${cmdline_append}; " \
-		"bootm ${loadaddr} - ${fdtaddr}; \0" \
-	"usbprod=usb start; " \
-		"if usb storage; " \
-			"then echo Checking USB storage for updates; " \
-			"if load usb 0:1 ${loadaddr} /tsinit.ub; " \
-				"then led green on;" \
-				"source ${loadaddr}; " \
-				"led red off; " \
-				"exit; " \
-			"fi; " \
-		"fi; \0" \
-	"nfsboot=echo Booting from NFS ...; " \
-		"dhcp ; " \
-		"bbdetect; " \
-		"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
-		"if fdt addr ${fdtaddr}; " \
-			"then echo $baseboardid detected; " \
-		"else " \
-			"echo Booting default device tree; " \
-			"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts4900.dtb; " \
-		"fi; " \
-		"nfs ${loadaddr} ${nfsroot}/boot/ts4900-fpga.bin; " \
-		"ice40 ${loadaddr} ${filesize}; " \
-		"nfs ${loadaddr} ${nfsroot}/boot/uImage; " \
-		"setenv bootargs root=/dev/nfs ip=dhcp nfsroot=${serverip}:${nfsroot} " \
-			"rootwait rw init=/sbin/init ${cmdline_append}; " \
-		"bootm ${loadaddr} - ${fdtaddr}; \0"
+		"load ${mender_uboot_root}  ${loadaddr} /boot/uImage;" \
+		"setenv bootargs root=${mender_kernel_root} ${cmdline_append};" \
+		"bootz ${loadaddr} - ${fdtaddr};\0"
 
 #define CONFIG_BOOTCOMMAND \
-	"run usbprod; " \
-	"if test ${jpsdboot} = 'on' ; " \
-		"then run sdboot; " \
-		"else run emmcboot; " \
-	"fi;"
+	"run mender_setup; run mmcboot; run mender_try_to_recover;" \
+
+#define CONFIG_BOOTCOUNT_LIMIT
+#define CONFIG_BOOTCOUNT_ENV
 
 /* Miscellaneous configurable options */
 #define CONFIG_SYS_LONGHELP
@@ -335,10 +263,12 @@
 /* FLASH and environment organization */
 #define CONFIG_SYS_NO_FLASH
 
-#define CONFIG_ENV_SIZE			(8 * 1024)
-#define CONFIG_ENV_IS_IN_SPI_FLASH
-#define CONFIG_ENV_OFFSET		0x100000
-#define CONFIG_ENV_SECT_SIZE	(4 * 1024)
+#define CONFIG_ENV_SIZE 0x20000
+
+
+
+#define CONFIG_ENV_IS_IN_MMC=y
+
 #define CONFIG_SF_DEFAULT_BUS  0
 #define CONFIG_SF_DEFAULT_CS   0
 #define CONFIG_SF_DEFAULT_SPEED 15000000
