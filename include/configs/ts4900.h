@@ -267,7 +267,7 @@
 
 
 
-#define CONFIG_ENV_IS_IN_MMC=y
+#define CONFIG_ENV_IS_IN_MMC
 
 #define CONFIG_SF_DEFAULT_BUS  0
 #define CONFIG_SF_DEFAULT_CS   0
