@@ -196,7 +196,7 @@
 #define CONFIG_NFS_TIMEOUT 100UL
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
-	"initrd_addr=0x10800000\0 " \
+	"initrd_addr=0x10800000\0" \
 	"fdtaddr=0x18000000\0" \
 	"fdt_high=0xffffffff\0" \
 	"model=4900\0" \
@@ -208,9 +208,9 @@
 	"mmcboot=echo Booting from the mmc ...;" \
 		"if load ${mender_uboot_root} ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb;" \
 			"then echo $baseboardid detected;" \
-		"else" \
+		"else " \
 			"echo Booting default device tree;" \
-			"load ${mender_uboot_root}  ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb;" \
+			"load ${mender_uboot_root} ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb;" \
 		"fi;" \
 		"load ${mender_uboot_root}  ${loadaddr} /boot/ts4900-fpga.bin;" \
 		"ice40 ${loadaddr} ${filesize}; " \
