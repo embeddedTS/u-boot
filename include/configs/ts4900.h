@@ -197,6 +197,8 @@
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"initrd_addr=0x10800000\0 " \
+	"fdtaddr=0x18000000\0" \
+	"fdt_high=0xffffffff\0" \
 	"model=4900\0" \
 	"autoload=no\0" \
 	"cmdline_append=console=ttymxc0,115200 init=/sbin/init\0" \
