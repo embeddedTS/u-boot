@@ -207,6 +207,7 @@
 		"mmc write ${loadaddr} 4000 256;" \
 		"mmc write ${loadaddr} 8000 256;\0" \
 	"mmcboot=echo Booting from the mmc ...;" \
+		"bbdetect;" \
 		"if load ${mender_uboot_root} ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb;" \
 			"then echo $baseboardid detected;" \
 		"else " \
@@ -217,7 +218,7 @@
 		"ice40 ${loadaddr} ${filesize}; " \
 		"load ${mender_uboot_root}  ${loadaddr} /boot/uImage;" \
 		"setenv bootargs root=${mender_kernel_root} ${cmdline_append};" \
-		"bootz ${loadaddr} - ${fdtaddr};\0"
+		"bootm ${loadaddr} - ${fdtaddr};\0"
 
 #define CONFIG_BOOTCOMMAND \
 	"run mender_setup; run mmcboot; run mender_try_to_recover;" \
