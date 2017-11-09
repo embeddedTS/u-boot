@@ -205,7 +205,7 @@
 	"clearenv=mmc dev 1; " \
 		"mw.l ${loadaddr} 0 20000;" \
 		"mmc write ${loadaddr} 4000 256;" \
-		"mmc write ${loadaddr} 8000 256;\0"
+		"mmc write ${loadaddr} 8000 256;\0" \
 	"mmcboot=echo Booting from the mmc ...;" \
 		"if load ${mender_uboot_root} ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb;" \
 			"then echo $baseboardid detected;" \
