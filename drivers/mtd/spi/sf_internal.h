@@ -38,6 +38,7 @@ enum {
 	SECT_32K	= 1 << 1,
 	E_FSR		= 1 << 2,
 	WR_QPP		= 1 << 3,
+	USE_ULBPR	= 1 << 7
 };
 
 #define SPI_FLASH_3B_ADDR_LEN		3

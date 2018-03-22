@@ -251,6 +251,11 @@ static int spi_flash_validate_params(struct spi_slave *spi, u8 *idcode,
 		spi_flash_cmd_write_status(flash, 0);
 #endif
 
+	if(params->flags & USE_ULBPR){
+		spi_flash_cmd_write_enable(flash);
+		spi_flash_cmd(flash->spi, 0x98, NULL, 0);
+	}
+
 	return 0;
 }
 

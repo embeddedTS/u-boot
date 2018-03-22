@@ -15,7 +15,10 @@
 /* SPI/QSPI flash device params structure */
 const struct spi_flash_params spi_flash_params_table[] = {
 #ifdef CONFIG_SPI_FLASH_ISSI
-	{"IS25LQ016B",     0x9d4015, 0x9d40,    64 * 1024,    32, RD_FULL,                  SECT_4K},
+	{"IS25LQ016",	   0x9d4015, 0x9d40,	64 * 1024,    32, 	RD_FULL,		  SECT_4K},
+	{"IS25LP032",	   0x9d6016, 0x0,	64 * 1024,    64, 	0,			  0},
+	{"IS25LP064",	   0x9d6017, 0x0,	64 * 1024,   128, 	0,			  0},
+	{"IS25LP128",	   0x9d6018, 0x0,	64 * 1024,   256, 	0,			  0},
 #endif
 #ifdef CONFIG_SPI_FLASH_ATMEL		/* ATMEL */
 	{"AT45DB011D",	   0x1f2200, 0x0,	64 * 1024,     4,	0,		    SECT_4K},
@@ -102,6 +105,7 @@ const struct spi_flash_params spi_flash_params_table[] = {
 	{"SST25WF020",	   0xbf2503, 0x0,	64 * 1024,     4,       0,	    SECT_4K | SST_WP},
 	{"SST25WF040",	   0xbf2504, 0x0,	64 * 1024,     8,       0,	    SECT_4K | SST_WP},
 	{"SST25WF080",	   0xbf2505, 0x0,	64 * 1024,    16,       0,	    SECT_4K | SST_WP},
+	{"SST26VF064B",	   0xbf2643, 0x0,	64 * 1024,   128, 	0,	    SECT_4K | USE_ULBPR},
 #endif
 #ifdef CONFIG_SPI_FLASH_WINBOND		/* WINBOND */
 	{"W25P80",	   0xef2014, 0x0,	64 * 1024,    16,	0,		           0},
