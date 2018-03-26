@@ -37,7 +37,10 @@ enum {
 	SECT_4K		= 1 << 0,
 	SECT_32K	= 1 << 1,
 	E_FSR		= 1 << 2,
-	WR_QPP		= 1 << 3,
+	SST_BP		= 1 << 3,
+	SST_WP		= 1 << 4,
+	WR_QPP		= 1 << 5,
+	SECT_2K		= 1 << 6,
 	USE_ULBPR	= 1 << 7
 };
 
@@ -102,7 +105,6 @@ enum {
 
 /* SST specific */
 #ifdef CONFIG_SPI_FLASH_SST
-# define SST_WP		0x01	/* Supports AAI word program */
 # define CMD_SST_BP		0x02    /* Byte Program */
 # define CMD_SST_AAI_WP	0xAD	/* Auto Address Incr Word Program */
 
