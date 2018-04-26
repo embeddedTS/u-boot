@@ -28,12 +28,12 @@ static int do_readjp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	mxs_iomux_setup_multiple_pads(jp_pads, ARRAY_SIZE(jp_pads));
 
-	gpio_direction_input(MX28_PAD_LCD_D08__GPIO_1_8);
-	gpio_direction_output(MX28_PAD_LCD_D09__GPIO_1_9, 0);
-	jp = gpio_get_value(MX28_PAD_LCD_D08__GPIO_1_8);
+	gpio_direction_output(MX28_PAD_LCD_D08__GPIO_1_8, 1);
+	gpio_direction_input(MX28_PAD_LCD_D09__GPIO_1_9);
+	jp = gpio_get_value(MX28_PAD_LCD_D09__GPIO_1_9);
 
-	if(jp) setenv("jp1", "off");
-	else setenv("jp1", "on");
+	if(jp) setenv("jp1", "on");
+	else setenv("jp1", "off");
 
 	return 0;
 }
