@@ -1,7 +1,7 @@
 if TARGET_TS7400_V2
 
 config SYS_BOARD
-	default "ts7400_V2"
+	default "ts7400v2"
 
 config SYS_VENDOR
 	default "technologic"
@@ -10,6 +10,6 @@ config SYS_SOC
 	default "mxs"
 
 config SYS_CONFIG_NAME
-	default "ts7400_V2"
+	default "ts7400v2"
 
 endif

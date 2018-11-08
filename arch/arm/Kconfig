@@ -318,7 +318,7 @@ config TARGET_SAGE
 	select SUPPORT_SPL
 
 config TARGET_TS7400_V2
-	bool "Support TS-7400 v2"
+	bool "Support TS-7400-V2"
 	select CPU_ARM926EJS
 	select SUPPORT_SPL
 
@@ -941,7 +941,7 @@ source "board/freescale/ls1021atwr/Kconfig"
 source "board/freescale/mx23evk/Kconfig"
 source "board/freescale/mx25pdk/Kconfig"
 source "board/freescale/mx28evk/Kconfig"
-source "board/technologic/ts7400_V2/Kconfig"
+source "board/technologic/ts7400v2/Kconfig"
 source "board/technologic/ts7553/Kconfig"
 source "board/technologic/trafficnet/Kconfig"
 source "board/technologic/ngmini/Kconfig"
