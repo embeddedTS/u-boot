@@ -1,4 +1,4 @@
-if TARGET_TS7400_V2
+if TARGET_TS7400V2
 
 config SYS_BOARD
 	default "ts7400v2"

@@ -13,14 +13,11 @@
 #include <asm/arch/iomux.h>
 #include <status_led.h>
 
-static unsigned int saved_state[4] = {STATUS_LED_OFF,
-	STATUS_LED_OFF, STATUS_LED_OFF, STATUS_LED_OFF};
+static unsigned int saved_state[2] = {STATUS_LED_OFF, STATUS_LED_OFF};
 
 iomux_cfg_t const led_pads[] = {
 	CONFIG_RED_LED, // Red
 	CONFIG_GREEN_LED, // Green
-	CONFIG_YEL_LED, // Yellow
-	CONFIG_BLUE_LED, // Blue
 };
 
 void coloured_LED_init(void)
@@ -46,30 +43,6 @@ void green_led_on(void)
 	saved_state[STATUS_LED_GREEN] = STATUS_LED_ON;
 }
 
-void yellow_led_off(void)
-{
-	gpio_direction_output(led_pads[2], 1);
-	saved_state[STATUS_LED_YELLOW] = STATUS_LED_OFF;
-}
-
-void yellow_led_on(void)
-{
-	gpio_direction_output(led_pads[2], 0);
-	saved_state[STATUS_LED_YELLOW] = STATUS_LED_ON;
-}
-
-void blue_led_off(void)
-{
-	gpio_direction_output(led_pads[3], 0);
-	saved_state[STATUS_LED_BLUE] = STATUS_LED_OFF;
-}
-
-void blue_led_on(void)
-{
-	gpio_direction_output(led_pads[3], 1);
-	saved_state[STATUS_LED_BLUE] = STATUS_LED_ON;
-}
-
 void green_led_off(void)
 {
 	gpio_direction_output(led_pads[1], 1);
@@ -93,16 +66,6 @@ void __led_toggle(led_id_t mask)
 			green_led_off();
 		else
 			green_led_on();
-	} else if (STATUS_LED_YELLOW == mask) {
-		if (STATUS_LED_ON == saved_state[STATUS_LED_YELLOW])
-			yellow_led_off();
-		else
-			yellow_led_on();
-	} else if (STATUS_LED_BLUE == mask) {
-		if (STATUS_LED_ON == saved_state[STATUS_LED_BLUE])
-			blue_led_off();
-		else
-			blue_led_on();
 	}
 }
 
@@ -121,20 +84,6 @@ void __led_set(led_id_t mask, int state)
 			green_led_on();
 		} else {
 			green_led_off();
-		}
-		break;
-	  case STATUS_LED_YELLOW:
-		if(STATUS_LED_ON == state) {
-			yellow_led_on();
-		} else {
-			yellow_led_off();
-		}
-		break;
-	  case STATUS_LED_BLUE:
-		if(STATUS_LED_ON == state) {
-			blue_led_on();
-		} else {
-			blue_led_off();
 		}
 		break;
 	}
