@@ -8,7 +8,7 @@ TARGET=$1
 fi
 
 export ARCH=arm
-export CROSS_COMPILE=arm-none-linux-gnueabi-
+#export CROSS_COMPILE=arm-none-linux-gnueabi- #Note that this must be gcc-4.4
 export DATE=$(date +"%b-%d-%Y")
 
 FAIL=0
