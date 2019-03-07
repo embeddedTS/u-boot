@@ -1121,5 +1121,11 @@ int spi_flash_scan(struct spi_flash *flash)
 	}
 #endif
 
+	/* SST Global Block Protection Unlock */
+	if(info->flags & SST_ULBPR){
+		spi_flash_cmd_write_enable(flash);
+		spi_flash_cmd(flash->spi, 0x98, NULL, 0);
+	}
+
 	return 0;
 }

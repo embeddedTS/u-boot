@@ -131,6 +131,7 @@ struct spi_flash_info {
 #define RD_DUAL			BIT(5)	/* use Dual Read */
 #define RD_QUADIO		BIT(6)	/* use Quad IO Read */
 #define RD_DUALIO		BIT(7)	/* use Dual IO Read */
+#define SST_ULBPR		BIT(8)	/* SST Global Unlock to write */
 #define RD_FULL			(RD_QUAD | RD_DUAL | RD_QUADIO | RD_DUALIO)
 };
 
