@@ -67,8 +67,11 @@ const struct spi_flash_info spi_flash_ids[] = {
 	{"gd25lq32",	   INFO(0xc86016, 0x0, 64 * 1024,    64, SECT_4K) },
 #endif
 #ifdef CONFIG_SPI_FLASH_ISSI		/* ISSI */
+	{"is25lq016b",	   INFO(0x9d4015, 0x0, 64 * 1024,    32, 0) },
+	{"is25lq040b",	   INFO(0x9d4013, 0x0, 64 * 1024,    8, 0)  },
+	{"is25lp016",	   INFO(0x9d6015, 0x0, 64 * 1024,    32, 0) },
 	{"is25lp032",	   INFO(0x9d6016, 0x0, 64 * 1024,    64, 0) },
-	{"is25lp064",	   INFO(0x9d6017, 0x0, 64 * 1024,   128, 0) },
+	{"is25lp064",	   INFO(0x9d6017, 0x0, 64 * 1024,   128, SECT_4K) },
 	{"is25lp128",	   INFO(0x9d6018, 0x0, 64 * 1024,   256, 0) },
 #endif
 #ifdef CONFIG_SPI_FLASH_MACRONIX	/* MACRONIX */
@@ -147,6 +150,7 @@ const struct spi_flash_info spi_flash_ids[] = {
 	{"sst25wf040",	   INFO(0xbf2504, 0x0,	64 * 1024,     8, SECT_4K | SST_WR) },
 	{"sst25wf040b",	   INFO(0x621613, 0x0,	64 * 1024,     8, SECT_4K) },
 	{"sst25wf080",	   INFO(0xbf2505, 0x0,	64 * 1024,    16, SECT_4K | SST_WR) },
+	{"sst26vf064b",	   INFO(0xbf2643, 0x0,	64 * 1024,    128, SECT_4K | SST_WR | SST_ULBPR) },
 #endif
 #ifdef CONFIG_SPI_FLASH_WINBOND		/* WINBOND */
 	{"w25p80",	   INFO(0xef2014, 0x0,	64 * 1024,    16, 0) },
