@@ -317,6 +317,11 @@ config TARGET_TS7400V2
 	select CPU_ARM926EJS
 	select SUPPORT_SPL
 
+config TARGET_TS7670
+	bool "Support TS-7670"
+	select CPU_ARM926EJS
+	select SUPPORT_SPL
+
 config TARGET_MX23_OLINUXINO
 	bool "Support mx23_olinuxino"
 	select CPU_ARM926EJS
@@ -932,6 +937,7 @@ source "board/freescale/mx23evk/Kconfig"
 source "board/freescale/mx25pdk/Kconfig"
 source "board/freescale/mx28evk/Kconfig"
 source "board/technologic/ts7400v2/Kconfig"
+source "board/technologic/ts7670/Kconfig"
 source "board/technologic/trafficnet/Kconfig"
 source "board/technologic/ngmini/Kconfig"
 source "board/technologic/sage/Kconfig"
