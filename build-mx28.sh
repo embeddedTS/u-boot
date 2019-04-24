@@ -21,6 +21,7 @@ make "$TARGET"_defconfig
 make -j9 u-boot.sb
 if [ $? -eq 0 ]; then
 	cp u-boot.sb out/$TARGET-"$DATE".sb
+	./tools/mxsboot sd u-boot.sb out/$TARGET-"$DATE".sd
 else
 	let FAIL=FAIL+1
 fi
