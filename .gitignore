@@ -83,3 +83,6 @@ GTAGS
 *.orig
 *~
 \#*#
+
+# Output directory
+out/
