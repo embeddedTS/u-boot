@@ -555,6 +555,11 @@ int misc_init_r(void)
 	add_board_boot_modes(board_boot_modes);
 #endif
 
+	/* PCIE does not get properly disabled from a watchdog reset.  This prevents
+	 * a hang in the kernel if pcie was enabled in a previous boot. */
+	setbits_le32(&iomuxc_regs->gpr[1], IOMUXC_GPR1_TEST_POWERDOWN);
+	clrbits_le32(&iomuxc_regs->gpr[1], IOMUXC_GPR1_REF_SSP_EN);
+
 	return 0;
 }
 
