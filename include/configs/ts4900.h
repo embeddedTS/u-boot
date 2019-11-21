@@ -204,8 +204,7 @@
 	"initrd_high=0xffffffff\0" \
 	"fdtaddr=0x18000000\0" \
 	"fdt_high=0xffffffff\0" \
-	"serverip=192.168.0.11\0" \
-	"nfsroot=/u/x/ts4900/rootfs/\0" \
+	"nfsroot=192.168.0.36:/mnt/storage/imx6\0" \
 	"autoload=no\0" \
 	"disable_giga=1\0" \
 	"initrd_addr=0x10800000\0" \
@@ -213,57 +212,57 @@
 	"clearenv=if sf probe; then " \
 		"sf erase 0x100000 0x2000 && " \
 		"echo restored environment to factory default ; fi\0" \
+	"findfdt=" \
+		"if test $rev = 'E'; then " \
+			"if load ${bootdev} ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts4900-reve-${baseboardid}.dtb; then " \
+				"echo Baseboard $baseboardid detected;" \
+			"elif load ${bootdev} ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts4900-reve.dtb; then " \
+				"echo Booting default device tree;" \
+			"elif load ${bootdev} ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; then " \
+				"echo Baseboard $baseboardid detected;" \
+			"elif load ${bootdev} ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; then " \
+				"echo Booting default device tree;" \
+			"fi;" \
+		"else " \
+			"if load ${bootdev} ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; then " \
+				"echo Baseboard $baseboardid detected;" \
+			"elif load ${bootdev} ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; then " \
+				"echo Booting default device tree;" \
+			"fi;" \
+		"fi;\0" \
+	"bootlinux=bbdetect; " \
+		"if load ${bootdev} ${bootpart} ${loadaddr} /boot/boot.ub; " \
+			"then echo Booting from custom /boot/boot.ub; " \
+			"source ${loadaddr}; " \
+		"fi; " \
+		"run findfdt; " \
+		"load ${bootdev} ${bootpart} ${loadaddr} /boot/ts4900-fpga.bin; " \
+		"ice40 ${loadaddr} ${filesize}; " \
+		"load ${bootdev} ${bootpart} ${loadaddr} ${uimage}; " \
+		"setenv bootargs root=${rootdev} rootwait rw ${cmdline_append}; " \
+		"bootm ${loadaddr} - ${fdtaddr};\0" \
 	"sdboot=echo Booting from the SD card ...; " \
-		"bbdetect; " \
-		"if load mmc 0:1 ${loadaddr} /boot/boot.ub; " \
-			"then echo Booting from custom /boot/boot.ub; " \
-			"source ${loadaddr}; " \
-		"fi; " \
-		"if load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
-			"then echo $baseboardid detected; " \
-		"else " \
-			"echo Booting default device tree; " \
-			"load mmc 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb; " \
-		"fi; " \
-		"load mmc 0:1 ${loadaddr} /boot/ts4900-fpga.bin; " \
-		"ice40 ${loadaddr} ${filesize}; " \
-		"load mmc 0:1 ${loadaddr} ${uimage}; " \
-		"setenv bootargs root=/dev/mmcblk1p1 rootwait rw ${cmdline_append}; " \
-		"bootm ${loadaddr} - ${fdtaddr}; \0" \
+		"env set bootdev mmc; " \
+		"env set bootpart 0:1; " \
+		"env set rootdev '/dev/mmcblk1p1'; " \
+		"run bootlinux;\0" \
 	"emmcboot=echo Booting from the eMMC ...; " \
-		"bbdetect; " \
-		"if load mmc 1:1 ${loadaddr} /boot/boot.ub; " \
-			"then echo Booting from custom /boot/boot.ub; " \
-			"source ${loadaddr}; " \
-		"fi; " \
-		"if load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
-			"then echo $baseboardid detected; " \
-		"else " \
-			"echo Booting default device tree; " \
-			"load mmc 1:1 ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb; " \
-		"fi; " \
-		"load mmc 1:1 ${loadaddr} /boot/ts4900-fpga.bin; " \
-		"ice40 ${loadaddr} ${filesize}; " \
-		"load mmc 1:1 ${loadaddr} ${uimage}; " \
-		"setenv bootargs root=/dev/mmcblk2p1 rootwait rw ${cmdline_append}; " \
-		"bootm ${loadaddr} - ${fdtaddr}; \0" \
+		"env set bootdev mmc; " \
+		"env set bootpart 1:1; " \
+		"env set rootdev '/dev/mmcblk2p1'; " \
+		"run bootlinux;\0" \
 	"sataboot=echo Booting from SATA ...; " \
-		"bbdetect; " \
-		"if load sata 0:1 ${loadaddr} /boot/boot.ub; " \
-			"then echo Booting from custom /boot/boot.ub; " \
-			"source ${loadaddr}; " \
-		"fi; " \
-		"if load sata 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
-			"then echo $baseboardid detected; " \
-		"else " \
-			"echo Booting default device tree; " \
-			"load sata 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb; " \
-		"fi; " \
-		"load sata 0:1 ${loadaddr} /boot/ts4900-fpga.bin; " \
-		"ice40 ${loadaddr} ${filesize}; " \
-		"load sata 0:1 ${loadaddr} ${uimage}; " \
-		"setenv bootargs root=/dev/sda1 rootwait rw ${cmdline_append}; " \
-		"bootm ${loadaddr} - ${fdtaddr}; \0" \
+		"env set bootdev sata; " \
+		"env set bootpart 0:1; " \
+		"env set rootdev '/dev/sda1'; " \
+		"sata init; " \
+		"run bootlinux;\0" \
+	"usbboot=echo Booting from USB ...; " \
+		"env set bootdev usb; " \
+		"env set bootpart 0:1; " \
+		"env set rootdev '/dev/sda1'; " \
+		"usb start; " \
+		"run bootlinux;\0" \
 	"usbprod=usb start; " \
 		"if usb storage; " \
 			"then echo Checking USB storage for updates; " \
@@ -275,19 +274,20 @@
 			"fi; " \
 		"fi; \0" \
 	"nfsboot=echo Booting from NFS ...; " \
-		"dhcp ; " \
+		"dhcp; " \
 		"bbdetect; " \
-		"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts4900-${baseboardid}.dtb; " \
+		"mw.l ${fdtaddr} 0 1; " \
+		"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts4900-reve-${baseboardid}.dtb; " \
 		"if fdt addr ${fdtaddr}; " \
 			"then echo $baseboardid detected; " \
 		"else " \
 			"echo Booting default device tree; " \
-			"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts4900.dtb; " \
+			"nfs ${fdtaddr} ${nfsroot}/boot/imx6${cpu}-ts4900-reve.dtb; " \
 		"fi; " \
 		"nfs ${loadaddr} ${nfsroot}/boot/ts4900-fpga.bin; " \
 		"ice40 ${loadaddr} ${filesize}; " \
 		"nfs ${loadaddr} ${nfsroot}/boot/uImage; " \
-		"setenv bootargs root=/dev/nfs ip=dhcp nfsroot=${serverip}:${nfsroot} " \
+		"setenv bootargs root=/dev/nfs ip=dhcp nfsroot=${nfsroot} " \
 			"rootwait rw init=/sbin/init ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0"
 

@@ -44,6 +44,7 @@
 #define TS4900_ENRTC		IMX_GPIO_NR(3, 23)
 #define TS4900_REVSTRAP		IMX_GPIO_NR(2, 11)
 #define TS4900_REVSTRAPD	IMX_GPIO_NR(6, 5)
+#define TS4900_REVSTRAPE	IMX_GPIO_NR(1, 29)
 #define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
 #define TS4900_PHY_RST		IMX_GPIO_NR(4, 20)
 #define TS4900_RGMII_RXC	IMX_GPIO_NR(6, 30)
@@ -54,6 +55,14 @@
 #define TS4900_RGMII_RX_CTL	IMX_GPIO_NR(6, 24)
 #define TS4900_EN_SDPWR		IMX_GPIO_NR(2, 28)
 #define TS4900_OTG_ID		IMX_GPIO_NR(1, 1)
+#define TS4900_WIFI_EN		IMX_GPIO_NR(1, 26)
+#define TS4900_BT_EN		IMX_GPIO_NR(1, 27)
+#define TS4900_SD1_D0		IMX_GPIO_NR(1, 16)
+#define TS4900_SD1_D1		IMX_GPIO_NR(1, 17)
+#define TS4900_SD1_D2		IMX_GPIO_NR(1, 19)
+#define TS4900_SD1_D3		IMX_GPIO_NR(1, 21)
+#define TS4900_SD1_CMD		IMX_GPIO_NR(1, 18)
+#define TS4900_SD1_CLK		IMX_GPIO_NR(1, 20)
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -87,6 +96,17 @@ iomux_v3_cfg_t const ecspi1_pads[] = {
 	MX6_PAD_EIM_D16__ECSPI1_SCLK | MUX_PAD_CTRL(SPI_PAD_CTRL),
 };
 
+iomux_v3_cfg_t const wifi_pads[] = {
+	MX6_PAD_ENET_RXD0__GPIO1_IO27 | MUX_PAD_CTRL(SPI_PAD_CTRL), /* BT_EN */
+	MX6_PAD_ENET_RXD1__GPIO1_IO26 | MUX_PAD_CTRL(SPI_PAD_CTRL), /* WIFI_EN */
+	MX6_PAD_SD1_CMD__GPIO1_IO18 | MUX_PAD_CTRL(SPI_PAD_CTRL), /* SD1_CMD */
+	MX6_PAD_SD1_CLK__GPIO1_IO20 | MUX_PAD_CTRL(SPI_PAD_CTRL), /* SD1_CLK */
+	MX6_PAD_SD1_DAT0__GPIO1_IO16 | MUX_PAD_CTRL(SPI_PAD_CTRL), /* SD1_D0 */
+	MX6_PAD_SD1_DAT1__GPIO1_IO17 | MUX_PAD_CTRL(SPI_PAD_CTRL), /* SD1_D1*/
+	MX6_PAD_SD1_DAT2__GPIO1_IO19 | MUX_PAD_CTRL(SPI_PAD_CTRL), /* SD1_D2 */
+	MX6_PAD_SD1_DAT3__GPIO1_IO21 | MUX_PAD_CTRL(SPI_PAD_CTRL), /* SD1_D3 */
+};
+
 iomux_v3_cfg_t const misc_pads[] = {
 	MX6_PAD_EIM_A17__GPIO2_IO21 | MUX_PAD_CTRL(NO_PAD_CTRL), // off_bd_reset
 	MX6_PAD_GPIO_2__GPIO1_IO02 | MUX_PAD_CTRL(NO_PAD_CTRL), // Red LED
@@ -95,6 +115,7 @@ iomux_v3_cfg_t const misc_pads[] = {
 	MX6_PAD_EIM_OE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL), // BD_ID_DATA
 	MX6_PAD_SD4_DAT3__GPIO2_IO11 | MUX_PAD_CTRL(NO_PAD_CTRL), // Rev A/C strap
 	MX6_PAD_CSI0_DAT19__GPIO6_IO05 | MUX_PAD_CTRL(NO_PAD_CTRL), // Rev D strap
+	MX6_PAD_ENET_TXD1__GPIO1_IO29 | MUX_PAD_CTRL(NO_PAD_CTRL), // Rev E strap
 	MX6_PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL), // EN_RTC
 	MX6_PAD_EIM_A16__GPIO2_IO22 | MUX_PAD_CTRL(NO_PAD_CTRL), // EN_USB_5V
 	MX6_PAD_GPIO_1__USB_OTG_ID | MUX_PAD_CTRL(OTG_ID_PAD_CTRL), // USB_OTG_ID
@@ -116,15 +137,21 @@ char board_rev(void)
 		// Read REV strapping pin
 		gpio_direction_input(TS4900_REVSTRAP);
 		gpio_direction_input(TS4900_REVSTRAPD);
-		dat = gpio_get_value(TS4900_REVSTRAP);
-		if(dat) {
-			rev = 'A';
+		gpio_direction_input(TS4900_REVSTRAPE);
+		dat = gpio_get_value(TS4900_REVSTRAPE);
+		if(!dat) {
+			rev = 'E';
 		} else {
-			dat = gpio_get_value(TS4900_REVSTRAPD);
+			dat = gpio_get_value(TS4900_REVSTRAP);
 			if(dat) {
-				rev = 'C';
+				rev = 'A';
 			} else {
-				rev = 'D';
+				dat = gpio_get_value(TS4900_REVSTRAPD);
+				if(dat) {
+					rev = 'C';
+				} else {
+					rev = 'D';
+				}
 			}
 		}
 	}
@@ -459,6 +486,7 @@ int misc_init_r(void)
 	setenv("model", "4900");
 	setenv("rcause", get_reset_cause(1));
 	rev[0] = board_rev();
+
 	setenv("rev", rev);
 
 	/* PCIE does not get properly disabled from a watchdog reset.  This prevents 
@@ -549,6 +577,22 @@ int board_init(void)
 		}
 	}
 	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info0);
+
+	if (rev >= 'E') {
+		imx_iomux_v3_setup_multiple_pads(wifi_pads, ARRAY_SIZE(wifi_pads));
+		gpio_direction_output(TS4900_WIFI_EN, 0);
+		gpio_direction_output(TS4900_BT_EN, 0);
+		gpio_direction_input(TS4900_SD1_D0);
+		gpio_direction_input(TS4900_SD1_D1);
+		gpio_direction_input(TS4900_SD1_D2);
+		gpio_direction_input(TS4900_SD1_D3);
+		gpio_direction_input(TS4900_SD1_CLK);
+		gpio_direction_input(TS4900_SD1_CMD);
+
+		mdelay(5);
+		gpio_set_value(TS4900_WIFI_EN, 1);
+		gpio_set_value(TS4900_BT_EN, 1);
+	}
 
 	#ifdef CONFIG_CMD_SATA
 	setup_sata();
