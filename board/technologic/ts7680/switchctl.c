@@ -274,6 +274,15 @@ void switch_enphy(unsigned long phy) {
 	switch_mdio_write(0x17, 0x18, phy);
 }
 
+void switch_disphy(unsigned long phy) {
+	volatile unsigned short x;
+	do {
+		switch_mdio_read(0x17, 0x18, &x);
+	} while (x & (1 << 15));
+	switch_mdio_write(0x17, 0x19, 0x0900);
+	switch_mdio_write(0x17, 0x18, phy);
+}
+
 void switch_enflood(unsigned long port) {
 	volatile unsigned short data;
 	switch_mdio_read(port, 0x04, &data);
@@ -302,9 +311,15 @@ static int do_switchctl(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 	// Apply Marvell 88E60x0 Errata 3.1 for PHY 0 and 1.
 	switch_errata_3_1(0);
 	switch_errata_3_1(1<<5);
-	// enable both PHYs
-	switch_enphy(0x9600);
-	switch_enphy(0x9620);
+
+	// enable PHYs
+	switch_enphy(0x9600); // Enable port 0
+	if (argc > 1) {
+		switch_disphy(0x9620);
+		printf("Disabled switch port 1\n");
+	} else {
+		switch_enphy(0x9620);
+	}
 
 	// Force link up on P5, the CPU port
 	switch_forcelink(0x1d);
@@ -316,8 +331,9 @@ static int do_switchctl(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 	return ret;
 }
 
-U_BOOT_CMD(switchctl, 1, 1,	do_switchctl,
+U_BOOT_CMD(switchctl, 2, 1,	do_switchctl,
 	"Enables the switch to forward packets to both ports",
-	""
+	"[-d]\n"
+	"  -d   Disable port 1 after init\n"
 );
 
