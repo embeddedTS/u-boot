@@ -421,39 +421,6 @@ int emmc_test(void)
 	return ret;
 }
 
-int wifi_test(void)
-{
-	static int ret = 0;
-	static bool initialized = 0;
-
-	/* This test only works once per POR, so cache the result */
-	if(!initialized) {
-		uint8_t val;
-		initialized = 1;
-
-		/* This test does not apply to the Silex module */
-		if(board_rev() >= 'E') {
-			ret = 0;
-		} else {
-			/* Wifi is very complex and implementing a real test in u-boot is probably 
-			 * not wise but the bluetooth on the same chip shows sign of life by going low
-			 * after the chip is enabled. */
-			gpio_direction_input(IMX_GPIO_NR(2, 13)); // RTS
-			if(gpio_get_value(IMX_GPIO_NR(2, 13)) != 1)
-				ret = 1;
-
-			val = 3;
-			ret |= i2c_write(0x28, 13, 2, &val, 1);
-			mdelay(500);
-			if(gpio_get_value(IMX_GPIO_NR(2, 13)) != 0)
-				ret = 1;
-		}
-	}
-
-	if (ret == 0) printf("WIFI test passed\n");
-	else printf("WIFI test failed\n");
-	return ret;
-}
 int mem_test(void)
 {
 	int ret = 0;
@@ -500,7 +467,6 @@ static int do_post_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 {
 	int ret = 0;
 	int emmc_present = 0;
-	int wifi_present = 0;
 
 	imx_iomux_v3_setup_multiple_pads(posttest_pads, ARRAY_SIZE(posttest_pads));
 	green_led_on();
@@ -513,16 +479,11 @@ static int do_post_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 	ret |= i2c_read(0x28, 51, 2, &val, 1);
 
 	emmc_present = !(val & 0x8);
-	wifi_present = !(val & 0x4);
 
 	ret |= micrel_phy_test();
 
 	if(emmc_present){
 		ret |= emmc_test();
-	}
-
-	if(wifi_present){
-		ret |= wifi_test();
 	}
 
 	// If environment variable for TS-9550 baseboard, 
