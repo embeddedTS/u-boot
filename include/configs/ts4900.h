@@ -220,7 +220,7 @@
 				"echo Booting default device tree;" \
 			"elif load ${bootdev} ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; then " \
 				"echo Baseboard $baseboardid detected;" \
-			"elif load ${bootdev} ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; then " \
+			"elif load ${bootdev} ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb; then " \
 				"echo Booting default device tree;" \
 			"fi;" \
 		"else " \
