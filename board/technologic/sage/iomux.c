@@ -1,7 +1,7 @@
 /*
  * Sage_ETH_CAN based on TS-7680
  *
- * (C) Copyright 2016 Technologic Systems
+ * (C) Copyright 2016-2022 Technologic Systems, Inc. dba embeddedTS
  * Based on work by:
  * Stuart Longland of VRT Systems <stuartl@vrt.com.au>
  *

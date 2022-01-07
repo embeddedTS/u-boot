@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Technologic Systems
+ * Copyright (C) 2016-2022 Technologic Systems, Inc. dba embeddedTS
  *
  * TS-7553 v2 config
  * Based on m28evk.h
