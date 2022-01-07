@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Technologic Systems
+ * Copyright (C) 2019-2022 Technologic Systems, Inc. dba embeddedTS
  *
  * TS-7670 config
  * Based on m28evk.h

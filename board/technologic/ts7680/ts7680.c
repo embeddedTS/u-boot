@@ -1,7 +1,7 @@
 /*
  * Technologic TS-7680/82 Single-board Computer
  *
- * (C) Copyright 2015-2016 Technologic Systems
+ * (C) Copyright 2015-2022 Technologic Systems, Inc. dba embeddedTS
  * Based on work by:
  * Stuart Longland of VRT Systems <stuartl@vrt.com.au>
  *

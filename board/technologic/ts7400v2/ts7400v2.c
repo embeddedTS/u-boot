@@ -1,7 +1,7 @@
 /*
  * Technologic TS-7400-V2 Single-board Computer
  *
- * (C) Copyright 2018 Technologic Systems
+ * (C) Copyright 2018-2022 Technologic Systems, Inc. dba embeddedTS
  * Based on work by:
  * Stuart Longland of VRT Systems <stuartl@vrt.com.au>
  *
