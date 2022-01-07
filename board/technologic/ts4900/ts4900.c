@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2016 Technologic Systems
+ * Copyright (C) 2016-2022 Technologic Systems, Inc. dba embeddedTS
  *
- * Author: Mark Featherston <mark@embeddedarm.com.com>
+ * Author: Mark Featherston <mark@embeddedTS.com.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -480,7 +480,7 @@ int board_early_init_f(void)
 }
 
 /* Gets ID from hard wired 3-state 8-input multiplexer
- * https://wiki.embeddedarm.com/wiki/TS-4900#Baseboard_ID
+ * https://wiki.embeddedTS.com/wiki/TS-4900#Baseboard_ID
  */
 static int bbdetect(void)
 {
