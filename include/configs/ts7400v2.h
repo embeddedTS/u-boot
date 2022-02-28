@@ -172,6 +172,7 @@
 		"bootm ${loadaddr} - ${fdtaddr};\0"\
 
 #define CONFIG_BOOTCOMMAND \
+	"run usbprod; " \
 	"if test ${jpsdboot} = 'on' ; " \
 		"then run sdboot; " \
 		"else run emmcboot; " \
