@@ -1,7 +1,7 @@
 /*
  * Technologic TS-7670 Single-board Computer
  *
- * (C) Copyright 2019 Technologic Systems
+ * (C) Copyright 2019-2022 Technologic Systems, Inc. dba embeddedTS
  * Based on work by:
  * Stuart Longland of VRT Systems <stuartl@vrt.com.au>
  *

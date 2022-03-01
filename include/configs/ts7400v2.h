@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Technologic Systems
+ * Copyright (C) 2018-2022 Technologic Systems, Inc. dba embeddedTS
  *
  * TS-7400-V2 config
  * Based on m28evk.h

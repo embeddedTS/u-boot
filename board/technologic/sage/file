@@ -5,7 +5,7 @@
 - * Technologic Trafficnet BAT-433 (TS-7553) Single-board Computer
 + * Sage_ETH_CAN based on TS-7680
   *
-  * (C) Copyright 2015 Technologic Systems
+  * (C) Copyright 2015-2022 Technologic Systems, Inc. dba embeddedTS
   * Based on work by:
 @@ -25,13 +25,12 @@
  #include <spi.h>

@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2016 Technologic Systems
+ * Copyright (C) 2016-2022 Technologic Systems, Inc. dba embeddedTS
  *
- * Author: Mark Featherston <mark@embeddedarm.com>
+ * Author: Mark Featherston <mark@embeddedTS.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */

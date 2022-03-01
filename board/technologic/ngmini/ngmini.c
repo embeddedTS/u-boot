@@ -1,7 +1,7 @@
 /*
  * Technologic NG-mini (TS-7680/7553-V2) Single-board Computer
  *
- * (C) Copyright 2016 Technologic Systems
+ * (C) Copyright 2016-2022 Technologic Systems, Inc. dba embeddedTS
  * Based on work by:
  * Stuart Longland of VRT Systems <stuartl@vrt.com.au>
  *

@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2016 Technologic Systems
+ * Copyright (C) 2016-2022 Technologic Systems, Inc. dba embeddedTS
  *
- * Configuration settings for the Technologic Systems TS-4900
+ * Configuration settings for the embeddedTS TS-4900
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
