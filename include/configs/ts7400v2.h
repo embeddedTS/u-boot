@@ -152,7 +152,9 @@
 		"load mmc 0:2 ${fdtaddr} /boot/imx28-ts7400v2.dtb; " \
 		"setenv bootargs root=/dev/mmcblk0p2 ${cmdline_append}; " \
 		"bootm ${loadaddr} - ${fdtaddr}; \0"\
-	"usbprod=usb start; " \
+	"usbprod=mw.l 80018b14 08000000; " \
+		"mw.l 80018714 08000000; " \
+		"usb start; " \
 		"if usb storage; " \
 			"then echo Checking USB storage for updates; " \
 			"if load usb 0:1 ${loadaddr} /tsinit.ub; " \
