@@ -29,7 +29,11 @@
 
 #define TS7670_EN_SDPWR		MX28_PAD_PWM3__GPIO_3_28
 #define TS7670_SDBOOT_JP	MX28_PAD_LCD_D00__GPIO_1_0
+#define TS7670_EN_ENETPWRn	MX28_PAD_LCD_D10__GPIO_1_10
 #define TS7670_ENET_RSTn	MX28_PAD_SSP0_DETECT__GPIO_2_9
+#define TS7670_EN_USBPWR	MX28_PAD_LCD_CS__GPIO_1_27
+#define TS7670_EN_CANn		MX28_PAD_LCD_RESET__GPIO_3_30
+#define TS7670_EN_GPSn		MX28_PAD_LCD_D01__GPIO_1_1
 
 DECLARE_GLOBAL_DATA_PTR;
 int random_mac = 0;
@@ -87,6 +91,21 @@ int board_init(void)
 	/* Adress of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM_1 + 0x100;
 
+	/*
+	 * A number of pins don't have external pulls and the CPU only has
+	 * keepers, not pullups. Set these pins to an appropriate power-on
+	 * state.
+	 */
+
+	/* Turn on USB 5V */
+	gpio_direction_output(TS7670_EN_USBPWR, 1);
+
+	/* Turn off EN_CAN# */
+	gpio_direction_output(TS7670_EN_CANn, 1);
+
+	/* Disable GPS */
+	gpio_direction_output(TS7670_EN_GPSn, 1);
+
 	return 0;
 }
 
@@ -134,9 +153,17 @@ int board_eth_init(bd_t *bis)
 	int ret;
 	uchar enetaddr[6];
 
+	/* Turn on PHY, start clocks, reset PHY */
+	gpio_direction_output(TS7670_EN_ENETPWRn, 0);
+
 	ret = cpu_eth_init(bis);
 	if (ret)
 		return ret;
+
+	gpio_direction_output(TS7670_ENET_RSTn, 0);
+	udelay(26000);
+	gpio_direction_output(TS7670_ENET_RSTn, 1);
+
 
 	/* MX28EVK uses ENET_CLK PAD to drive FEC clock */
 	writel(CLKCTRL_ENET_TIME_SEL_RMII_CLK | CLKCTRL_ENET_CLK_OUT_EN,
