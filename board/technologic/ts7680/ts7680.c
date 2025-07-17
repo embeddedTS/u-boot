@@ -42,6 +42,10 @@ void mx28_adjust_mac(int dev_id, unsigned char *mac)
 	mac[2] = 0x69;
 }
 
+/* FIXME: The IO drive strength needs to be adjusted here to match the current
+ * IO settings in 6.6+ kernels. Currently, U-Boot sets too high of a drive
+ * strength and it causes ringing.
+ */
 static void enable_fpga_clk(void) 
 {
 	// Clear PWM clk gate
