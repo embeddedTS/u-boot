@@ -206,6 +206,18 @@ config TARGET_DISPLAY5
 	select SUPPORT_SPL
 	imply CMD_DM
 
+config TARGET_EMBEDDEDTS_TS4900
+	bool "embeddedTS TS-4900"
+	depends on MX6QDL
+	select BOARD_EARLY_INIT_F
+	select BOARD_LATE_INIT
+	select DM
+	select DM_THERMAL
+	select SUPPORT_SPL
+	imply CMD_DM
+	select FSL_CAAM
+	select ARCH_MISC_INIT
+
 config TARGET_EMBESTMX6BOARDS
 	bool "embestmx6boards"
 	select BOARD_LATE_INIT
@@ -710,6 +722,7 @@ source "board/bticino/mamoj/Kconfig"
 source "board/compulab/cm_fx6/Kconfig"
 source "board/comvetia/lxr2/Kconfig"
 source "board/dhelectronics/dh_imx6/Kconfig"
+source "board/embeddedts/ts4900/Kconfig"
 source "board/embest/mx6boards/Kconfig"
 source "board/engicam/imx6q/Kconfig"
 source "board/engicam/imx6ul/Kconfig"
