@@ -16,6 +16,7 @@
 #include <asm/sections.h>
 #include <env.h>
 #include <linux/errno.h>
+#include <linux/delay.h>
 #include <asm/gpio.h>
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/boot_mode.h>
@@ -46,6 +47,36 @@ DECLARE_GLOBAL_DATA_PTR;
 	PAD_CTL_DSE_40ohm | PAD_CTL_SRE_FAST)
 
 //#define DISP0_PWR_EN	IMX_GPIO_NR(1, 21)
+#define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
+#define TS4900_EN_SDPWR		IMX_GPIO_NR(2, 28)
+#define TS4900_ENRTC		IMX_GPIO_NR(3, 23)
+#if 0
+#define TS4900_EN_5V		IMX_GPIO_NR(2, 22)
+#define TS4900_OFFBD_RST	IMX_GPIO_NR(2, 21)
+#define TS4900_SDBOOT		IMX_GPIO_NR(2, 26)
+#define TS4900_SCL		IMX_GPIO_NR(3, 21)
+#define TS4900_SDA		IMX_GPIO_NR(3, 28)
+#define TS4900_REVSTRAP		IMX_GPIO_NR(2, 11)
+#define TS4900_REVSTRAPD	IMX_GPIO_NR(6, 5)
+#define TS4900_REVSTRAPE	IMX_GPIO_NR(1, 29)
+#define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
+#define TS4900_PHY_RST		IMX_GPIO_NR(4, 20)
+#define TS4900_RGMII_RXC	IMX_GPIO_NR(6, 30)
+#define TS4900_RGMII_RD0	IMX_GPIO_NR(6, 25)
+#define TS4900_RGMII_RD1	IMX_GPIO_NR(6, 27)
+#define TS4900_RGMII_RD2	IMX_GPIO_NR(6, 28)
+#define TS4900_RGMII_RD3	IMX_GPIO_NR(6, 29)
+#define TS4900_RGMII_RX_CTL	IMX_GPIO_NR(6, 24)
+#define TS4900_OTG_ID		IMX_GPIO_NR(1, 1)
+#define TS4900_WIFI_EN		IMX_GPIO_NR(1, 26)
+#define TS4900_BT_EN		IMX_GPIO_NR(1, 27)
+#define TS4900_SD1_D0		IMX_GPIO_NR(1, 16)
+#define TS4900_SD1_D1		IMX_GPIO_NR(1, 17)
+#define TS4900_SD1_D2		IMX_GPIO_NR(1, 19)
+#define TS4900_SD1_D3		IMX_GPIO_NR(1, 21)
+#define TS4900_SD1_CMD		IMX_GPIO_NR(1, 18)
+#define TS4900_SD1_CLK		IMX_GPIO_NR(1, 20)
+#endif
 
 int dram_init(void)
 {
@@ -56,6 +87,35 @@ int dram_init(void)
 static iomux_v3_cfg_t const uart1_pads[] = {
 	IOMUX_PADS(PAD_SD3_DAT7__UART1_TX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL)),
 	IOMUX_PADS(PAD_SD3_DAT6__UART1_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL)),
+};
+
+static iomux_v3_cfg_t const ecspi1_pads[] = {
+	IOMUX_PADS(PAD_EIM_D19__GPIO3_IO19  | MUX_PAD_CTRL(SPI_PAD_CTRL)),
+	IOMUX_PADS(PAD_EIM_D17__ECSPI1_MISO | MUX_PAD_CTRL(SPI_PAD_CTRL)),
+	IOMUX_PADS(PAD_EIM_D18__ECSPI1_MOSI | MUX_PAD_CTRL(SPI_PAD_CTRL)),
+	IOMUX_PADS(PAD_EIM_D16__ECSPI1_SCLK | MUX_PAD_CTRL(SPI_PAD_CTRL)),
+};
+
+static iomux_v3_cfg_t const fpga_pads[] = {
+	/* FPGA_DONE */
+	IOMUX_PADS(PAD_CSI0_DATA_EN__GPIO5_IO20    | MUX_PAD_CTRL(SPI_PAD_CTRL)),
+	/* FPGA_RESET */
+	IOMUX_PADS(PAD_CSI0_VSYNC__GPIO5_IO21      | MUX_PAD_CTRL(SPI_PAD_CTRL)),
+	/* FPGA_SPI_CS# */
+	IOMUX_PADS(PAD_CSI0_DAT16__GPIO6_IO02      | MUX_PAD_CTRL(SPI_PAD_CTRL)),
+	IOMUX_PADS(PAD_CSI0_DAT10__ECSPI2_MISO     | MUX_PAD_CTRL(SPI_PAD_CTRL)),
+	IOMUX_PADS(PAD_CSI0_DAT9__ECSPI2_MOSI      | MUX_PAD_CTRL(SPI_PAD_CTRL)),
+	IOMUX_PADS(PAD_CSI0_DAT8__ECSPI2_SCLK      | MUX_PAD_CTRL(SPI_PAD_CTRL)),
+	/* OFFBD_CS# */
+	IOMUX_PADS(PAD_CSI0_DAT11__GPIO5_IO29      | MUX_PAD_CTRL(SPI_PAD_CTRL)),
+	/* FPGA_CLK */
+	IOMUX_PADS(PAD_GPIO_3__XTALOSC_REF_CLK_24M | MUX_PAD_CTRL(NO_PAD_CTRL)),
+
+};
+
+static iomux_v3_cfg_t const i2c1_pads[] = {
+	/* XXX: TODO: Verify if we want NO_PAD_CTRL here actually */
+	IOMUX_PADS(PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL)), // EN_RTC
 };
 
 #if 0
@@ -167,12 +227,22 @@ iomux_v3_cfg_t const di0_pads[] = {
 	IOMUX_PADS(PAD_DI0_PIN2__IPU1_DI0_PIN02),		/* DISP0_HSYNC */
 	IOMUX_PADS(PAD_DI0_PIN3__IPU1_DI0_PIN03),		/* DISP0_VSYNC */
 };
+#endif
 
 static void setup_spi(void)
 {
 	SETUP_IOMUX_PADS(ecspi1_pads);
 }
-#endif
+
+static void setup_fpga_spi(void)
+{
+	// Enable clock
+	setbits_le32(CCM_CCGR1, MXC_CCM_CCGR1_ECSPI2S_MASK);
+
+	printf("KRIS: Set up FPGA SPI\n");
+
+	SETUP_IOMUX_PADS(fpga_pads);
+}
 
 static void setup_iomux_uart(void)
 {
@@ -180,14 +250,10 @@ static void setup_iomux_uart(void)
 }
 
 #ifdef CONFIG_FSL_ESDHC_IMX
-struct fsl_esdhc_cfg usdhc_cfg[3] = {
+struct fsl_esdhc_cfg usdhc_cfg[2] = {
 	{USDHC2_BASE_ADDR},
 	{USDHC3_BASE_ADDR},
-	{USDHC4_BASE_ADDR},
 };
-
-#define USDHC2_CD_GPIO	IMX_GPIO_NR(2, 2)
-#define USDHC3_CD_GPIO	IMX_GPIO_NR(2, 0)
 
 int board_mmc_get_env_dev(int devno)
 {
@@ -199,23 +265,46 @@ int board_mmc_getcd(struct mmc *mmc)
 	struct fsl_esdhc_cfg *cfg = (struct fsl_esdhc_cfg *)mmc->priv;
 	int ret = 0;
 
+	printf("KRIS: called getcd\n");
 	switch (cfg->esdhc_base) {
-	case USDHC2_BASE_ADDR:
-		ret = !gpio_get_value(USDHC2_CD_GPIO);
+	case USDHC2_BASE_ADDR: // microSD
+	case USDHC3_BASE_ADDR: // eMMC
+		ret = 1;
 		break;
-	case USDHC3_BASE_ADDR:
-		ret = !gpio_get_value(USDHC3_CD_GPIO);
-		break;
-	case USDHC4_BASE_ADDR:
-		ret = 1; /* eMMC/uSDHC4 is always present */
+	default:
+		ret = -1;
 		break;
 	}
 
 	return ret;
 }
 
+void board_mmc_power_init(void)
+{
+	printf("KRIS: mmc power init\n");
+	gpio_request(TS4900_EN_SDPWR, "sd-vmmc-en");
+	gpio_direction_output(TS4900_EN_SDPWR, 1);
+	/* XXX: TODO: Verify if this is needed. A reset may have the power below
+	 * 0.5 V for longer than 1 ms anyway. If not, a scope should reveal
+	 * roughly how long it takes for the rail to collapse and re-establish.
+	 */
+	udelay(15000);
+	gpio_direction_output(TS4900_EN_SDPWR, 0);
+}
+
 int board_mmc_init(struct bd_info *bis)
 {
+	/* XXX: TODO: Put the iomux here later maybe for sd power control */
+	/* XXX: NOTE: It _should_ be possible down the road to be able to
+	 * forceably unbind the MMC controller from linux which _should_ cause
+	 * it to correctly disable the regulator. This could be used for
+	 * forcing a power cycle! Investigate this later once we get further
+	 * along with LTS support.
+	 *
+	 * This actually needs to be a note to deal with LATER as the 4900
+	 * has microSD power control as its own thing but eMMC is powered by
+	 * 3.3 V
+	 */
 
 	return 0;
 	#if 0
@@ -422,16 +511,34 @@ int board_early_init_f(void)
 {
 	setup_iomux_uart();
 
+	SETUP_IOMUX_PADS(i2c1_pads);
+	/* Enable RTC power */
+	/* NOTE: Historically, there have been issues with this that we
+	 * may need to test.
+	 */
+	gpio_request(TS4900_ENRTC, "en-rtc");
+	gpio_direction_output(TS4900_ENRTC, 0);
+	//udelay(2000); // XXX: TODO: Verify this timing THIS HALTS BOOTING??
+
+	/* Get ready to program FPGA */
+	setup_fpga_spi();
+
+	/* Program FPGA here */
+	/* XXX: TODO: NOTE! Need to be mindful of what to do if FPGA programming
+	 * fails. Should we try again? Reboot? Assume really crap RAM values?
+	 */
+
 	return 0;
 }
 
 int board_init(void)
 {
+	/* XXX: What is the point of this? */
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
 #ifdef CONFIG_MXC_SPI
-	//setup_spi();
+	setup_spi();
 #endif
 
 #if defined(CONFIG_VIDEO_IPUV3)
@@ -481,11 +588,16 @@ int power_init_board(void)
 #ifdef CONFIG_MXC_SPI
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
 {
-	return (bus == 0 && cs == 0) ? (IMX_GPIO_NR(4, 9)) : -1;
+	printf("gpio %d %d\n", bus, cs);
+	return (bus == 0 && cs == 0) ? (TS4900_SPI_CS) : -1;
 }
 #endif
 
 #ifdef CONFIG_CMD_BMODE
+/* XXX: We probably don't want this in production, but, setting it up for use
+ * could be beneficial for customers testing new bootloaders! e.g. set it to
+ * USB mode and force serial mode that way/
+ */
 static const struct boot_mode board_boot_modes[] = {
 	/* 4 bit bus width */
 	{"sd2",	 MAKE_CFGVAL(0x40, 0x28, 0x00, 0x00)},
@@ -522,6 +634,7 @@ int board_late_init(void)
 #include <linux/libfdt.h>
 
 #ifdef CONFIG_SPL_OS_BOOT
+/* XXX: used for falcon boot */
 int spl_start_uboot(void)
 {
 	return 0;
@@ -674,8 +787,6 @@ void board_init_f(ulong dummy)
 
 	/* Clear the BSS. */
 	memset(__bss_start, 0, __bss_end - __bss_start);
-
-	printf("Test");
 
 	/* load/boot image from boot device */
 	board_init_r(NULL, 0);
