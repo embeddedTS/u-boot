@@ -1,10 +1,19 @@
 / {
         aliases {
-                mmc0 = &usdhc2;
-                mmc1 = &usdhc3;
+                //mmc0 = &usdhc2;
+                mmc0 = &usdhc3;
+                //mmc1 = &usdhc3;
                 usb0 = &usbotg;
                 video0 = &ipu1;
         };
+
+	reg_sd_vmmc: regulator-sd-vmmc {
+		compatible = "regulator-fixed";
+		regulator-name = "SD_3V3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&gpio2 28 GPIO_ACTIVE_HIGH>;
+	};
 
         soc {
                 bootph-pre-ram;
@@ -21,6 +30,16 @@
                         bootph-pre-ram;
                 };
         };
+};
+
+&usdhc1 {
+	status = "disabled";
+};
+
+&usdhc2 {
+	bootph-pre-ram;
+	vmmc-supply = <&reg_sd_vmmc>;
+	status = "disabled";
 };
 
 &usdhc3 {
