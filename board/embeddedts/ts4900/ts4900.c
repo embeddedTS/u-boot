@@ -50,6 +50,13 @@ DECLARE_GLOBAL_DATA_PTR;
 #define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
 #define TS4900_EN_SDPWR		IMX_GPIO_NR(2, 28)
 #define TS4900_ENRTC		IMX_GPIO_NR(3, 23)
+#define TS4900_PHY_RST		IMX_GPIO_NR(4, 20)
+#define TS4900_RGMII_RXC	IMX_GPIO_NR(6, 30)
+#define TS4900_RGMII_RD0	IMX_GPIO_NR(6, 25)
+#define TS4900_RGMII_RD1	IMX_GPIO_NR(6, 27)
+#define TS4900_RGMII_RD2	IMX_GPIO_NR(6, 28)
+#define TS4900_RGMII_RD3	IMX_GPIO_NR(6, 29)
+#define TS4900_RGMII_RX_CTL	IMX_GPIO_NR(6, 24)
 #if 0
 #define TS4900_EN_5V		IMX_GPIO_NR(2, 22)
 #define TS4900_OFFBD_RST	IMX_GPIO_NR(2, 21)
@@ -117,6 +124,25 @@ static iomux_v3_cfg_t const i2c1_pads[] = {
 	/* XXX: TODO: Verify if we want NO_PAD_CTRL here actually */
 	IOMUX_PADS(PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL)), // EN_RTC
 };
+
+static iomux_v3_cfg_t const enet_pads1[] = {
+	/* pin 35 - 1 (PHY_AD2) on reset */
+	IOMUX_PADS(PAD_RGMII_RXC__GPIO6_IO30            | MUX_PAD_CTRL(NO_PAD_CTRL)),
+	/* pin 32 - 1 - (MODE0) all */
+	IOMUX_PADS(PAD_RGMII_RD0__GPIO6_IO25            | MUX_PAD_CTRL(NO_PAD_CTRL)),
+	/* pin 31 - 1 - (MODE1) all */
+	IOMUX_PADS(PAD_RGMII_RD1__GPIO6_IO27            | MUX_PAD_CTRL(NO_PAD_CTRL)),
+	/* pin 28 - 1 - (MODE2) all */
+	IOMUX_PADS(PAD_RGMII_RD2__GPIO6_IO28            | MUX_PAD_CTRL(NO_PAD_CTRL)),
+	/* pin 27 - 1 - (MODE3) all */
+	IOMUX_PADS(PAD_RGMII_RD3__GPIO6_IO29            | MUX_PAD_CTRL(NO_PAD_CTRL)),
+	/* pin 33 - 1 - (CLK125_EN) 125Mhz clockout enabled */
+	IOMUX_PADS(PAD_RGMII_RX_CTL__GPIO6_IO24 | MUX_PAD_CTRL(NO_PAD_CTRL)),
+
+	// PHY RESET
+	IOMUX_PADS(PAD_DI0_PIN4__GPIO4_IO20             | MUX_PAD_CTRL(NO_PAD_CTRL)),
+};
+
 
 #if 0
 
@@ -507,6 +533,88 @@ static void setup_usb(void)
 }
 #endif
 
+#if 0
+static int setup_fec(void)
+{
+        struct iomuxc *iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
+        struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
+        int reg, ret;
+
+        /* Use 125MHz anatop loopback REF_CLK1 for ENET1 */
+        clrsetbits_le32(&iomuxc_regs->gpr[1], IOMUX_GPR1_FEC1_MASK, 0);
+
+        ret = enable_fec_anatop_clock(0, ENET_125MHZ);
+        if (ret)
+                return ret;
+
+        imx_iomux_v3_setup_multiple_pads(phy_control_pads,
+                                         ARRAY_SIZE(phy_control_pads));
+
+        /* Enable the ENET power, active low */
+        gpio_request(IMX_GPIO_NR(2, 6), "enet_rst");
+        gpio_direction_output(IMX_GPIO_NR(2, 6) , 0);
+
+        /* Reset AR8031 PHY */
+        gpio_request(IMX_GPIO_NR(2, 7), "phy_rst");
+        gpio_direction_output(IMX_GPIO_NR(2, 7) , 0);
+        mdelay(10);
+        gpio_set_value(IMX_GPIO_NR(2, 7), 1);
+
+        reg = readl(&anatop->pll_enet);
+        reg |= BM_ANADIG_PLL_ENET_REF_25M_ENABLE;
+        writel(reg, &anatop->pll_enet);
+
+        return 0;
+}
+
+int board_eth_init(struct bd_info *bis)
+{
+        imx_iomux_v3_setup_multiple_pads(fec1_pads, ARRAY_SIZE(fec1_pads));
+        setup_fec();
+
+        return cpu_eth_init(bis);
+}
+#endif
+
+/* Must be called early in boot, either late_init() or misc_init_r(), before
+ * calls to eth_init() are ultimately made. We rely on the devicetree to set
+ * the real final ethernet MAC/MDIO/MII IOMUX settings, but, need to control
+ * these pins as GPIO to force a proper bootstrapping when un-resetting the
+ * PHYs
+ */
+static void early_phy_strap_reset(void)
+{
+	SETUP_IOMUX_PADS(enet_pads1);
+
+        // Assert reset
+	gpio_request(TS4900_PHY_RST, "phy");
+        gpio_direction_output(TS4900_PHY_RST, 1);
+
+        gpio_request(TS4900_RGMII_RXC, "phy");
+        gpio_request(TS4900_RGMII_RD0, "phy");
+        gpio_request(TS4900_RGMII_RD1, "phy");
+        gpio_request(TS4900_RGMII_RD2, "phy");
+        gpio_request(TS4900_RGMII_RD3, "phy");
+        gpio_request(TS4900_RGMII_RX_CTL, "phy");
+
+        gpio_direction_output(TS4900_RGMII_RXC, 1);
+        gpio_direction_output(TS4900_RGMII_RD0, 1);
+        gpio_direction_output(TS4900_RGMII_RD1, 1);
+        gpio_direction_output(TS4900_RGMII_RD2, 1);
+        gpio_direction_output(TS4900_RGMII_RD3, 1);
+        gpio_direction_output(TS4900_RGMII_RX_CTL, 1);
+
+        /* Need delay at least 10ms according to KSZ9031 spec */
+        udelay(10000);
+
+        // De-assert reset
+        gpio_direction_output(TS4900_PHY_RST, 0);
+
+        /* Need 100us delay to exit from reset. */
+	/* XXX: datasheet doesn't spec deassert wait time */
+        udelay(1000 * 100);
+}
+
 int board_early_init_f(void)
 {
 	setup_iomux_uart();
@@ -624,6 +732,8 @@ int board_late_init(void)
 	else if (is_mx6sdl())
 		env_set("board_rev", "MX6DL");
 #endif
+
+	early_phy_strap_reset();
 
 	return 0;
 }
