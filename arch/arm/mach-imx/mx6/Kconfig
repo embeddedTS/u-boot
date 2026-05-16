@@ -209,14 +209,15 @@ config TARGET_DISPLAY5
 config TARGET_EMBEDDEDTS_TS4900
 	bool "embeddedTS TS-4900"
 	depends on MX6QDL
+	select ARCH_MISC_INIT
+	select BINMAN
 	select BOARD_EARLY_INIT_F
 	select BOARD_LATE_INIT
 	select DM
 	select DM_THERMAL
+	select FSL_CAAM
 	select SUPPORT_SPL
 	imply CMD_DM
-	select FSL_CAAM
-	select ARCH_MISC_INIT
 
 config TARGET_EMBESTMX6BOARDS
 	bool "embestmx6boards"
