@@ -898,6 +898,8 @@ void board_init_f(ulong dummy)
 	/* Clear the BSS. */
 	memset(__bss_start, 0, __bss_end - __bss_start);
 
+	setup_spi();
+
 	/* load/boot image from boot device */
 	board_init_r(NULL, 0);
 }
