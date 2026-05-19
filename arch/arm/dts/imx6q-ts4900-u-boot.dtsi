@@ -10,7 +10,7 @@
 	binman {
 		filename = "ts4900-uboot.bin";
 		pad-byte = <0xff>;
-		size = <0x00080000>;
+		size = <0x00100000>;
 		sort-by-offset;
 		symbols-base = <0>;
 
