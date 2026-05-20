@@ -46,10 +46,15 @@ DECLARE_GLOBAL_DATA_PTR;
 #define SPI_PAD_CTRL (PAD_CTL_HYS | PAD_CTL_SPEED_MED |		\
 	PAD_CTL_DSE_40ohm | PAD_CTL_SRE_FAST)
 
+#define I2C_PAD_CTRL (PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | 	\
+	PAD_CTL_HYS | PAD_CTL_ODE | PAD_CTL_SRE_FAST)
+
 //#define DISP0_PWR_EN	IMX_GPIO_NR(1, 21)
 #define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
 #define TS4900_EN_SDPWR		IMX_GPIO_NR(2, 28)
 #define TS4900_ENRTC		IMX_GPIO_NR(3, 23)
+#define TS4900_SCL		IMX_GPIO_NR(3, 21)
+#define TS4900_SDA		IMX_GPIO_NR(3, 28)
 #define TS4900_PHY_RST		IMX_GPIO_NR(4, 20)
 #define TS4900_RGMII_RXC	IMX_GPIO_NR(6, 30)
 #define TS4900_RGMII_RD0	IMX_GPIO_NR(6, 25)
@@ -96,12 +101,24 @@ static iomux_v3_cfg_t const uart1_pads[] = {
 	IOMUX_PADS(PAD_SD3_DAT6__UART1_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL)),
 };
 
+#ifdef CONFIG_XPL_BUILD
+/* XXX: This is only used in SPL to set up SPI NOR flash. U-Boot proper uses
+ 0* devicetree to set up these pins as needed.
+ */
 static iomux_v3_cfg_t const ecspi1_pads[] = {
 	IOMUX_PADS(PAD_EIM_D19__GPIO3_IO19  | MUX_PAD_CTRL(SPI_PAD_CTRL)),
 	IOMUX_PADS(PAD_EIM_D17__ECSPI1_MISO | MUX_PAD_CTRL(SPI_PAD_CTRL)),
 	IOMUX_PADS(PAD_EIM_D18__ECSPI1_MOSI | MUX_PAD_CTRL(SPI_PAD_CTRL)),
 	IOMUX_PADS(PAD_EIM_D16__ECSPI1_SCLK | MUX_PAD_CTRL(SPI_PAD_CTRL)),
 };
+
+static iomux_v3_cfg_t const i2c1_pads_gpio[] = {
+	/* XXX: TODO: Verify if we want NO_PAD_CTRL here actually */
+	IOMUX_PADS(PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL)), // EN_RTC
+	IOMUX_PADS(PAD_EIM_D21__GPIO3_IO21 | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SCL
+	IOMUX_PADS(PAD_EIM_D28__GPIO3_IO28 | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SDA
+};
+#endif
 
 static iomux_v3_cfg_t const fpga_pads[] = {
 	/* FPGA_DONE */
@@ -118,11 +135,6 @@ static iomux_v3_cfg_t const fpga_pads[] = {
 	/* FPGA_CLK */
 	IOMUX_PADS(PAD_GPIO_3__XTALOSC_REF_CLK_24M | MUX_PAD_CTRL(NO_PAD_CTRL)),
 
-};
-
-static iomux_v3_cfg_t const i2c1_pads[] = {
-	/* XXX: TODO: Verify if we want NO_PAD_CTRL here actually */
-	IOMUX_PADS(PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL)), // EN_RTC
 };
 
 static iomux_v3_cfg_t const enet_pads1[] = {
@@ -254,11 +266,6 @@ iomux_v3_cfg_t const di0_pads[] = {
 	IOMUX_PADS(PAD_DI0_PIN3__IPU1_DI0_PIN03),		/* DISP0_VSYNC */
 };
 #endif
-
-static void setup_spi(void)
-{
-	SETUP_IOMUX_PADS(ecspi1_pads);
-}
 
 static void setup_fpga_spi(void)
 {
@@ -619,15 +626,11 @@ int board_early_init_f(void)
 {
 	setup_iomux_uart();
 
-	SETUP_IOMUX_PADS(i2c1_pads);
-	/* Enable RTC power */
-	/* NOTE: Historically, there have been issues with this that we
-	 * may need to test.
-	 */
-	gpio_request(TS4900_ENRTC, "en-rtc");
-	gpio_direction_output(TS4900_ENRTC, 0);
-	//udelay(2000); // XXX: TODO: Verify this timing THIS HALTS BOOTING??
+	return 0;
+}
 
+void fpga_program(void)
+{
 	/* Get ready to program FPGA */
 	setup_fpga_spi();
 
@@ -635,8 +638,6 @@ int board_early_init_f(void)
 	/* XXX: TODO: NOTE! Need to be mindful of what to do if FPGA programming
 	 * fails. Should we try again? Reboot? Assume really crap RAM values?
 	 */
-
-	return 0;
 }
 
 int board_init(void)
@@ -644,10 +645,6 @@ int board_init(void)
 	/* XXX: What is the point of this? */
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
-
-#ifdef CONFIG_MXC_SPI
-	setup_spi();
-#endif
 
 #if defined(CONFIG_VIDEO_IPUV3)
 	//setup_display();
@@ -696,7 +693,6 @@ int power_init_board(void)
 #ifdef CONFIG_MXC_SPI
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
 {
-	printf("gpio %d %d\n", bus, cs);
 	return (bus == 0 && cs == 0) ? (TS4900_SPI_CS) : -1;
 }
 #endif
@@ -750,6 +746,12 @@ int spl_start_uboot(void)
 	return 0;
 }
 #endif
+
+/* XXX: Wrap in defines for spi? */
+static void setup_spi(void)
+{
+	SETUP_IOMUX_PADS(ecspi1_pads);
+}
 
 static void ccgr_init(void)
 {
@@ -878,6 +880,19 @@ static void spl_dram_init(void)
 
 void board_init_f(ulong dummy)
 {
+	/* Disable RTC VDD (which is already disabled out of reset */
+	gpio_direction_output(TS4900_ENRTC, 1);
+
+	/* Drive I2C pins low and ensure RTC power is disabled ASAP */
+	SETUP_IOMUX_PADS(i2c1_pads_gpio);
+	gpio_request(TS4900_ENRTC, "rtc");
+	gpio_request(TS4900_SDA, "rtc");
+	gpio_request(TS4900_SCL, "rtc");
+
+	/* Drive the I2C pins low to drain any power */
+	gpio_direction_output(TS4900_SDA, 0);
+	gpio_direction_output(TS4900_SCL, 0);
+
 	/* DDR initialization */
 	spl_dram_init();
 
@@ -895,9 +910,18 @@ void board_init_f(ulong dummy)
 	/* UART clocks enabled and gd valid - init serial console */
 	preloader_console_init();
 
+	/* Delay for I2C lines */
+	udelay(140000);
+
 	/* Clear the BSS. */
 	memset(__bss_start, 0, __bss_end - __bss_start);
 
+	fpga_program();
+
+	/* Re-enable RTC power */
+	gpio_direction_output(TS4900_ENRTC, 0);
+
+	/* Set up SPI IOMUX for booting from SPI flash */
 	setup_spi();
 
 	/* load/boot image from boot device */
