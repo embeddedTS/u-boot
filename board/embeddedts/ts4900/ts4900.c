@@ -33,6 +33,8 @@
 #include <usb.h>
 #include <usb/ehci-ci.h>
 
+#include "ice40.h"
+
 DECLARE_GLOBAL_DATA_PTR;
 
 #define UART_PAD_CTRL  (PAD_CTL_PUS_100K_UP |			\
@@ -635,6 +637,7 @@ void fpga_program(void)
 	setup_fpga_spi();
 
 	/* Program FPGA here */
+	do_ice40_load();
 	/* XXX: TODO: NOTE! Need to be mindful of what to do if FPGA programming
 	 * fails. Should we try again? Reboot? Assume really crap RAM values?
 	 */
@@ -893,6 +896,9 @@ void board_init_f(ulong dummy)
 	gpio_direction_output(TS4900_SDA, 0);
 	gpio_direction_output(TS4900_SCL, 0);
 
+	/* Initialize SPL */
+	spl_early_init();
+
 	/* DDR initialization */
 	spl_dram_init();
 
@@ -916,13 +922,13 @@ void board_init_f(ulong dummy)
 	/* Clear the BSS. */
 	memset(__bss_start, 0, __bss_end - __bss_start);
 
+	/* Set up SPI IOMUX for booting from SPI flash */
+	setup_spi();
+
 	fpga_program();
 
 	/* Re-enable RTC power */
 	gpio_direction_output(TS4900_ENRTC, 0);
-
-	/* Set up SPI IOMUX for booting from SPI flash */
-	setup_spi();
 
 	/* load/boot image from boot device */
 	board_init_r(NULL, 0);
