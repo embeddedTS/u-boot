@@ -25,6 +25,13 @@
 			// Must match CONFIG_SYS_SPI_U_BOOT_OFFS!
 			offset = <0x00040000>; // XXX: TODO: Better align this
 		};
+
+/*
+		fpga_bitstream: blob-ext@3 {
+			filename = "ts4900-fpga.bin";
+			align = <0x1000>;
+		};
+*/
 	};
 		
 
