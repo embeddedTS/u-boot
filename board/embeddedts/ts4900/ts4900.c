@@ -37,6 +37,7 @@
 
 #include "ice40.h"
 #include "../common/parse_gpio_straps.h"
+#include "../common/rtc_workaround.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -131,6 +132,12 @@ static iomux_v3_cfg_t const i2c1_pads_gpio[] = {
 	IOMUX_PADS(PAD_EIM_D28__GPIO3_IO28 | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SDA
 };
 
+static struct rtc_gpio rtc_gpio[] = {
+	{ TS4900_ENRTC,	1 },
+	{ TS4900_SDA,	0 },
+	{ TS4900_SCL,	0 },
+};
+
 static iomux_v3_cfg_t const i2c1_pads_i2c[] = {
 	IOMUX_PADS(PAD_EIM_D21__I2C1_SCL | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SCL
 	IOMUX_PADS(PAD_EIM_D28__I2C1_SDA | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SDA
@@ -159,7 +166,7 @@ static iomux_v3_cfg_t const cpu_strap_pads[] = {
 	IOMUX_PADS(PAD_ENET_TXD1__GPIO1_IO29	| MUX_PAD_CTRL(GPIO_PAD_CTRL)), // E strap
 };
 
-unsigned cpu_strap_gpio[] = {
+static unsigned cpu_strap_gpio[] = {
 	TS4900_REVSTRAP,
 	TS4900_REVSTRAPD,
 	TS4900_REVSTRAPE,
@@ -917,18 +924,13 @@ void board_init_f(ulong dummy)
 {
 	s32 straps;
 
-	/* Disable RTC VDD (which is already disabled out of reset */
-	gpio_direction_output(TS4900_ENRTC, 1);
-
-	/* Drive I2C pins low and ensure RTC power is disabled ASAP */
+	/* ASAP, disable the RTC power, and drive I2C pins low.
+	 * While the RTC is normally disabled out of reset, ensure its driven
+	 * low, also driving the I2C lines low to help fully bleed off any power.
+	 * Note that this only needs to happen on rev A+
+	 */
 	SETUP_IOMUX_PADS(i2c1_pads_gpio);
-	gpio_request(TS4900_ENRTC, "rtc");
-	gpio_request(TS4900_SDA, "rtc");
-	gpio_request(TS4900_SCL, "rtc");
-
-	/* Drive the I2C pins low to drain any power */
-	gpio_direction_output(TS4900_SDA, 0);
-	gpio_direction_output(TS4900_SCL, 0);
+	rtc_drain(rtc_gpio, ARRAY_SIZE(rtc_gpio));
 
 	/* Initialize SPL */
 	spl_early_init();
@@ -947,13 +949,11 @@ void board_init_f(ulong dummy)
 	/* UART clocks enabled and gd valid - init serial console */
 	preloader_console_init();
 
-	/* Delay for I2C lines */
-	udelay(140000);
-
 	fpga_program();
 
 	/* Re-enable RTC power */
-	gpio_direction_output(TS4900_ENRTC, 0);
+	/* TODO: Tune the delay time */
+	rtc_enable(rtc_gpio[0], 140000);
 
 	/* Set up I2C1 pinmux as peripheral.
 	 * NOTE! The pad settings disable internal pull, that means these pins
