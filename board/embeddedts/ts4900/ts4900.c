@@ -36,8 +36,13 @@
 #include <usb/ehci-ci.h>
 
 #include "ice40.h"
+#include "../common/parse_gpio_straps.h"
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#define GPIO_PAD_CTRL (PAD_CTL_PUS_47K_UP |			\
+	PAD_CTL_SPEED_LOW | PAD_CTL_DSE_80ohm |			\
+	PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
 #define UART_PAD_CTRL  (PAD_CTL_PUS_100K_UP |			\
 	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm |			\
@@ -66,6 +71,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define TS4900_RGMII_RD2	IMX_GPIO_NR(6, 28)
 #define TS4900_RGMII_RD3	IMX_GPIO_NR(6, 29)
 #define TS4900_RGMII_RX_CTL	IMX_GPIO_NR(6, 24)
+#define TS4900_REVSTRAP		IMX_GPIO_NR(2, 11)
+#define TS4900_REVSTRAPD	IMX_GPIO_NR(6, 5)
+#define TS4900_REVSTRAPE	IMX_GPIO_NR(1, 29)
 #if 0
 #define TS4900_EN_5V		IMX_GPIO_NR(2, 22)
 #define TS4900_OFFBD_RST	IMX_GPIO_NR(2, 21)
@@ -144,6 +152,19 @@ static iomux_v3_cfg_t const fpga_pads[] = {
 	IOMUX_PADS(PAD_GPIO_3__XTALOSC_REF_CLK_24M | MUX_PAD_CTRL(NO_PAD_CTRL)),
 
 };
+
+static iomux_v3_cfg_t const cpu_strap_pads[] = {
+	IOMUX_PADS(PAD_SD4_DAT3__GPIO2_IO11	| MUX_PAD_CTRL(GPIO_PAD_CTRL)), // A/C strap
+	IOMUX_PADS(PAD_CSI0_DAT19__GPIO6_IO05	| MUX_PAD_CTRL(GPIO_PAD_CTRL)), // D strap
+	IOMUX_PADS(PAD_ENET_TXD1__GPIO1_IO29	| MUX_PAD_CTRL(GPIO_PAD_CTRL)), // E strap
+};
+
+unsigned cpu_strap_gpio[] = {
+	TS4900_REVSTRAP,
+	TS4900_REVSTRAPD,
+	TS4900_REVSTRAPE,
+};
+
 #endif
 
 static iomux_v3_cfg_t const enet_pads1[] = {
@@ -894,6 +915,8 @@ static void spl_dram_init(void)
 
 void board_init_f(ulong dummy)
 {
+	s32 straps;
+
 	/* Disable RTC VDD (which is already disabled out of reset */
 	gpio_direction_output(TS4900_ENRTC, 1);
 
@@ -941,10 +964,17 @@ void board_init_f(ulong dummy)
 	SETUP_IOMUX_PADS(i2c1_pads_i2c);
 	udelay(1);
 
+	/* Get CPU strapping */
+	SETUP_IOMUX_PADS(cpu_strap_pads);
+	straps = parse_gpio_straps(cpu_strap_gpio, ARRAY_SIZE(cpu_strap_gpio));
+	printf("KRIS: cpu straps %d (0x%x)\n", straps, (u32)straps);
+
+
 	/* At this point, we should be able to talk to the FPGA */
 	setup_i2c(0, 100000, 0x28, &i2c_pad_info0);
 	printf("KRIS: bus num %d\n", i2c_set_bus_num(0));
 	printf("KRIS: FPGA probe %d\n", i2c_probe(0x28));
+	printf("KRIS: FPGA strap 0x%x\n", i2c_reg_read(0x28, 51));
 
 
 

@@ -2,4 +2,4 @@
 #
 # Copyright (C) 
 
-obj-y  := ts4900.o ice40.o
+obj-y  := ts4900.o ice40.o ../common/parse_gpio_straps.o
