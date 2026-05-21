@@ -15,11 +15,13 @@
 #include <asm/mach-imx/spi.h>
 #include <asm/sections.h>
 #include <env.h>
+#include <i2c.h>
 #include <linux/errno.h>
 #include <linux/delay.h>
 #include <asm/gpio.h>
-#include <asm/mach-imx/iomux-v3.h>
+#include <asm/mach-imx/mxc_i2c.h>
 #include <asm/mach-imx/boot_mode.h>
+#include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/spi.h>
 #include <asm/mach-imx/video.h>
 #include <mmc.h>
@@ -120,7 +122,11 @@ static iomux_v3_cfg_t const i2c1_pads_gpio[] = {
 	IOMUX_PADS(PAD_EIM_D21__GPIO3_IO21 | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SCL
 	IOMUX_PADS(PAD_EIM_D28__GPIO3_IO28 | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SDA
 };
-#endif
+
+static iomux_v3_cfg_t const i2c1_pads_i2c[] = {
+	IOMUX_PADS(PAD_EIM_D21__I2C1_SCL | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SCL
+	IOMUX_PADS(PAD_EIM_D28__I2C1_SDA | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SDA
+};
 
 static iomux_v3_cfg_t const fpga_pads[] = {
 	/* FPGA_DONE */
@@ -138,6 +144,7 @@ static iomux_v3_cfg_t const fpga_pads[] = {
 	IOMUX_PADS(PAD_GPIO_3__XTALOSC_REF_CLK_24M | MUX_PAD_CTRL(NO_PAD_CTRL)),
 
 };
+#endif
 
 static iomux_v3_cfg_t const enet_pads1[] = {
 	/* pin 35 - 1 (PHY_AD2) on reset */
@@ -268,16 +275,6 @@ iomux_v3_cfg_t const di0_pads[] = {
 	IOMUX_PADS(PAD_DI0_PIN3__IPU1_DI0_PIN03),		/* DISP0_VSYNC */
 };
 #endif
-
-static void setup_fpga_spi(void)
-{
-	// Enable clock
-	setbits_le32(CCM_CCGR1, MXC_CCM_CCGR1_ECSPI2S_MASK);
-
-	printf("KRIS: Set up FPGA SPI\n");
-
-	SETUP_IOMUX_PADS(fpga_pads);
-}
 
 static void setup_iomux_uart(void)
 {
@@ -631,18 +628,6 @@ int board_early_init_f(void)
 	return 0;
 }
 
-void fpga_program(void)
-{
-	/* Get ready to program FPGA */
-	setup_fpga_spi();
-
-	/* Program FPGA here */
-	do_ice40_load();
-	/* XXX: TODO: NOTE! Need to be mindful of what to do if FPGA programming
-	 * fails. Should we try again? Reboot? Assume really crap RAM values?
-	 */
-}
-
 int board_init(void)
 {
 	/* XXX: What is the point of this? */
@@ -750,10 +735,36 @@ int spl_start_uboot(void)
 }
 #endif
 
-/* XXX: Wrap in defines for spi? */
-static void setup_spi(void)
+static struct i2c_pads_info i2c_pad_info0 = {
+	.scl = {
+		/* XXX: the IOMUX_PADS() macro causes an issue here?? */
+		.i2c_mode  = MX6Q_PAD_EIM_D21__I2C1_SCL | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gpio_mode = MX6Q_PAD_EIM_D21__GPIO3_IO21 | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gp = TS4900_SCL
+	},
+	.sda = {
+		.i2c_mode = MX6Q_PAD_EIM_D28__I2C1_SDA | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gpio_mode = MX6Q_PAD_EIM_D28__GPIO3_IO28 | MUX_PAD_CTRL(I2C_PAD_CTRL),
+		.gp = TS4900_SDA
+	},
+};
+
+void fpga_program(void)
 {
+	/* Set up SPI IOMUX for booting from SPI flash */
 	SETUP_IOMUX_PADS(ecspi1_pads);
+
+	/* Get ready to program FPGA */
+	// Enable ECSPI2 clock
+	setbits_le32(CCM_CCGR1, MXC_CCM_CCGR1_ECSPI2S_MASK);
+
+	SETUP_IOMUX_PADS(fpga_pads);
+
+	/* Program FPGA */
+	do_ice40_load();
+	/* XXX: TODO: NOTE! Need to be mindful of what to do if FPGA programming
+	 * fails. Should we try again? Reboot? Assume really crap RAM values?
+	 */
 }
 
 static void ccgr_init(void)
@@ -899,9 +910,6 @@ void board_init_f(ulong dummy)
 	/* Initialize SPL */
 	spl_early_init();
 
-	/* DDR initialization */
-	spl_dram_init();
-
 	/* setup AIPS and disable watchdog */
 	arch_cpu_init();
 
@@ -919,16 +927,36 @@ void board_init_f(ulong dummy)
 	/* Delay for I2C lines */
 	udelay(140000);
 
-	/* Clear the BSS. */
-	memset(__bss_start, 0, __bss_end - __bss_start);
-
-	/* Set up SPI IOMUX for booting from SPI flash */
-	setup_spi();
-
 	fpga_program();
 
 	/* Re-enable RTC power */
 	gpio_direction_output(TS4900_ENRTC, 0);
+
+	/* Set up I2C1 pinmux as peripheral.
+	 * NOTE! The pad settings disable internal pull, that means these pins
+	 * will slowly rise with RTC VDD which is safe.
+	 */
+	gpio_free(TS4900_SDA);
+	gpio_free(TS4900_SCL);
+	SETUP_IOMUX_PADS(i2c1_pads_i2c);
+	udelay(1);
+
+	/* At this point, we should be able to talk to the FPGA */
+	setup_i2c(0, 100000, 0x28, &i2c_pad_info0);
+	printf("KRIS: bus num %d\n", i2c_set_bus_num(0));
+	printf("KRIS: FPGA probe %d\n", i2c_probe(0x28));
+
+
+
+	/* Find board info here! */
+
+
+
+	/* DDR initialization */
+	spl_dram_init();
+
+	/* Clear the BSS. */
+	memset(__bss_start, 0, __bss_end - __bss_start);
 
 	/* load/boot image from boot device */
 	board_init_r(NULL, 0);
