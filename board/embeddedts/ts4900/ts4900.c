@@ -36,6 +36,7 @@
 #include <usb/ehci-ci.h>
 
 #include "ice40.h"
+#include "strap_decode.h"
 #include "../common/parse_gpio_straps.h"
 #include "../common/rtc_workaround.h"
 
@@ -167,9 +168,9 @@ static iomux_v3_cfg_t const cpu_strap_pads[] = {
 };
 
 static unsigned cpu_strap_gpio[] = {
-	TS4900_REVSTRAP,
-	TS4900_REVSTRAPD,
 	TS4900_REVSTRAPE,
+	TS4900_REVSTRAPD,
+	TS4900_REVSTRAP,
 };
 
 #endif
@@ -735,7 +736,7 @@ int board_late_init(void)
 #endif
 
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
-	env_set("board_name", "SABRESD");
+	env_set("board_name", "ts4900");
 
 	if (is_mx6dqp())
 		env_set("board_rev", "MX6QP");
@@ -914,10 +915,21 @@ static void ddr_init(int *table, int size)
 		writel(table[2 * i + 1], table[2 * i]);
 }
 
-static void spl_dram_init(void)
+static void spl_dram_init(enum ram_configs config)
 {
-	ddr_init(ts4900_1000mhz_4x256mx16_dcd_table,
-		 ARRAY_SIZE(ts4900_1000mhz_4x256mx16_dcd_table));
+	switch (config) {
+	case s_1g_800mhz:
+	case s_2g_800mhz:
+	case s_1g_1000mhz:
+	default:
+		printf("KRIS: UNSUPPORTED MEMORY TYPE!\n");
+		while(1);
+		break;
+	case q_2g_1000mhz:
+		ddr_init(ts4900_1000mhz_4x256mx16_dcd_table,
+			 ARRAY_SIZE(ts4900_1000mhz_4x256mx16_dcd_table));
+		break;
+	}
 }
 
 void board_init_f(ulong dummy)
@@ -979,11 +991,7 @@ void board_init_f(ulong dummy)
 
 
 	/* Find board info here! */
-
-
-
-	/* DDR initialization */
-	spl_dram_init();
+	spl_dram_init(ts4900_ram_strap_decode(straps, i2c_reg_read(0x28, 51)));
 
 	/* Clear the BSS. */
 	memset(__bss_start, 0, __bss_end - __bss_start);
