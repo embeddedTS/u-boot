@@ -2,4 +2,8 @@
 #
 # Copyright (C) 
 
-obj-y  := ts4900.o ice40.o strap_decode.o ../common/parse_gpio_straps.o ../common/rtc_workaround.o
+ifdef CONFIG_XPL_BUILD
+obj-y := spl.o ice40.o strap_decode.o ../common/parse_gpio_straps.o ../common/rtc_workaround.o
+else
+obj-y  := ts4900.o strap_decode.o ../common/parse_gpio_straps.o ../common/rtc_workaround.o
+endif
