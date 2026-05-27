@@ -110,71 +110,6 @@ int dram_init(void)
 	return 0;
 }
 
-static iomux_v3_cfg_t const uart1_pads[] = {
-	IOMUX_PADS(PAD_SD3_DAT7__UART1_TX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL)),
-	IOMUX_PADS(PAD_SD3_DAT6__UART1_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL)),
-};
-
-#ifdef CONFIG_XPL_BUILD
-/* XXX: This is only used in SPL to set up SPI NOR flash. U-Boot proper uses
- 0* devicetree to set up these pins as needed.
- */
-static iomux_v3_cfg_t const ecspi1_pads[] = {
-	IOMUX_PADS(PAD_EIM_D19__GPIO3_IO19  | MUX_PAD_CTRL(SPI_PAD_CTRL)),
-	IOMUX_PADS(PAD_EIM_D17__ECSPI1_MISO | MUX_PAD_CTRL(SPI_PAD_CTRL)),
-	IOMUX_PADS(PAD_EIM_D18__ECSPI1_MOSI | MUX_PAD_CTRL(SPI_PAD_CTRL)),
-	IOMUX_PADS(PAD_EIM_D16__ECSPI1_SCLK | MUX_PAD_CTRL(SPI_PAD_CTRL)),
-};
-
-static iomux_v3_cfg_t const i2c1_pads_gpio[] = {
-	/* XXX: TODO: Verify if we want NO_PAD_CTRL here actually */
-	IOMUX_PADS(PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL)), // EN_RTC
-	IOMUX_PADS(PAD_EIM_D21__GPIO3_IO21 | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SCL
-	IOMUX_PADS(PAD_EIM_D28__GPIO3_IO28 | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SDA
-};
-
-static struct rtc_gpio rtc_gpio[] = {
-	{ TS4900_ENRTC,	1 },
-	{ TS4900_SDA,	0 },
-	{ TS4900_SCL,	0 },
-};
-
-static iomux_v3_cfg_t const i2c1_pads_i2c[] = {
-	IOMUX_PADS(PAD_EIM_D21__I2C1_SCL | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SCL
-	IOMUX_PADS(PAD_EIM_D28__I2C1_SDA | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SDA
-};
-
-static iomux_v3_cfg_t const fpga_pads[] = {
-	/* FPGA_DONE */
-	IOMUX_PADS(PAD_CSI0_DATA_EN__GPIO5_IO20    | MUX_PAD_CTRL(SPI_PAD_CTRL)),
-	/* FPGA_RESET */
-	IOMUX_PADS(PAD_CSI0_VSYNC__GPIO5_IO21      | MUX_PAD_CTRL(SPI_PAD_CTRL)),
-	/* FPGA_SPI_CS# */
-	IOMUX_PADS(PAD_CSI0_DAT16__GPIO6_IO02      | MUX_PAD_CTRL(SPI_PAD_CTRL)),
-	IOMUX_PADS(PAD_CSI0_DAT10__ECSPI2_MISO     | MUX_PAD_CTRL(SPI_PAD_CTRL)),
-	IOMUX_PADS(PAD_CSI0_DAT9__ECSPI2_MOSI      | MUX_PAD_CTRL(SPI_PAD_CTRL)),
-	IOMUX_PADS(PAD_CSI0_DAT8__ECSPI2_SCLK      | MUX_PAD_CTRL(SPI_PAD_CTRL)),
-	/* OFFBD_CS# */
-	IOMUX_PADS(PAD_CSI0_DAT11__GPIO5_IO29      | MUX_PAD_CTRL(SPI_PAD_CTRL)),
-	/* FPGA_CLK */
-	IOMUX_PADS(PAD_GPIO_3__XTALOSC_REF_CLK_24M | MUX_PAD_CTRL(NO_PAD_CTRL)),
-
-};
-
-static iomux_v3_cfg_t const cpu_strap_pads[] = {
-	IOMUX_PADS(PAD_SD4_DAT3__GPIO2_IO11	| MUX_PAD_CTRL(GPIO_PAD_CTRL)), // A/C strap
-	IOMUX_PADS(PAD_CSI0_DAT19__GPIO6_IO05	| MUX_PAD_CTRL(GPIO_PAD_CTRL)), // D strap
-	IOMUX_PADS(PAD_ENET_TXD1__GPIO1_IO29	| MUX_PAD_CTRL(GPIO_PAD_CTRL)), // E strap
-};
-
-static unsigned cpu_strap_gpio[] = {
-	TS4900_REVSTRAPE,
-	TS4900_REVSTRAPD,
-	TS4900_REVSTRAP,
-};
-
-#endif
-
 static iomux_v3_cfg_t const enet_pads1[] = {
 	/* pin 35 - 1 (PHY_AD2) on reset */
 	IOMUX_PADS(PAD_RGMII_RXC__GPIO6_IO30            | MUX_PAD_CTRL(NO_PAD_CTRL)),
@@ -304,11 +239,6 @@ iomux_v3_cfg_t const di0_pads[] = {
 	IOMUX_PADS(PAD_DI0_PIN3__IPU1_DI0_PIN03),		/* DISP0_VSYNC */
 };
 #endif
-
-static void setup_iomux_uart(void)
-{
-	SETUP_IOMUX_PADS(uart1_pads);
-}
 
 #ifdef CONFIG_FSL_ESDHC_IMX
 struct fsl_esdhc_cfg usdhc_cfg[2] = {
@@ -650,13 +580,6 @@ static void early_phy_strap_reset(void)
         udelay(1000 * 100);
 }
 
-int board_early_init_f(void)
-{
-	setup_iomux_uart();
-
-	return 0;
-}
-
 int board_init(void)
 {
 	/* XXX: What is the point of this? */
@@ -952,8 +875,6 @@ void board_init_f(ulong dummy)
 
 	ccgr_init();
 	gpr_init();
-
-	board_early_init_f();
 
 	/* setup GP timer */
 	timer_init();

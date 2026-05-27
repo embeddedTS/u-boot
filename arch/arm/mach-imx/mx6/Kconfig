@@ -211,7 +211,6 @@ config TARGET_EMBEDDEDTS_TS4900
 	depends on MX6QDL
 	select ARCH_MISC_INIT
 	select BINMAN
-	select BOARD_EARLY_INIT_F
 	select BOARD_LATE_INIT
 	select DM
 	select DM_THERMAL
