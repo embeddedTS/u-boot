@@ -27,6 +27,7 @@
 #include <mmc.h>
 #include <fsl_esdhc_imx.h>
 #include <miiphy.h>
+#include <micrel.h>
 #include <asm/arch/mxc_hdmi.h>
 #include <asm/arch/crm_regs.h>
 #include <asm/io.h>
@@ -41,24 +42,6 @@
 #include "../common/rtc_workaround.h"
 
 DECLARE_GLOBAL_DATA_PTR;
-
-#define GPIO_PAD_CTRL (PAD_CTL_PUS_47K_UP |			\
-	PAD_CTL_SPEED_LOW | PAD_CTL_DSE_80ohm |			\
-	PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
-
-#define UART_PAD_CTRL  (PAD_CTL_PUS_100K_UP |			\
-	PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm |			\
-	PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
-
-#define USDHC_PAD_CTRL (PAD_CTL_PUS_47K_UP |			\
-	PAD_CTL_SPEED_LOW | PAD_CTL_DSE_80ohm |			\
-	PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
-
-#define SPI_PAD_CTRL (PAD_CTL_HYS | PAD_CTL_SPEED_MED |		\
-	PAD_CTL_DSE_40ohm | PAD_CTL_SRE_FAST)
-
-#define I2C_PAD_CTRL (PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | 	\
-	PAD_CTL_HYS | PAD_CTL_ODE | PAD_CTL_SRE_FAST)
 
 //#define DISP0_PWR_EN	IMX_GPIO_NR(1, 21)
 #define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
@@ -498,48 +481,30 @@ static void setup_usb(void)
 }
 #endif
 
-#if 0
-static int setup_fec(void)
+int board_phy_config(struct phy_device *phydev)
 {
-        struct iomuxc *iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
-        struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
-        int reg, ret;
+	int ret;
 
-        /* Use 125MHz anatop loopback REF_CLK1 for ENET1 */
-        clrsetbits_le32(&iomuxc_regs->gpr[1], IOMUX_GPR1_FEC1_MASK, 0);
+	/* Set up GMII Clock Pad Skew */
+	ksz9031_phy_extended_write(phydev, 0x2, 0x8, 0x4000, 0x3EF);
+	/* Set AN FLP Burst Transmit LO */
+	ksz9031_phy_extended_write(phydev, 0x0, 0x3, 0x4000, 0x1A80);
+	/* Set AN FLP Burst Transmit HI */
+	ksz9031_phy_extended_write(phydev, 0x0, 0x4, 0x4000, 0x0006);
 
-        ret = enable_fec_anatop_clock(0, ENET_125MHZ);
-        if (ret)
-                return ret;
+	/* Only advertize 100 Mbit or lower to reduce link time. */
+	ret = phy_set_supported(phydev, SPEED_100);
+	if (ret)
+		return ret;
 
-        imx_iomux_v3_setup_multiple_pads(phy_control_pads,
-                                         ARRAY_SIZE(phy_control_pads));
-
-        /* Enable the ENET power, active low */
-        gpio_request(IMX_GPIO_NR(2, 6), "enet_rst");
-        gpio_direction_output(IMX_GPIO_NR(2, 6) , 0);
-
-        /* Reset AR8031 PHY */
-        gpio_request(IMX_GPIO_NR(2, 7), "phy_rst");
-        gpio_direction_output(IMX_GPIO_NR(2, 7) , 0);
-        mdelay(10);
-        gpio_set_value(IMX_GPIO_NR(2, 7), 1);
-
-        reg = readl(&anatop->pll_enet);
-        reg |= BM_ANADIG_PLL_ENET_REF_25M_ENABLE;
-        writel(reg, &anatop->pll_enet);
+	if (phydev->drv->config) {
+		ret = phydev->drv->config(phydev); 
+		if (ret)
+			return ret;
+	}
 
         return 0;
 }
-
-int board_eth_init(struct bd_info *bis)
-{
-        imx_iomux_v3_setup_multiple_pads(fec1_pads, ARRAY_SIZE(fec1_pads));
-        setup_fec();
-
-        return cpu_eth_init(bis);
-}
-#endif
 
 /* Must be called early in boot, either late_init() or misc_init_r(), before
  * calls to eth_init() are ultimately made. We rely on the devicetree to set
@@ -551,33 +516,38 @@ static void early_phy_strap_reset(void)
 {
 	SETUP_IOMUX_PADS(enet_pads1);
 
-        // Assert reset
+	/* Assert reset */
 	gpio_request(TS4900_PHY_RST, "phy");
-        gpio_direction_output(TS4900_PHY_RST, 1);
+	gpio_direction_output(TS4900_PHY_RST, 1);
 
-        gpio_request(TS4900_RGMII_RXC, "phy");
-        gpio_request(TS4900_RGMII_RD0, "phy");
-        gpio_request(TS4900_RGMII_RD1, "phy");
-        gpio_request(TS4900_RGMII_RD2, "phy");
-        gpio_request(TS4900_RGMII_RD3, "phy");
-        gpio_request(TS4900_RGMII_RX_CTL, "phy");
+	gpio_request(TS4900_RGMII_RXC, "phy");
+	gpio_request(TS4900_RGMII_RD0, "phy");
+	gpio_request(TS4900_RGMII_RD1, "phy");
+	gpio_request(TS4900_RGMII_RD2, "phy");
+	gpio_request(TS4900_RGMII_RD3, "phy");
+	gpio_request(TS4900_RGMII_RX_CTL, "phy");
 
-        gpio_direction_output(TS4900_RGMII_RXC, 1);
-        gpio_direction_output(TS4900_RGMII_RD0, 1);
-        gpio_direction_output(TS4900_RGMII_RD1, 1);
-        gpio_direction_output(TS4900_RGMII_RD2, 1);
-        gpio_direction_output(TS4900_RGMII_RD3, 1);
-        gpio_direction_output(TS4900_RGMII_RX_CTL, 1);
+	gpio_direction_output(TS4900_RGMII_RXC, 1);
+	gpio_direction_output(TS4900_RGMII_RD0, 1);
+	gpio_direction_output(TS4900_RGMII_RD1, 1);
+	gpio_direction_output(TS4900_RGMII_RD2, 1);
+	gpio_direction_output(TS4900_RGMII_RD3, 1);
+	gpio_direction_output(TS4900_RGMII_RX_CTL, 1);
 
-        /* Need delay at least 10ms according to KSZ9031 spec */
-        udelay(10000);
+	/* Datasheet calls out 10 ms of stable supply voltage to de-assertion
+	 * of reset. Lets just wait that 10 ms since its not clear if that is
+	 * the reset assertion time. No specific reset assertion time is called
+	 * out.
+	 */
+	udelay(10000);
 
-        // De-assert reset
-        gpio_direction_output(TS4900_PHY_RST, 0);
+	/* De-assert reset */
+	gpio_direction_output(TS4900_PHY_RST, 0);
 
-        /* Need 100us delay to exit from reset. */
-	/* XXX: datasheet doesn't spec deassert wait time */
-        udelay(1000 * 100);
+	/* Datasheet calls out 6 ns from de-assertion of reset to strap pin
+	 * output time.
+	 */
+	udelay(1);
 }
 
 int board_init(void)
@@ -673,254 +643,6 @@ int board_late_init(void)
 
 	return 0;
 }
-
-#ifdef CONFIG_XPL_BUILD
-#include <asm/arch/mx6-ddr.h>
-#include <spl.h>
-#include <linux/libfdt.h>
-
-#ifdef CONFIG_SPL_OS_BOOT
-/* XXX: used for falcon boot */
-int spl_start_uboot(void)
-{
-	return 0;
-}
-#endif
-
-static struct i2c_pads_info i2c_pad_info0 = {
-	.scl = {
-		/* XXX: the IOMUX_PADS() macro causes an issue here?? */
-		.i2c_mode  = MX6Q_PAD_EIM_D21__I2C1_SCL | MUX_PAD_CTRL(I2C_PAD_CTRL),
-		.gpio_mode = MX6Q_PAD_EIM_D21__GPIO3_IO21 | MUX_PAD_CTRL(I2C_PAD_CTRL),
-		.gp = TS4900_SCL
-	},
-	.sda = {
-		.i2c_mode = MX6Q_PAD_EIM_D28__I2C1_SDA | MUX_PAD_CTRL(I2C_PAD_CTRL),
-		.gpio_mode = MX6Q_PAD_EIM_D28__GPIO3_IO28 | MUX_PAD_CTRL(I2C_PAD_CTRL),
-		.gp = TS4900_SDA
-	},
-};
-
-void fpga_program(void)
-{
-	/* Set up SPI IOMUX for booting from SPI flash */
-	SETUP_IOMUX_PADS(ecspi1_pads);
-
-	/* Get ready to program FPGA */
-	// Enable ECSPI2 clock
-	setbits_le32(CCM_CCGR1, MXC_CCM_CCGR1_ECSPI2S_MASK);
-
-	SETUP_IOMUX_PADS(fpga_pads);
-
-	/* Program FPGA */
-	do_ice40_load();
-	/* XXX: TODO: NOTE! Need to be mindful of what to do if FPGA programming
-	 * fails. Should we try again? Reboot? Assume really crap RAM values?
-	 */
-}
-
-static void ccgr_init(void)
-{
-	struct mxc_ccm_reg *ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
-
-	writel(0x00C03F3F, &ccm->CCGR0);
-	writel(0x0030FC03, &ccm->CCGR1);
-	writel(0x0FFFC000, &ccm->CCGR2);
-	writel(0x3FF00000, &ccm->CCGR3);
-	writel(0x00FFF300, &ccm->CCGR4);
-	writel(0x0F0000C3, &ccm->CCGR5);
-	writel(0x000003FF, &ccm->CCGR6);
-}
-
-/* XXX: Future note before finalizing this file:
- * https://github.com/u-boot/u-boot/commit/3b30eece271cfc4096c2d20048c89e8bed0bbbfd
- * The order of this table is based on the TS-4900 from the original 2014 U-Boot
- * which used a handful of .cfg files and included them together to get generic
- * imx6q setup and then RAM layout specific setup. This ultimately differed
- * in ordering than the mx6sabersd dcd tables, and it would appear from the
- * above commit that the order did change for SPL to resolve some potential bugs.
- * Bear this in mind and consider re-testing RAM calibration.
- */
-static int ts4900_1000mhz_4x256mx16_dcd_table[] = {
-	0x020e05a8, 0x00000030,
-	0x020e05b0, 0x00000030,
-	0x020e0524, 0x00000030,
-	0x020e051c, 0x00000030,
-	0x020e0518, 0x00000030,
-	0x020e050c, 0x00000030,
-	0x020e05b8, 0x00000030,
-	0x020e05c0, 0x00000030,
-	0x020e0784, 0x00000030,
-	0x020e0788, 0x00000030,
-	0x020e0794, 0x00000030,
-	0x020e079c, 0x00000030,
-	0x020e07a0, 0x00000030,
-	0x020e07a4, 0x00000030,
-	0x020e07a8, 0x00000030,
-	0x020e0748, 0x00000030,
-	0x020e074c, 0x00000030,
-	0x020e078c, 0x00000030,
-	0x020e05ac, 0x00020030,
-	0x020e05b4, 0x00020030,
-	0x020e0528, 0x00020030,
-	0x020e0520, 0x00020030,
-	0x020e0514, 0x00020030,
-	0x020e0510, 0x00020030,
-	0x020e05bc, 0x00020030,
-	0x020e05c4, 0x00020030,
-	0x020e056c, 0x00020030,
-	0x020e0578, 0x00020030,
-	0x020e0588, 0x00020030,
-	0x020e0594, 0x00020030,
-	0x020e057c, 0x00020030,
-	0x020e0590, 0x00003000,
-	0x020e0598, 0x00003000,
-	0x020e059c, 0x00003030,
-	0x020e05a0, 0x00003030,
-	0x020e0750, 0x00020000,
-	0x020e0774, 0x00020000,
-	0x020e0758, 0x00000000,
-	0x020e058c, 0x00000000,
-	0x020e0798, 0x000c0000,
-	0x021b081c, 0x33333333,
-	0x021b0820, 0x33333333,
-	0x021b0824, 0x33333333,
-	0x021b0828, 0x33333333,
-	0x021b481c, 0x33333333,
-	0x021b4820, 0x33333333,
-	0x021b4824, 0x33333333,
-	0x021b4828, 0x33333333,
-	0x021b0018, 0x00081740,
-	0x021b001c, 0x00008000,
-	0x021b0004, 0x00020036,
-	0x021b000c, 0x898e7974,
-	0x021b0010, 0xdb538f64,
-	0x021b0014, 0x01ff00db,
-	0x021b002c, 0x000026d2,
-	0x021b0030, 0x008e1023,
-	0x021b0008, 0x09444040,
-	0x021b0004, 0x00025576,
-	0x021b0040, 0x00000047,
-	0x021b0000, 0x841a0000,
-	0x021b001c, 0x04088032,
-	0x021b001c, 0x00008033,
-	0x021b001c, 0x00428031,
-	0x021b001c, 0x19308030,
-	0x021b001c, 0x04008040,
-	0x021b0800, 0xa1390003,
-	0x021b4800, 0xa1390003,
-	0x021b0020, 0x00007800,
-	0x021b0818, 0x00022227,
-	0x021b4818, 0x00022227,
-	0x021b083c, 0x03280338,
-	0x021b0840, 0x0328031c,
-	0x021b483c, 0x0330033c,
-	0x021b4840, 0x032c0274,
-	0x021b0848, 0x46343c3e,
-	0x021b4848, 0x3e3c3648,
-	0x021b0850, 0x3a3c443e,
-	0x021b4850, 0x4a324a3e,
-	0x021b080c, 0x001c001f,
-	0x021b0810, 0x0029001c,
-	0x021b480c, 0x0018002c,
-	0x021b4810, 0x000f002a,
-	0x021b08b8, 0x00000800,
-	0x021b48b8, 0x00000800,
-	0x021b001c, 0x00000000,
-	0x021b0404, 0x00011006,
-};
-
-static void ddr_init(int *table, int size)
-{
-	int i;
-
-	for (i = 0; i < size / 2 ; i++)
-		writel(table[2 * i + 1], table[2 * i]);
-}
-
-static void spl_dram_init(enum ram_configs config)
-{
-	switch (config) {
-	case s_1g_800mhz:
-	case s_2g_800mhz:
-	case s_1g_1000mhz:
-	default:
-		printf("KRIS: UNSUPPORTED MEMORY TYPE!\n");
-		while(1);
-		break;
-	case q_2g_1000mhz:
-		ddr_init(ts4900_1000mhz_4x256mx16_dcd_table,
-			 ARRAY_SIZE(ts4900_1000mhz_4x256mx16_dcd_table));
-		break;
-	}
-}
-
-void board_init_f(ulong dummy)
-{
-	s32 straps;
-
-	/* ASAP, disable the RTC power, and drive I2C pins low.
-	 * While the RTC is normally disabled out of reset, ensure its driven
-	 * low, also driving the I2C lines low to help fully bleed off any power.
-	 * Note that this only needs to happen on rev A+
-	 */
-	SETUP_IOMUX_PADS(i2c1_pads_gpio);
-	rtc_drain(rtc_gpio, ARRAY_SIZE(rtc_gpio));
-
-	/* Initialize SPL */
-	spl_early_init();
-
-	/* setup AIPS and disable watchdog */
-	arch_cpu_init();
-
-	ccgr_init();
-	gpr_init();
-
-	/* setup GP timer */
-	timer_init();
-
-	/* UART clocks enabled and gd valid - init serial console */
-	preloader_console_init();
-
-	fpga_program();
-
-	/* Re-enable RTC power */
-	/* TODO: Tune the delay time */
-	rtc_enable(rtc_gpio[0], 140000);
-
-	/* Set up I2C1 pinmux as peripheral.
-	 * NOTE! The pad settings disable internal pull, that means these pins
-	 * will slowly rise with RTC VDD which is safe.
-	 */
-	gpio_free(TS4900_SDA);
-	gpio_free(TS4900_SCL);
-	SETUP_IOMUX_PADS(i2c1_pads_i2c);
-	udelay(1);
-
-	/* Get CPU strapping */
-	SETUP_IOMUX_PADS(cpu_strap_pads);
-	straps = parse_gpio_straps(cpu_strap_gpio, ARRAY_SIZE(cpu_strap_gpio));
-	printf("KRIS: cpu straps %d (0x%x)\n", straps, (u32)straps);
-
-
-	/* At this point, we should be able to talk to the FPGA */
-	setup_i2c(0, 100000, 0x28, &i2c_pad_info0);
-	printf("KRIS: bus num %d\n", i2c_set_bus_num(0));
-	printf("KRIS: FPGA probe %d\n", i2c_probe(0x28));
-	printf("KRIS: FPGA strap 0x%x\n", i2c_reg_read(0x28, 51));
-
-
-
-	/* Find board info here! */
-	spl_dram_init(ts4900_ram_strap_decode(straps, i2c_reg_read(0x28, 51)));
-
-	/* Clear the BSS. */
-	memset(__bss_start, 0, __bss_end - __bss_start);
-
-	/* load/boot image from boot device */
-	board_init_r(NULL, 0);
-}
-#endif
 
 #ifdef CONFIG_SPL_LOAD_FIT
 int board_fit_config_name_match(const char *name)
