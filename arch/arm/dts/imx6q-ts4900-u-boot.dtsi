@@ -1,8 +1,7 @@
 / {
         aliases {
-                //mmc0 = &usdhc2;
-                mmc0 = &usdhc3;
-                //mmc1 = &usdhc3;
+                mmc0 = &usdhc2;
+                mmc1 = &usdhc3;
                 usb0 = &usbotg;
                 video0 = &ipu1;
         };
@@ -42,22 +41,6 @@
 		regulator-max-microvolt = <3300000>;
 		gpio = <&gpio2 28 GPIO_ACTIVE_HIGH>;
 	};
-
-        soc {
-                bootph-pre-ram;
-                bootph-all;
-
-                bus@2000000 {
-                        bootph-pre-ram;
-                        spba-bus@2000000 {
-                                bootph-pre-ram;
-                        };
-                };
-
-                bus@2100000 {
-                        bootph-pre-ram;
-                };
-        };
 };
 
 &usdhc1 {
@@ -65,29 +48,6 @@
 };
 
 &usdhc2 {
-	bootph-pre-ram;
 	vmmc-supply = <&reg_sd_vmmc>;
-	status = "disabled";
+	broken-cd;
 };
-
-&usdhc3 {
-        no-1-8-v;
-        bootph-pre-ram;
-};
-
-&pinctrl_usdhc3 {
-        bootph-pre-ram;
-};
-
-&gpio1 {
-        bootph-pre-ram;
-};
-
-&iomuxc {
-        bootph-pre-ram;
-};
-
-&ipu1 {
-        bootph-all;
-};
-
