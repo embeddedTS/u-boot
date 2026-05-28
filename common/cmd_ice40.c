@@ -6,33 +6,26 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#include <asm/gpio.h>
+#include <common.h>
 #include <command.h>
-#include <linux/delay.h>
+#include <asm/gpio.h>
 #include <spi.h>
 
-static int do_ice40_load(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
+static int do_ice40_load(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	unsigned int len, data;
 	struct spi_slave *slave;
 	int ret_val, i;
 
-	gpio_request(CONFIG_ICE40_FPGA_DONE, "ice40");
-	gpio_request(CONFIG_ICE40_FPGA_RESET, "ice40");
-	gpio_request(CONFIG_ICE40_CS, "ice40");
-
 	// Parse image from mkimage
 	data = simple_strtoul(argv[1], NULL, 16);
 	len = simple_strtoul(argv[2], NULL, 16);
 
-	printf("Setting up bus\n");
 	slave = spi_setup_slave(1, CONFIG_ICE40_BUS, 25000000, SPI_MODE_3);
 	if(spi_claim_bus(slave)){
 		printf("Failed to claim the SPI bus\n");
 		return 1;
 	}
-
-	printf("Bus set up\n");
 
 	gpio_direction_input(CONFIG_ICE40_FPGA_DONE); // fpga_done
 	gpio_direction_output(CONFIG_ICE40_FPGA_RESET, 0); // reset low
@@ -41,9 +34,7 @@ static int do_ice40_load(struct cmd_tbl *cmdtp, int flag, int argc, char * const
 	gpio_set_value(CONFIG_ICE40_FPGA_RESET, 1); // reset high
 	mdelay(2);
 
-	printf("XFER\n");
 	ret_val = spi_xfer(slave, len * 8, (void *)data, NULL, 0);
-	printf("XFER COMPLETE\n");
 
 	// FPGA requires additional spi clocks after bitstream
 	char zeroes[100];
