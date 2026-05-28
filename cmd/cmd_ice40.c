@@ -13,17 +13,16 @@
 
 static int do_ice40_load(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
-	ulong len, i;
-	u8 *data;
+	unsigned int len, data;
 	struct spi_slave *slave;
-	int ret_val;
+	int ret_val, i;
 
 	gpio_request(CONFIG_ICE40_FPGA_DONE, "ice40");
 	gpio_request(CONFIG_ICE40_FPGA_RESET, "ice40");
 	gpio_request(CONFIG_ICE40_CS, "ice40");
 
 	// Parse image from mkimage
-	data = (u8 *)simple_strtoul(argv[1], NULL, 16);
+	data = simple_strtoul(argv[1], NULL, 16);
 	len = simple_strtoul(argv[2], NULL, 16);
 
 	printf("Setting up bus\n");
@@ -43,19 +42,7 @@ static int do_ice40_load(struct cmd_tbl *cmdtp, int flag, int argc, char * const
 	mdelay(2);
 
 	printf("XFER\n");
-	i = len * 8;
-	do {
-		if (i > 0x8000)
-			len = 0x8000;
-		else
-			len = i;
-		i -= len;
-
-		ret_val = spi_xfer(slave, len * 8, data, NULL, 0);
-		data += len;
-
-		printf("loop, rem %ld\n", i);
-	} while (i > 0 && ret_val == 0);
+	ret_val = spi_xfer(slave, len * 8, (void *)data, NULL, 0);
 	printf("XFER COMPLETE\n");
 
 	// FPGA requires additional spi clocks after bitstream
