@@ -17,18 +17,17 @@ static int do_ice40_load(struct cmd_tbl *cmdtp, int flag, int argc, char * const
 	u8 *data;
 	struct spi_slave *slave;
 	int ret_val;
-	//static u8 fpga_buf[FPGA_CHUNK_SIZE] __aligned(ARCH_DMA_MINALIGN);
 
-	gpio_request(CFG_ICE40_FPGA_DONE, "ice40");
-	gpio_request(CFG_ICE40_FPGA_RESET, "ice40");
-	gpio_request(CFG_ICE40_CS, "ice40");
+	gpio_request(CONFIG_ICE40_FPGA_DONE, "ice40");
+	gpio_request(CONFIG_ICE40_FPGA_RESET, "ice40");
+	gpio_request(CONFIG_ICE40_CS, "ice40");
 
 	// Parse image from mkimage
 	data = (u8 *)simple_strtoul(argv[1], NULL, 16);
 	len = simple_strtoul(argv[2], NULL, 16);
 
 	printf("Setting up bus\n");
-	slave = spi_setup_slave(1, CFG_ICE40_BUS, 25000000, SPI_MODE_3);
+	slave = spi_setup_slave(1, CONFIG_ICE40_BUS, 25000000, SPI_MODE_3);
 	if(spi_claim_bus(slave)){
 		printf("Failed to claim the SPI bus\n");
 		return 1;
@@ -36,18 +35,18 @@ static int do_ice40_load(struct cmd_tbl *cmdtp, int flag, int argc, char * const
 
 	printf("Bus set up\n");
 
-	gpio_direction_input(CFG_ICE40_FPGA_DONE); // fpga_done
-	gpio_direction_output(CFG_ICE40_FPGA_RESET, 0); // reset low
-	gpio_direction_output(CFG_ICE40_CS, 0); // spi cs# low
+	gpio_direction_input(CONFIG_ICE40_FPGA_DONE); // fpga_done
+	gpio_direction_output(CONFIG_ICE40_FPGA_RESET, 0); // reset low
+	gpio_direction_output(CONFIG_ICE40_CS, 0); // spi cs# low
 	udelay(1); // at least 200ns
-	gpio_set_value(CFG_ICE40_FPGA_RESET, 1); // reset high
+	gpio_set_value(CONFIG_ICE40_FPGA_RESET, 1); // reset high
 	mdelay(2);
 
 	printf("XFER\n");
-	i = len;
+	i = len * 8;
 	do {
-		if (i > 0x1000)
-			len = 0x1000;
+		if (i > 0x8000)
+			len = 0x8000;
 		else
 			len = i;
 		i -= len;
@@ -64,11 +63,11 @@ static int do_ice40_load(struct cmd_tbl *cmdtp, int flag, int argc, char * const
 	memset(zeroes, 0, 100);
 	ret_val = spi_xfer(slave, 100 * 8, zeroes, NULL, 0);
 
-	gpio_set_value(CFG_ICE40_CS, 1); // spi cs# high
+	gpio_set_value(CONFIG_ICE40_CS, 1); // spi cs# high
 
 	for(i = 0; i <= 3000; i++)
 	{
-		if(gpio_get_value(CFG_ICE40_FPGA_DONE)){
+		if(gpio_get_value(CONFIG_ICE40_FPGA_DONE)){
 			printf("ICE40 FPGA reloaded successfully\n");
 			break;
 		}
