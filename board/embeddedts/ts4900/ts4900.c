@@ -47,22 +47,14 @@ DECLARE_GLOBAL_DATA_PTR;
  */
 //#define DISP0_PWR_EN	IMX_GPIO_NR(1, 21)
 #define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
-#define TS4900_EN_SDPWR		IMX_GPIO_NR(2, 28)
 #define TS4900_ENRTC		IMX_GPIO_NR(3, 23)
 #define TS4900_SCL		IMX_GPIO_NR(3, 21)
 #define TS4900_SDA		IMX_GPIO_NR(3, 28)
-#define TS4900_PHY_RST		IMX_GPIO_NR(4, 20)
-#define TS4900_RGMII_RXC	IMX_GPIO_NR(6, 30)
-#define TS4900_RGMII_RD0	IMX_GPIO_NR(6, 25)
-#define TS4900_RGMII_RD1	IMX_GPIO_NR(6, 27)
-#define TS4900_RGMII_RD2	IMX_GPIO_NR(6, 28)
-#define TS4900_RGMII_RD3	IMX_GPIO_NR(6, 29)
-#define TS4900_RGMII_RX_CTL	IMX_GPIO_NR(6, 24)
+
 #define TS4900_REVSTRAP		IMX_GPIO_NR(2, 11)
 #define TS4900_REVSTRAPD	IMX_GPIO_NR(6, 5)
 #define TS4900_REVSTRAPE	IMX_GPIO_NR(1, 29)
 #if 0
-#define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
 #define TS4900_OTG_ID		IMX_GPIO_NR(1, 1)
 #define TS4900_WIFI_EN		IMX_GPIO_NR(1, 26)
 #define TS4900_BT_EN		IMX_GPIO_NR(1, 27)
@@ -80,6 +72,9 @@ int dram_init(void)
 	return 0;
 }
 
+/* We need to control some of the MII pins as GPIO prior to PHY unreset in
+ * order to configure copper straps.
+ */
 static iomux_v3_cfg_t const enet_pads1[] = {
 	/* pin 35 - 1 (PHY_AD2) on reset */
 	IOMUX_PADS(PAD_RGMII_RXC__GPIO6_IO30            | MUX_PAD_CTRL(NO_PAD_CTRL)),
@@ -289,34 +284,45 @@ int board_phy_config(struct phy_device *phydev)
         return 0;
 }
 
+const char *names[] = {
+	/* We do lump reset in here, for ease of iteration, but its
+	 * starting value of 1 matches the value we want to set everything
+	 * else to so it works out nicely.
+	 */
+	"ENET_PHY_RST",
+	"RGMII_RXC",
+	"RGMII_RD0",
+	"RGMII_RD1",
+	"RGMII_RD2",
+	"RGMII_RD3",
+	"RGMII_RX_CTL",
+};
 /* Must be called early in boot, either late_init() or misc_init_r(), before
  * calls to eth_init() are ultimately made. We rely on the devicetree to set
  * the real final ethernet MAC/MDIO/MII IOMUX settings, but, need to control
  * these pins as GPIO to force a proper bootstrapping when un-resetting the
  * PHYs
  */
-static void early_phy_strap_reset(void)
+/* This could also be done in SPL, this would make this dance a little more
+ * simple, however, with it not being necessary for boot and other PHY config
+ * happening at this stage, its a bit more clean to leave it here.
+ */
+static int early_phy_strap_reset(void)
 {
+	struct gpio_desc descs[ARRAY_SIZE(names)];
+	int i;
+
 	SETUP_IOMUX_PADS(enet_pads1);
 
-	/* Assert reset */
-	gpio_request(TS4900_PHY_RST, "phy");
-	gpio_direction_output(TS4900_PHY_RST, 1);
-
-	gpio_request(TS4900_RGMII_RXC, "phy");
-	gpio_request(TS4900_RGMII_RD0, "phy");
-	gpio_request(TS4900_RGMII_RD1, "phy");
-	gpio_request(TS4900_RGMII_RD2, "phy");
-	gpio_request(TS4900_RGMII_RD3, "phy");
-	gpio_request(TS4900_RGMII_RX_CTL, "phy");
-
-	gpio_direction_output(TS4900_RGMII_RXC, 1);
-	gpio_direction_output(TS4900_RGMII_RD0, 1);
-	gpio_direction_output(TS4900_RGMII_RD1, 1);
-	gpio_direction_output(TS4900_RGMII_RD2, 1);
-	gpio_direction_output(TS4900_RGMII_RD3, 1);
-	gpio_direction_output(TS4900_RGMII_RX_CTL, 1);
-
+	/* Get all of our pins in the required states, this includes setting
+	 * specific pins to a high state while PHY reset is asserted.
+	 */
+	for (i = 0; i < ARRAY_SIZE(names); i++) {
+		printf("i %d, name %s\n", i, names[i]);
+		if (gpio_request_by_line_name(NULL, names[i], &descs[i],
+				(GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE)) < 0)
+			return -1;
+	}
 	/* Datasheet calls out 10 ms of stable supply voltage to de-assertion
 	 * of reset. Lets just wait that 10 ms since its not clear if that is
 	 * the reset assertion time. No specific reset assertion time is called
@@ -325,12 +331,25 @@ static void early_phy_strap_reset(void)
 	udelay(10000);
 
 	/* De-assert reset */
-	gpio_direction_output(TS4900_PHY_RST, 0);
+	dm_gpio_set_value(&descs[0], 0);
 
 	/* Datasheet calls out 6 ns from de-assertion of reset to strap pin
 	 * output time.
 	 */
 	udelay(1);
+
+	/* It is safe to free all of the pins at this point */
+	for (i = 0; i < ARRAY_SIZE(names); i++) {
+		/* BUG!!
+		 * dm_gpio_free() dereferences the first arg, which we don't
+		 * have a struct udevice due to how we obtained the GPIO, so,
+		 * this could be a problem, but is the "right thing" to do.
+		 */
+		printf("i %d, name %s\n", i, names[i]);
+		dm_gpio_free(NULL, &descs[i]);
+	}
+
+	return 0;
 }
 
 int board_init(void)
@@ -484,7 +503,7 @@ int board_late_init(void)
 	 * USB 5 V rail.
 	 */
 	if (offbd_reset() < 0)
-		printf("ERROR RESETTING OFF BOARD PERIPHERALS!\n");
+		printf("\nERROR RESETTING OFF BOARD PERIPHERALS!\n");
 
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 	env_set("board_name", "ts4900");
@@ -497,7 +516,8 @@ int board_late_init(void)
 		env_set("board_rev", "MX6DL");
 #endif
 
-	early_phy_strap_reset();
+	if (early_phy_strap_reset() < 0)
+		printf("\nERROR STRAPPING ENET PHY!\n");
 
 	return 0;
 }
