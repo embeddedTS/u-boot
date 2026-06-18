@@ -47,6 +47,18 @@
  * so we can cleanly grab them as GPIO after the devicetree has loaded, but
  * before any of the networking drivers have loaded.
  */
+&gpio1 {
+	gpio-line-names = "AUD_MCLK", "", "RED_LED#", "", "", "REVA_DIO_1", "",
+		"", "",	"REVA_DIO_3";
+};
+
+&gpio2 {
+	gpio-line-names = "", "", "", "", "", "", "", "", "", "", "", "", "",
+		"", "", "DIO_2", "DIO_18", "DIO_12", "DIO_16", "EN_LCD_3.3V",
+		"DIO_14", "OFF_BD_RESET#", "EN_USB_5V#", "BUS_CS#", "GREEN_LED#",
+		"DIO_15", "BUS_DIR", "BUS_ALE", "EN_SD_POWER#", "DIO_10", "", "";
+};
+
 &gpio4 {
 	gpio-line-names = "", "", "", "", "", "DIO_7", "", "", "", "", "", "",
 		"", "", "", "", "LCD_CLK", "LCD_DE", "LCD_HSYNC", "LCD_VSYNC",
