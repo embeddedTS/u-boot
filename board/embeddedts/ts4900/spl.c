@@ -69,37 +69,21 @@ DECLARE_GLOBAL_DATA_PTR;
 
 //#define DISP0_PWR_EN	IMX_GPIO_NR(1, 21)
 #define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
-#define TS4900_EN_SDPWR		IMX_GPIO_NR(2, 28)
 #define TS4900_ENRTC		IMX_GPIO_NR(3, 23)
 #define TS4900_SCL		IMX_GPIO_NR(3, 21)
 #define TS4900_SDA		IMX_GPIO_NR(3, 28)
-#define TS4900_PHY_RST		IMX_GPIO_NR(4, 20)
-#define TS4900_RGMII_RXC	IMX_GPIO_NR(6, 30)
-#define TS4900_RGMII_RD0	IMX_GPIO_NR(6, 25)
-#define TS4900_RGMII_RD1	IMX_GPIO_NR(6, 27)
-#define TS4900_RGMII_RD2	IMX_GPIO_NR(6, 28)
-#define TS4900_RGMII_RD3	IMX_GPIO_NR(6, 29)
-#define TS4900_RGMII_RX_CTL	IMX_GPIO_NR(6, 24)
 #define TS4900_REVSTRAP		IMX_GPIO_NR(2, 11)
 #define TS4900_REVSTRAPD	IMX_GPIO_NR(6, 5)
 #define TS4900_REVSTRAPE	IMX_GPIO_NR(1, 29)
+#define TS4900_RED_LEDn		IMX_GPIO_NR(1, 2)
+#define TS4900_GREEN_LEDn	IMX_GPIO_NR(2, 24)
 #if 0
 #define TS4900_EN_5V		IMX_GPIO_NR(2, 22)
 #define TS4900_OFFBD_RST	IMX_GPIO_NR(2, 21)
 #define TS4900_SDBOOT		IMX_GPIO_NR(2, 26)
 #define TS4900_SCL		IMX_GPIO_NR(3, 21)
 #define TS4900_SDA		IMX_GPIO_NR(3, 28)
-#define TS4900_REVSTRAP		IMX_GPIO_NR(2, 11)
-#define TS4900_REVSTRAPD	IMX_GPIO_NR(6, 5)
-#define TS4900_REVSTRAPE	IMX_GPIO_NR(1, 29)
 #define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
-#define TS4900_PHY_RST		IMX_GPIO_NR(4, 20)
-#define TS4900_RGMII_RXC	IMX_GPIO_NR(6, 30)
-#define TS4900_RGMII_RD0	IMX_GPIO_NR(6, 25)
-#define TS4900_RGMII_RD1	IMX_GPIO_NR(6, 27)
-#define TS4900_RGMII_RD2	IMX_GPIO_NR(6, 28)
-#define TS4900_RGMII_RD3	IMX_GPIO_NR(6, 29)
-#define TS4900_RGMII_RX_CTL	IMX_GPIO_NR(6, 24)
 #define TS4900_OTG_ID		IMX_GPIO_NR(1, 1)
 #define TS4900_WIFI_EN		IMX_GPIO_NR(1, 26)
 #define TS4900_BT_EN		IMX_GPIO_NR(1, 27)
@@ -161,6 +145,13 @@ static iomux_v3_cfg_t const fpga_pads[] = {
 
 };
 
+static iomux_v3_cfg_t const led_pads[] = {
+	/* RED_LED# */
+	IOMUX_PADS(PAD_GPIO_2__GPIO1_IO02	| MUX_PAD_CTRL(NO_PAD_CTRL)),
+	/* GREEN_LED# */
+	IOMUX_PADS(PAD_EIM_CS1__GPIO2_IO24	| MUX_PAD_CTRL(NO_PAD_CTRL)),
+};
+
 static iomux_v3_cfg_t const cpu_strap_pads[] = {
 	IOMUX_PADS(PAD_SD4_DAT3__GPIO2_IO11	| MUX_PAD_CTRL(GPIO_PAD_CTRL)), // A/C strap
 	IOMUX_PADS(PAD_CSI0_DAT19__GPIO6_IO05	| MUX_PAD_CTRL(GPIO_PAD_CTRL)), // D strap
@@ -191,102 +182,6 @@ static void setup_iomux_uart(void)
 {
 	SETUP_IOMUX_PADS(uart1_pads);
 }
-
-#ifdef CONFIG_FSL_ESDHC_IMX
-struct fsl_esdhc_cfg usdhc_cfg[2] = {
-	{USDHC2_BASE_ADDR},
-	{USDHC3_BASE_ADDR},
-};
-
-int board_mmc_get_env_dev(int devno)
-{
-	return devno - 1;
-}
-
-int board_mmc_getcd(struct mmc *mmc)
-{
-	struct fsl_esdhc_cfg *cfg = (struct fsl_esdhc_cfg *)mmc->priv;
-	int ret = 0;
-
-	printf("KRIS: called getcd\n");
-	switch (cfg->esdhc_base) {
-	case USDHC2_BASE_ADDR: // microSD
-	case USDHC3_BASE_ADDR: // eMMC
-		ret = 1;
-		break;
-	default:
-		ret = -1;
-		break;
-	}
-
-	return ret;
-}
-
-void board_mmc_power_init(void)
-{
-	printf("KRIS: mmc power init\n");
-	gpio_request(TS4900_EN_SDPWR, "sd-vmmc-en");
-	gpio_direction_output(TS4900_EN_SDPWR, 1);
-	/* XXX: TODO: Verify if this is needed. A reset may have the power below
-	 * 0.5 V for longer than 1 ms anyway. If not, a scope should reveal
-	 * roughly how long it takes for the rail to collapse and re-establish.
-	 */
-	udelay(15000);
-	gpio_direction_output(TS4900_EN_SDPWR, 0);
-}
-
-int board_mmc_init(struct bd_info *bis)
-{
-	/* XXX: TODO: Put the iomux here later maybe for sd power control */
-	/* XXX: NOTE: It _should_ be possible down the road to be able to
-	 * forceably unbind the MMC controller from linux which _should_ cause
-	 * it to correctly disable the regulator. This could be used for
-	 * forcing a power cycle! Investigate this later once we get further
-	 * along with LTS support.
-	 *
-	 * This actually needs to be a note to deal with LATER as the 4900
-	 * has microSD power control as its own thing but eMMC is powered by
-	 * 3.3 V
-	 */
-
-	return 0;
-	#if 0
-	struct src *psrc = (struct src *)SRC_BASE_ADDR;
-	unsigned reg = readl(&psrc->sbmr1) >> 11;
-	/*
-	 * Upon reading BOOT_CFG register the following map is done:
-	 * Bit 11 and 12 of BOOT_CFG register can determine the current
-	 * mmc port
-	 * 0x1                  SD1
-	 * 0x2                  SD2
-	 * 0x3                  SD4
-	 */
-
-	switch (reg & 0x3) {
-	case 0x1:
-		SETUP_IOMUX_PADS(usdhc2_pads);
-		usdhc_cfg[0].esdhc_base = USDHC2_BASE_ADDR;
-		usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
-		gd->arch.sdhc_clk = usdhc_cfg[0].sdhc_clk;
-		break;
-	case 0x2:
-		SETUP_IOMUX_PADS(usdhc3_pads);
-		usdhc_cfg[0].esdhc_base = USDHC3_BASE_ADDR;
-		usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC3_CLK);
-		gd->arch.sdhc_clk = usdhc_cfg[0].sdhc_clk;
-		break;
-	case 0x3:
-		SETUP_IOMUX_PADS(usdhc4_pads);
-		usdhc_cfg[0].esdhc_base = USDHC4_BASE_ADDR;
-		usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC4_CLK);
-		gd->arch.sdhc_clk = usdhc_cfg[0].sdhc_clk;
-		break;
-	}
-
-	return fsl_esdhc_initialize(bis, &usdhc_cfg[0]);
-#endif
-}
-#endif
 
 /*
  * Do not overwrite the console
@@ -529,6 +424,13 @@ void board_init_f(ulong dummy)
 	/* UART clocks enabled and gd valid - init serial console */
 	preloader_console_init();
 
+	/* Turn on LEDs to let user know that U-Boot has begun initialization */
+	SETUP_IOMUX_PADS(led_pads);
+	gpio_request(TS4900_RED_LEDn, "led");
+	gpio_request(TS4900_GREEN_LEDn, "led");
+	gpio_direction_output(TS4900_RED_LEDn, 0);
+	gpio_direction_output(TS4900_GREEN_LEDn, 0);
+
 	fpga_program();
 
 	/* Re-enable RTC power */
@@ -548,18 +450,23 @@ void board_init_f(ulong dummy)
 	/* XXX: TODO: Use a blob list to pass straps forward to U-Boot proper */
 	SETUP_IOMUX_PADS(cpu_strap_pads);
 	straps = parse_gpio_straps(cpu_strap_gpio, ARRAY_SIZE(cpu_strap_gpio));
-	printf("KRIS: cpu straps %d (0x%x)\n", straps, (u32)straps);
 
 
 	/* At this point, we should be able to talk to the FPGA */
+	/* TODO: NOTE: setup_i2c() is generating a force_idle_bus message */
+	/* BUG: XXX: There is still some issue on a short hardware reset pulse
+	 * where the I2C RTC bus doesn't correctly start back up:
+	 * iCE40 FPGA reloaded successfully
+	 * force_idle_bus: sda=0 scl=0 sda.gp=0x5c scl.gp=0x55
+	 * wait_for_sr_state: Arbitration lost sr=32 cr=88 state=202
+	 * wait_for_sr_state: failed sr=22 cr=88 state=2000
+	 * i2c_imx_stop:trigger stop failed
+	 * wait_for_sr_state: failed sr=22 cr=88 state=2000
+	 * i2c_imx_stop:trigger stop failed
+	 */
+
 	setup_i2c(0, 100000, 0x28, &i2c_pad_info0);
-	printf("KRIS: bus num %d\n", i2c_set_bus_num(0));
-	printf("KRIS: FPGA probe %d\n", i2c_probe(0x28));
-	printf("KRIS: FPGA strap 0x%x\n", i2c_reg_read(0x28, 51));
-
-
-
-	/* Find board info here! */
+	i2c_set_bus_num(0);
 	spl_dram_init(ts4900_ram_strap_decode(straps, i2c_reg_read(0x28, 51)));
 
 	/* Clear the BSS. */
