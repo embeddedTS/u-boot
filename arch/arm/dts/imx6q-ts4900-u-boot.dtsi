@@ -43,6 +43,14 @@
 	};
 };
 
+/* Extend our hog group to include more pins that U-Boot may need, but in the
+ * Linux devicetree arn't as often used.
+ */
+&iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog &pinctrl_pcie &pinctrl_muxbus_gpio>;
+};
+
 &usdhc1 {
 	status = "disabled";
 };
