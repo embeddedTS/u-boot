@@ -41,6 +41,10 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+/* TODO: XXX:
+ * When running in U-Boot proper, we need to use dm GPIO handling rather than
+ * the legacy stuff.
+ */
 //#define DISP0_PWR_EN	IMX_GPIO_NR(1, 21)
 #define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
 #define TS4900_EN_SDPWR		IMX_GPIO_NR(2, 28)
@@ -58,22 +62,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define TS4900_REVSTRAPD	IMX_GPIO_NR(6, 5)
 #define TS4900_REVSTRAPE	IMX_GPIO_NR(1, 29)
 #if 0
-#define TS4900_EN_5V		IMX_GPIO_NR(2, 22)
-#define TS4900_OFFBD_RST	IMX_GPIO_NR(2, 21)
-#define TS4900_SDBOOT		IMX_GPIO_NR(2, 26)
-#define TS4900_SCL		IMX_GPIO_NR(3, 21)
-#define TS4900_SDA		IMX_GPIO_NR(3, 28)
-#define TS4900_REVSTRAP		IMX_GPIO_NR(2, 11)
-#define TS4900_REVSTRAPD	IMX_GPIO_NR(6, 5)
-#define TS4900_REVSTRAPE	IMX_GPIO_NR(1, 29)
 #define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
-#define TS4900_PHY_RST		IMX_GPIO_NR(4, 20)
-#define TS4900_RGMII_RXC	IMX_GPIO_NR(6, 30)
-#define TS4900_RGMII_RD0	IMX_GPIO_NR(6, 25)
-#define TS4900_RGMII_RD1	IMX_GPIO_NR(6, 27)
-#define TS4900_RGMII_RD2	IMX_GPIO_NR(6, 28)
-#define TS4900_RGMII_RD3	IMX_GPIO_NR(6, 29)
-#define TS4900_RGMII_RX_CTL	IMX_GPIO_NR(6, 24)
 #define TS4900_OTG_ID		IMX_GPIO_NR(1, 1)
 #define TS4900_WIFI_EN		IMX_GPIO_NR(1, 26)
 #define TS4900_BT_EN		IMX_GPIO_NR(1, 27)
@@ -416,11 +405,86 @@ static const struct boot_mode board_boot_modes[] = {
 };
 #endif
 
+/* Issues the offboard reset for 1 ms
+ * If running in the "legacy" boot mode, read the sdboot jumper and export
+ * that to the environment.
+ */
+static int offbd_reset(void)
+{
+	struct gpio_desc offbdrst, vusb;
+#ifdef CFG_ETS_LEGACY_BOOT
+	struct gpio_desc jpsdboot;
+#endif
+
+	if (gpio_request_by_line_name(NULL, "OFF_BD_RESET#", &offbdrst,
+			(GPIOD_IS_OUT | GPIOD_ACTIVE_LOW | GPIOD_IS_OUT_ACTIVE)) < 0)
+		return -1;
+
+	if (gpio_request_by_line_name(NULL, "EN_USB_5V#", &vusb,
+			(GPIOD_IS_OUT)) < 0)
+		return -1;
+
+#ifdef CFG_ETS_LEGACY_BOOT
+	/* NOTE: mxc GPIO driver does not support set_flags function call,
+	 * so no flags like pull can be set here without erroring.
+	 */
+	if (gpio_request_by_line_name(NULL, "BUS_DIR", &jpsdboot,
+			(GPIOD_IS_IN)) < 0)
+		return -1;
+#endif
+
+	mdelay(1);
+
+#ifdef CFG_ETS_LEGACY_BOOT
+	/* Following legacy behavior, only check for zero or non-zero */
+	if (dm_gpio_get_value(&jpsdboot))
+		env_set("jpsdboot", "off");
+	else
+		env_set("jpsdboot", "on");
+
+	/* BUG!!
+	 * dm_gpio_free() dereferences the first arg, which we don't have a
+	 * struct udevice due to how we obtained the GPIO, so, this could be
+	 * a problem, but is the "right thing" to do.
+	 */
+	dm_gpio_free(NULL, &jpsdboot);
+#endif
+
+	/* Deassert reset */
+	if (dm_gpio_set_value(&offbdrst, 0) < 0)
+		return -1;
+
+	/* NOTE!
+	 * Legacy TS-4900 code waited 100 ms after unreset to turn on USB 5 V.
+	 * Based on the datasheets of the parts used in our baseboards, this
+	 * is an overly conservative timeout. Most hubs are ready to start
+	 * attaching devices withing 10 us of reset being released. Our LTS
+	 * platform code follows this 10 us. If there are any issues with USB
+	 * on baseboards with hubs, this is the place to start.
+	 */
+	udelay(10);
+
+	if (dm_gpio_set_value(&vusb, 1) < 0)
+		return -1;
+
+	/* We intentionally don't free OFFBD_RST and EN_5V since we want these
+	 * states to be retained through the rest of U-Boot.
+	 */
+	return 0;
+};
+
+
 int board_late_init(void)
 {
 #ifdef CONFIG_CMD_BMODE
 	add_board_boot_modes(board_boot_modes);
 #endif
+
+	/* Issue off board reset, optionally read sdboot jumper, and enable
+	 * USB 5 V rail.
+	 */
+	if (offbd_reset() < 0)
+		printf("ERROR RESETTING OFF BOARD PERIPHERALS!\n");
 
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 	env_set("board_name", "ts4900");
