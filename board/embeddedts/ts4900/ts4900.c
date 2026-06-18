@@ -37,6 +37,7 @@
 #include <usb/ehci-ci.h>
 
 #include "strap_decode.h"
+#include "../common/bbdetect.h"
 #include "../common/parse_gpio_straps.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -47,13 +48,6 @@ DECLARE_GLOBAL_DATA_PTR;
  */
 //#define DISP0_PWR_EN	IMX_GPIO_NR(1, 21)
 #define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
-#define TS4900_ENRTC		IMX_GPIO_NR(3, 23)
-#define TS4900_SCL		IMX_GPIO_NR(3, 21)
-#define TS4900_SDA		IMX_GPIO_NR(3, 28)
-
-#define TS4900_REVSTRAP		IMX_GPIO_NR(2, 11)
-#define TS4900_REVSTRAPD	IMX_GPIO_NR(6, 5)
-#define TS4900_REVSTRAPE	IMX_GPIO_NR(1, 29)
 #if 0
 #define TS4900_OTG_ID		IMX_GPIO_NR(1, 1)
 #define TS4900_WIFI_EN		IMX_GPIO_NR(1, 26)
@@ -75,7 +69,7 @@ int dram_init(void)
 /* We need to control some of the MII pins as GPIO prior to PHY unreset in
  * order to configure copper straps.
  */
-static iomux_v3_cfg_t const enet_pads1[] = {
+static iomux_v3_cfg_t const enet_pads[] = {
 	/* pin 35 - 1 (PHY_AD2) on reset */
 	IOMUX_PADS(PAD_RGMII_RXC__GPIO6_IO30            | MUX_PAD_CTRL(NO_PAD_CTRL)),
 	/* pin 32 - 1 - (MODE0) all */
@@ -93,6 +87,28 @@ static iomux_v3_cfg_t const enet_pads1[] = {
 	IOMUX_PADS(PAD_DI0_PIN4__GPIO4_IO20             | MUX_PAD_CTRL(NO_PAD_CTRL)),
 };
 
+/* Baseboard ID handling */
+static const struct bbdetect_pins bbpins = {
+	.bit = {
+		"RED_LED#",	// bit 0
+		"GREEN_LED#",	// bit 1
+		"BUS_DIR",	// bit 3
+	},
+	.in = "DIO_15",
+};
+
+/* Since there is some overlap of bbdetect pins and LEDs, we need to manually
+ * configure the IOMUX settings for the LEDs so we can correctly read the MUX
+ * before getting far enough along in boot that the LED system takes over.
+ * The other pins, BUS_DIR and DIO_15 are a part of the MUXBUS and hog group
+ * and are already configured during board_init_r()
+ */
+static iomux_v3_cfg_t const led_pads[] = {
+	/* RED_LED# */
+	IOMUX_PADS(PAD_GPIO_2__GPIO1_IO02	| MUX_PAD_CTRL(NO_PAD_CTRL)),
+	/* GREEN_LED# */
+	IOMUX_PADS(PAD_EIM_CS1__GPIO2_IO24	| MUX_PAD_CTRL(NO_PAD_CTRL)),
+};
 
 /* XXX: TODO: Implement GPU support? */
 
@@ -312,13 +328,12 @@ static int early_phy_strap_reset(void)
 	struct gpio_desc descs[ARRAY_SIZE(names)];
 	int i;
 
-	SETUP_IOMUX_PADS(enet_pads1);
+	SETUP_IOMUX_PADS(enet_pads);
 
 	/* Get all of our pins in the required states, this includes setting
 	 * specific pins to a high state while PHY reset is asserted.
 	 */
 	for (i = 0; i < ARRAY_SIZE(names); i++) {
-		printf("i %d, name %s\n", i, names[i]);
 		if (gpio_request_by_line_name(NULL, names[i], &descs[i],
 				(GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE)) < 0)
 			return -1;
@@ -345,7 +360,6 @@ static int early_phy_strap_reset(void)
 		 * have a struct udevice due to how we obtained the GPIO, so,
 		 * this could be a problem, but is the "right thing" to do.
 		 */
-		printf("i %d, name %s\n", i, names[i]);
 		dm_gpio_free(NULL, &descs[i]);
 	}
 
@@ -364,6 +378,10 @@ int board_init(void)
 #ifdef CONFIG_USB_EHCI_MX6
 	setup_usb();
 #endif
+
+	/* Parse strapping values and export two env variables from them */
+	SETUP_IOMUX_PADS(led_pads);
+	bbdetect(bbpins, 1000);
 
 	return 0;
 }
@@ -491,7 +509,6 @@ static int offbd_reset(void)
 	 */
 	return 0;
 };
-
 
 int board_late_init(void)
 {
