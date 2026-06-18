@@ -43,6 +43,25 @@
 	};
 };
 
+/* We need to add line names to the GPIO banks that have our MII interface pins
+ * so we can cleanly grab them as GPIO after the devicetree has loaded, but
+ * before any of the networking drivers have loaded.
+ */
+&gpio4 {
+	gpio-line-names = "", "", "", "", "", "DIO_7", "", "", "", "", "", "",
+		"", "", "", "", "LCD_CLK", "LCD_DE", "LCD_HSYNC", "LCD_VSYNC",
+		"ENET_PHY_RST", "LCD_D00", "LCD_D01", "LCD_D02", "LCD_D03",
+		"LCD_D04", "LCD_D05", "LCD_D06", "LCD_D07", "LCD_D08", "LCD_D08",
+		"LCD_D10";
+};
+
+&gpio6 {
+	gpio-line-names = "", "", "", "CPU_DIO_A", "", "", "DIO_19", "", "",
+		"", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+		"RGMII_RX_CTL", "RGMII_RD0", "", "RGMII_RD1", "RGMII_RD2",
+		"RGMII_RD3", "RGMII_RXC", "DIO_13";
+};
+
 /* Extend our hog group to include more pins that U-Boot may need, but in the
  * Linux devicetree arn't as often used.
  */
