@@ -34,6 +34,7 @@
 #include <input.h>
 #include <usb.h>
 #include <usb/ehci-ci.h>
+#include <watchdog.h>
 
 #include <asm/arch/mx6-ddr.h>
 #include <spl.h>
@@ -83,7 +84,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #define TS4900_SDBOOT		IMX_GPIO_NR(2, 26)
 #define TS4900_SCL		IMX_GPIO_NR(3, 21)
 #define TS4900_SDA		IMX_GPIO_NR(3, 28)
-#define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
 #define TS4900_OTG_ID		IMX_GPIO_NR(1, 1)
 #define TS4900_WIFI_EN		IMX_GPIO_NR(1, 26)
 #define TS4900_BT_EN		IMX_GPIO_NR(1, 27)
@@ -101,7 +101,7 @@ static iomux_v3_cfg_t const uart1_pads[] = {
 };
 
 /* XXX: This is only used in SPL to set up SPI NOR flash. U-Boot proper uses
- 0* devicetree to set up these pins as needed.
+ * devicetree to set up these pins as needed.
  */
 static iomux_v3_cfg_t const ecspi1_pads[] = {
 	IOMUX_PADS(PAD_EIM_D19__GPIO3_IO19  | MUX_PAD_CTRL(SPI_PAD_CTRL)),
@@ -111,7 +111,6 @@ static iomux_v3_cfg_t const ecspi1_pads[] = {
 };
 
 static iomux_v3_cfg_t const i2c1_pads_gpio[] = {
-	/* XXX: TODO: Verify if we want NO_PAD_CTRL here actually */
 	IOMUX_PADS(PAD_EIM_D23__GPIO3_IO23 | MUX_PAD_CTRL(NO_PAD_CTRL)), // EN_RTC
 	IOMUX_PADS(PAD_EIM_D21__GPIO3_IO21 | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SCL
 	IOMUX_PADS(PAD_EIM_D28__GPIO3_IO28 | MUX_PAD_CTRL(I2C_PAD_CTRL)), // SDA
@@ -194,34 +193,9 @@ int overwrite_console(void)
 	return 1;
 }
 
-#ifdef CONFIG_USB_EHCI_MX6
-static void setup_usb(void)
-{
-	/*
-	 * set daisy chain for otg_pin_id on 6q.
-	 * for 6dl, this bit is reserved
-	 */
-	imx_iomux_set_gpr_register(1, 13, 1, 0);
-}
-#endif
-
-
 int board_early_init_f(void)
 {
 	setup_iomux_uart();
-
-	return 0;
-}
-
-int board_init(void)
-{
-	/* XXX: What is the point of this? */
-	/* address of boot parameters */
-	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
-
-#ifdef CONFIG_USB_EHCI_MX6
-	setup_usb();
-#endif
 
 	return 0;
 }
@@ -232,8 +206,6 @@ int board_spi_cs_gpio(unsigned bus, unsigned cs)
 	return (bus == 0 && cs == 0) ? (TS4900_SPI_CS) : -1;
 }
 #endif
-
-#ifdef CONFIG_XPL_BUILD
 
 #ifdef CONFIG_SPL_OS_BOOT
 /* XXX: used for falcon boot */
@@ -413,6 +385,19 @@ void board_init_f(ulong dummy)
 {
 	s32 straps;
 
+	/* Turn on the WDT as soon as possible, its possible it was enabled in
+	 * hardware already. Note that there are no other explicit feeds that
+	 * take place until U-Boot is started. The default timeout needs to be
+	 * long enough to ensure that U-Boot can start or additional feeds need
+	 * to be added here.
+	 *
+	 * If enabled in hardware by blowing bit 21 of bank 0 word 6 of OTP,
+	 * the WDT is enabled with a 90 s timeout.
+	 */
+#if defined(CONFIG_IMX_WATCHDOG)
+	hw_watchdog_init();
+#endif
+
 	/* ASAP, disable the RTC power, and drive I2C pins low.
 	 * While the RTC is normally disabled out of reset, ensure its driven
 	 * low, also driving the I2C lines low to help fully bleed off any power.
@@ -489,7 +474,6 @@ void board_init_f(ulong dummy)
 	/* load/boot image from boot device */
 	board_init_r(NULL, 0);
 }
-#endif
 
 #if 0 
 /* XXX: Unsure if we need this long term, keeping it here as reference */
