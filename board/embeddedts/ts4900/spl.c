@@ -140,9 +140,11 @@ static iomux_v3_cfg_t const fpga_pads[] = {
 	IOMUX_PADS(PAD_CSI0_DAT8__ECSPI2_SCLK      | MUX_PAD_CTRL(SPI_PAD_CLK_CTRL)),
 	/* OFFBD_CS# */
 	IOMUX_PADS(PAD_CSI0_DAT11__GPIO5_IO29      | MUX_PAD_CTRL(SPI_PAD_CTRL)),
+};
+
+static iomux_v3_cfg_t const fpga_clk[] = {
 	/* FPGA_CLK */
 	IOMUX_PADS(PAD_GPIO_3__XTALOSC_REF_CLK_24M | MUX_PAD_CTRL(NO_PAD_CTRL)),
-
 };
 
 static iomux_v3_cfg_t const led_pads[] = {
@@ -258,6 +260,18 @@ void fpga_program(void)
 	/* XXX: TODO: NOTE! Need to be mindful of what to do if FPGA programming
 	 * fails. Should we try again? Reboot? Assume really crap RAM values?
 	 */
+
+	/* NOTE:
+	 * In older U-Boot releases for this platform, the 24 MHz clock was set
+	 * on the IOMUX alongside the FPGA programming pins. However, here it
+	 * was observed that the FPGA does not get a clean reset if that is the
+	 * case. The reset logic for the TS-4900 FPGA is based on the PLL.
+	 * Enabling the clock after programming lets the FPGA come out of its
+	 * internal reset and lets the fabric execute. This is how we can
+	 * guarantee that the FPGA gets at least one posedge on the clock before
+	 * the PLL is locked.
+	 */
+	SETUP_IOMUX_PADS(fpga_clk);
 }
 
 static void ccgr_init(void)
