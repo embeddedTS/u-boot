@@ -46,8 +46,6 @@ DECLARE_GLOBAL_DATA_PTR;
  * When running in U-Boot proper, we need to use dm GPIO handling rather than
  * the legacy stuff.
  */
-//#define DISP0_PWR_EN	IMX_GPIO_NR(1, 21)
-#define TS4900_SPI_CS		IMX_GPIO_NR(3, 19)
 #if 0
 #define TS4900_OTG_ID		IMX_GPIO_NR(1, 1)
 #define TS4900_WIFI_EN		IMX_GPIO_NR(1, 26)
@@ -109,160 +107,6 @@ static iomux_v3_cfg_t const led_pads[] = {
 	/* GREEN_LED# */
 	IOMUX_PADS(PAD_EIM_CS1__GPIO2_IO24	| MUX_PAD_CTRL(NO_PAD_CTRL)),
 };
-
-/* XXX: TODO: Implement GPU support? */
-
-
-#if defined(CONFIG_VIDEO_IPUV3)
-#if 0
-static void disable_lvds(struct display_info_t const *dev)
-{
-	struct iomuxc *iomux = (struct iomuxc *)IOMUXC_BASE_ADDR;
-
-	int reg = readl(&iomux->gpr[2]);
-
-	reg &= ~(IOMUXC_GPR2_LVDS_CH0_MODE_MASK |
-		 IOMUXC_GPR2_LVDS_CH1_MODE_MASK);
-
-	writel(reg, &iomux->gpr[2]);
-}
-
-static void do_enable_hdmi(struct display_info_t const *dev)
-{
-	disable_lvds(dev);
-	imx_enable_hdmi_phy();
-}
-
-struct display_info_t const displays[] = {{
-	.bus	= -1,
-	.addr	= 0,
-	.pixfmt	= IPU_PIX_FMT_RGB666,
-	.detect	= NULL,
-	.enable	= enable_lvds,
-	.mode	= {
-		.name           = "Hannstar-XGA",
-		.refresh        = 60,
-		.xres           = 1024,
-		.yres           = 768,
-		.pixclock       = 15384,
-		.left_margin    = 160,
-		.right_margin   = 24,
-		.upper_margin   = 29,
-		.lower_margin   = 3,
-		.hsync_len      = 136,
-		.vsync_len      = 6,
-		.sync           = FB_SYNC_EXT,
-		.vmode          = FB_VMODE_NONINTERLACED
-} }, {
-	.bus	= -1,
-	.addr	= 0,
-	.pixfmt	= IPU_PIX_FMT_RGB24,
-	.detect	= detect_hdmi,
-	.enable	= do_enable_hdmi,
-	.mode	= {
-		.name           = "HDMI",
-		.refresh        = 60,
-		.xres           = 1024,
-		.yres           = 768,
-		.pixclock       = 15384,
-		.left_margin    = 160,
-		.right_margin   = 24,
-		.upper_margin   = 29,
-		.lower_margin   = 3,
-		.hsync_len      = 136,
-		.vsync_len      = 6,
-		.sync           = FB_SYNC_EXT,
-		.vmode          = FB_VMODE_NONINTERLACED
-} }, {
-	.bus	= 0,
-	.addr	= 0,
-	.pixfmt	= IPU_PIX_FMT_RGB24,
-	.detect	= NULL,
-	.enable	= enable_rgb,
-	.mode	= {
-		.name           = "SEIKO-WVGA",
-		.refresh        = 60,
-		.xres           = 800,
-		.yres           = 480,
-		.pixclock       = 29850,
-		.left_margin    = 89,
-		.right_margin   = 164,
-		.upper_margin   = 23,
-		.lower_margin   = 10,
-		.hsync_len      = 10,
-		.vsync_len      = 10,
-		.sync           = 0,
-		.vmode          = FB_VMODE_NONINTERLACED
-} } };
-size_t display_count = ARRAY_SIZE(displays);
-
-static void setup_display(void)
-{
-	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
-	struct iomuxc *iomux = (struct iomuxc *)IOMUXC_BASE_ADDR;
-	int reg;
-
-	/* Setup HSYNC, VSYNC, DISP_CLK for debugging purposes */
-	SETUP_IOMUX_PADS(di0_pads);
-
-	enable_ipu_clock();
-	imx_setup_hdmi();
-
-	/* Turn on LDB0, LDB1, IPU,IPU DI0 clocks */
-	reg = readl(&mxc_ccm->CCGR3);
-	reg |=  MXC_CCM_CCGR3_LDB_DI0_MASK | MXC_CCM_CCGR3_LDB_DI1_MASK;
-	writel(reg, &mxc_ccm->CCGR3);
-
-	/* set LDB0, LDB1 clk select to 011/011 */
-	reg = readl(&mxc_ccm->cs2cdr);
-	reg &= ~(MXC_CCM_CS2CDR_LDB_DI0_CLK_SEL_MASK
-		 | MXC_CCM_CS2CDR_LDB_DI1_CLK_SEL_MASK);
-	reg |= (3 << MXC_CCM_CS2CDR_LDB_DI0_CLK_SEL_OFFSET)
-	      | (3 << MXC_CCM_CS2CDR_LDB_DI1_CLK_SEL_OFFSET);
-	writel(reg, &mxc_ccm->cs2cdr);
-
-	reg = readl(&mxc_ccm->cscmr2);
-	reg |= MXC_CCM_CSCMR2_LDB_DI0_IPU_DIV | MXC_CCM_CSCMR2_LDB_DI1_IPU_DIV;
-	writel(reg, &mxc_ccm->cscmr2);
-
-	reg = readl(&mxc_ccm->chsccdr);
-	reg |= (CHSCCDR_CLK_SEL_LDB_DI0
-		<< MXC_CCM_CHSCCDR_IPU1_DI0_CLK_SEL_OFFSET);
-	reg |= (CHSCCDR_CLK_SEL_LDB_DI0
-		<< MXC_CCM_CHSCCDR_IPU1_DI1_CLK_SEL_OFFSET);
-	writel(reg, &mxc_ccm->chsccdr);
-
-	reg = IOMUXC_GPR2_BGREF_RRMODE_EXTERNAL_RES
-	     | IOMUXC_GPR2_DI1_VS_POLARITY_ACTIVE_LOW
-	     | IOMUXC_GPR2_DI0_VS_POLARITY_ACTIVE_LOW
-	     | IOMUXC_GPR2_BIT_MAPPING_CH1_SPWG
-	     | IOMUXC_GPR2_DATA_WIDTH_CH1_18BIT
-	     | IOMUXC_GPR2_BIT_MAPPING_CH0_SPWG
-	     | IOMUXC_GPR2_DATA_WIDTH_CH0_18BIT
-	     | IOMUXC_GPR2_LVDS_CH0_MODE_DISABLED
-	     | IOMUXC_GPR2_LVDS_CH1_MODE_ENABLED_DI0;
-	writel(reg, &iomux->gpr[2]);
-
-	reg = readl(&iomux->gpr[3]);
-	reg = (reg & ~(IOMUXC_GPR3_LVDS1_MUX_CTL_MASK
-			| IOMUXC_GPR3_HDMI_MUX_CTL_MASK))
-	    | (IOMUXC_GPR3_MUX_SRC_IPU1_DI0
-	       << IOMUXC_GPR3_LVDS1_MUX_CTL_OFFSET);
-	writel(reg, &iomux->gpr[3]);
-}
-#endif
-#endif /* CONFIG_VIDEO_IPUV3 */
-struct display_info_t const displays[] = {0};
-size_t display_count = 0;
-
-/*
- * Do not overwrite the console
- * Use always serial for U-Boot console
- */
-int overwrite_console(void)
-{
-	return 1;
-}
 
 #ifdef CONFIG_USB_EHCI_MX6
 static void setup_usb(void)
@@ -372,9 +216,6 @@ int board_init(void)
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
 
-#if defined(CONFIG_VIDEO_IPUV3)
-	//setup_display();
-#endif
 #ifdef CONFIG_USB_EHCI_MX6
 	setup_usb();
 #endif
@@ -385,47 +226,6 @@ int board_init(void)
 
 	return 0;
 }
-
-#if 0
-int power_init_board(void)
-{
-	struct udevice *dev;
-	unsigned int reg;
-	int ret;
-
-	ret = pmic_get("pfuze100@8", &dev);
-	if (ret == -ENODEV)
-		return 0;
-
-	if (ret != 0)
-		return ret;
-
-	ret = pfuze_mode_init(dev, APS_PFM);
-	if (ret < 0)
-		return ret;
-
-	/* Increase VGEN3 from 2.5 to 2.8V */
-	reg = pmic_reg_read(dev, PFUZE100_VGEN3VOL);
-	reg &= ~LDO_VOL_MASK;
-	reg |= LDOB_2_80V;
-	pmic_reg_write(dev, PFUZE100_VGEN3VOL, reg);
-
-	/* Increase VGEN5 from 2.8 to 3V */
-	reg = pmic_reg_read(dev, PFUZE100_VGEN5VOL);
-	reg &= ~LDO_VOL_MASK;
-	reg |= LDOB_3_00V;
-	pmic_reg_write(dev, PFUZE100_VGEN5VOL, reg);
-
-	return 0;
-}
-#endif
-
-#ifdef CONFIG_MXC_SPI
-int board_spi_cs_gpio(unsigned bus, unsigned cs)
-{
-	return (bus == 0 && cs == 0) ? (TS4900_SPI_CS) : -1;
-}
-#endif
 
 #ifdef CONFIG_CMD_BMODE
 /* XXX: We probably don't want this in production, but, setting it up for use
