@@ -49,11 +49,12 @@
  */
 &gpio1 {
 	gpio-line-names = "AUD_MCLK", "", "RED_LED#", "", "", "REVA_DIO_1", "",
-		"", "",	"REVA_DIO_3";
+		"", "",	"REVA_DIO_3", "", "", "", "", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "", "REV_STRAP_E";
 };
 
 &gpio2 {
-	gpio-line-names = "", "", "", "", "", "", "", "", "", "", "", "", "",
+	gpio-line-names = "", "", "", "", "", "", "", "", "", "", "", "REV_STRAP", "",
 		"", "", "DIO_2", "DIO_18", "DIO_12", "DIO_16", "EN_LCD_3.3V",
 		"DIO_14", "OFF_BD_RESET#", "EN_USB_5V#", "BUS_CS#", "GREEN_LED#",
 		"DIO_15", "BUS_DIR", "BUS_ALE", "EN_SD_POWER#", "DIO_10", "", "";
@@ -68,8 +69,8 @@
 };
 
 &gpio6 {
-	gpio-line-names = "", "", "", "CPU_DIO_A", "", "", "DIO_19", "", "",
-		"", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+	gpio-line-names = "", "", "", "CPU_DIO_A", "", "REV_STRAP_D", "DIO_19",
+		"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
 		"RGMII_RX_CTL", "RGMII_RD0", "", "RGMII_RD1", "RGMII_RD2",
 		"RGMII_RD3", "RGMII_RXC", "DIO_13";
 };
@@ -89,4 +90,14 @@
 &usdhc2 {
 	vmmc-supply = <&reg_sd_vmmc>;
 	broken-cd;
+};
+
+/* We need to use these LED GPIO first for bbdetect. Remove the default state
+ * from the DTS, and we will set it manually in board late init. */
+&{/led-controller/led-0} {
+	/delete-property/ default-state;
+};
+
+&{/led-controller/led-1} {
+	/delete-property/ default-state;
 };
