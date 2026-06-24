@@ -16,6 +16,7 @@
 #include <asm/sections.h>
 #include <env.h>
 #include <i2c.h>
+#include <led.h>
 #include <linux/errno.h>
 #include <linux/delay.h>
 #include <asm/gpio.h>
@@ -50,12 +51,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #define TS4900_OTG_ID		IMX_GPIO_NR(1, 1)
 #define TS4900_WIFI_EN		IMX_GPIO_NR(1, 26)
 #define TS4900_BT_EN		IMX_GPIO_NR(1, 27)
-#define TS4900_SD1_D0		IMX_GPIO_NR(1, 16)
-#define TS4900_SD1_D1		IMX_GPIO_NR(1, 17)
-#define TS4900_SD1_D2		IMX_GPIO_NR(1, 19)
-#define TS4900_SD1_D3		IMX_GPIO_NR(1, 21)
-#define TS4900_SD1_CMD		IMX_GPIO_NR(1, 18)
-#define TS4900_SD1_CLK		IMX_GPIO_NR(1, 20)
 #endif
 
 int dram_init(void)
@@ -95,17 +90,11 @@ static const struct bbdetect_pins bbpins = {
 	.in = "DIO_15",
 };
 
-/* Since there is some overlap of bbdetect pins and LEDs, we need to manually
- * configure the IOMUX settings for the LEDs so we can correctly read the MUX
- * before getting far enough along in boot that the LED system takes over.
- * The other pins, BUS_DIR and DIO_15 are a part of the MUXBUS and hog group
- * and are already configured during board_init_r()
- */
-static iomux_v3_cfg_t const led_pads[] = {
-	/* RED_LED# */
-	IOMUX_PADS(PAD_GPIO_2__GPIO1_IO02	| MUX_PAD_CTRL(NO_PAD_CTRL)),
-	/* GREEN_LED# */
-	IOMUX_PADS(PAD_EIM_CS1__GPIO2_IO24	| MUX_PAD_CTRL(NO_PAD_CTRL)),
+/* Option strap handling */
+static const char *strap_pins[] = {
+	"REV_STRAP",
+	"REV_STRAP_D",
+	"REV_STRAP_E",
 };
 
 #ifdef CONFIG_USB_EHCI_MX6
@@ -144,7 +133,7 @@ int board_phy_config(struct phy_device *phydev)
         return 0;
 }
 
-const char *names[] = {
+static const char *names[] = {
 	/* We do lump reset in here, for ease of iteration, but its
 	 * starting value of 1 matches the value we want to set everything
 	 * else to so it works out nicely.
@@ -157,6 +146,7 @@ const char *names[] = {
 	"RGMII_RD3",
 	"RGMII_RX_CTL",
 };
+
 /* Must be called early in boot, either late_init() or misc_init_r(), before
  * calls to eth_init() are ultimately made. We rely on the devicetree to set
  * the real final ethernet MAC/MDIO/MII IOMUX settings, but, need to control
@@ -210,23 +200,6 @@ static int early_phy_strap_reset(void)
 	return 0;
 }
 
-int board_init(void)
-{
-	/* XXX: What is the point of this? */
-	/* address of boot parameters */
-	gd->bd->bi_boot_params = PHYS_SDRAM + 0x100;
-
-#ifdef CONFIG_USB_EHCI_MX6
-	setup_usb();
-#endif
-
-	/* Parse strapping values and export two env variables from them */
-	SETUP_IOMUX_PADS(led_pads);
-	bbdetect(bbpins, 1000);
-
-	return 0;
-}
-
 #ifdef CONFIG_CMD_BMODE
 /* XXX: We probably don't want this in production, but, setting it up for use
  * could be beneficial for customers testing new bootloaders! e.g. set it to
@@ -249,8 +222,16 @@ static const struct boot_mode board_boot_modes[] = {
 static int offbd_reset(void)
 {
 	struct gpio_desc offbdrst, vusb;
+
 #ifdef CFG_ETS_LEGACY_BOOT
 	struct gpio_desc jpsdboot;
+
+	/* NOTE: mxc GPIO driver does not support set_flags function call,
+	 * so no flags like pull can be set here without erroring.
+	 */
+	if (gpio_request_by_line_name(NULL, "BUS_DIR", &jpsdboot,
+			(GPIOD_IS_IN)) < 0)
+		return -1;
 #endif
 
 	if (gpio_request_by_line_name(NULL, "OFF_BD_RESET#", &offbdrst,
@@ -260,15 +241,6 @@ static int offbd_reset(void)
 	if (gpio_request_by_line_name(NULL, "EN_USB_5V#", &vusb,
 			(GPIOD_IS_OUT)) < 0)
 		return -1;
-
-#ifdef CFG_ETS_LEGACY_BOOT
-	/* NOTE: mxc GPIO driver does not support set_flags function call,
-	 * so no flags like pull can be set here without erroring.
-	 */
-	if (gpio_request_by_line_name(NULL, "BUS_DIR", &jpsdboot,
-			(GPIOD_IS_IN)) < 0)
-		return -1;
-#endif
 
 	mdelay(1);
 
@@ -310,8 +282,25 @@ static int offbd_reset(void)
 	return 0;
 };
 
+int board_init(void)
+{
+	/* XXX: What is the point of this? */
+	/* address of boot parameters */
+	gd->bd->bi_boot_params = CFG_SYS_SDRAM_BASE + 0x100;
+
+#ifdef CONFIG_USB_EHCI_MX6
+	setup_usb();
+#endif
+
+	return 0;
+}
+
 int board_late_init(void)
 {
+	s32 straps;
+	uint8_t val;
+	struct udevice *dev;
+
 #ifdef CONFIG_CMD_BMODE
 	add_board_boot_modes(board_boot_modes);
 #endif
@@ -322,19 +311,53 @@ int board_late_init(void)
 	if (offbd_reset() < 0)
 		printf("\nERROR RESETTING OFF BOARD PERIPHERALS!\n");
 
-#ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
-	env_set("board_name", "ts4900");
-
-	if (is_mx6dqp())
-		env_set("board_rev", "MX6QP");
-	else if (is_mx6dq())
-		env_set("board_rev", "MX6Q");
-	else if (is_mx6sdl())
-		env_set("board_rev", "MX6DL");
-#endif
-
 	if (early_phy_strap_reset() < 0)
 		printf("\nERROR STRAPPING ENET PHY!\n");
+
+	/* Parse baseboard ID and rev
+	 * Since this uses the LED pins, this relies on the u-boot.dtsi deleting
+	 * the default-state property in order to not have a GPIO conflict.
+	 * Because of that, we need to then set the LED state explicitly after
+	 * we get the baseboard ID variables.
+	 *
+	 * Since by this point the devicetree has been loaded and parsed, the
+	 * IOMUX for the pins used for this are already set up.
+	 *
+	 * The bbdetect function automatically exports the _id and _rev variables
+	 * to the environment.
+	 */
+	if (bbdetect(bbpins, 1000) < 0)
+		printf("\nERROR READING BASEBOARD ID\n");
+	if (!led_get_by_label("red:status", &dev))
+		led_set_state(dev, LEDST_ON);
+	if (!led_get_by_label("green:power", &dev))
+		led_set_state(dev, LEDST_OFF);
+
+	/* Export build options, CPU info, etc., to environment.
+	 * Note that these values are NOT normalized like the need to be for
+	 * DRAM configuration in SPL. This specifically is for backwards
+	 * compatibility with existing tshwctl paradigms.
+	 */
+	env_set("board_name", "ts4900");
+	if (is_mx6dq())
+		env_set("cpu", "q");
+	if (is_mx6dl())
+		env_set("cpu", "dl");
+
+	straps = parse_gpio_straps(strap_pins, ARRAY_SIZE(strap_pins));
+	if (straps < 0)
+		printf("\nERROR READING CPU STRAP IO\n");
+	env_set_hex("pcb_revision", straps);
+
+	if (i2c_get_chip_for_busnum(0, 0x28, 1, &dev) < 0)
+		printf("\nERROR SETTING UP FPGA I2C READ\n");
+
+	if (dm_i2c_read(dev, 51, &val, 1)) {
+		printf("\nERROR READING FPGA\n");
+		env_set_hex("bom_options", -1);
+	} else {
+		env_set_hex("bom_options", val);
+	}
 
 	return 0;
 }
