@@ -7,7 +7,7 @@
 
 /* As of 20260521 there are 4 main CPU+RAM configurations:
  * s-1g-800:  i.MX6S, 800 MHz, 1 GB of RAM as 2x256x16
- * s-2g-800:  i.MX6S, 800 MHz, 2 GB of RAM as 4x256x16
+ * s-2g-800:  i.MX6S, 800 MHz, 2 GB of RAM as 2x512x16
  * s-1g-1000: i.MX6S, 1 GHz, 1 GB of RAM as 2x256x16
  * q-2g-1000: i.MX6Q, 1 GHz, 2 GB of RAM as 4x256x16
  *
