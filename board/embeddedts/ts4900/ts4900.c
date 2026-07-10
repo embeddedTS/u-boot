@@ -341,7 +341,7 @@ int board_late_init(void)
 	env_set("board_name", "ts4900");
 	if (is_mx6dq())
 		env_set("cpu", "q");
-	if (is_mx6dl())
+	if (is_mx6sdl())
 		env_set("cpu", "dl");
 
 	straps = parse_gpio_straps(strap_pins, ARRAY_SIZE(strap_pins));
@@ -361,23 +361,3 @@ int board_late_init(void)
 
 	return 0;
 }
-
-#ifdef CONFIG_SPL_LOAD_FIT
-int board_fit_config_name_match(const char *name)
-{
-	if (is_mx6dq()) {
-		if (!strcmp(name, "imx6q-sabresd"))
-			return 0;
-	} else if (is_mx6dqp()) {
-		if (!strcmp(name, "imx6qp-sabresd"))
-			return 0;
-	} else if (is_mx6dl()) {
-		if (!strcmp(name, "imx6dl-sabresd"))
-			return 0;
-	}
-
-	return -1;
-}
-#endif
-
-
