@@ -45,8 +45,6 @@
 #include "../common/parse_gpio_straps.h"
 #include "../common/rtc_workaround.h"
 
-DECLARE_GLOBAL_DATA_PTR;
-
 #define GPIO_PAD_CTRL (PAD_CTL_PUS_47K_UP |			\
 	PAD_CTL_SPEED_LOW | PAD_CTL_DSE_80ohm |			\
 	PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
@@ -653,23 +651,15 @@ void board_init_f(ulong dummy)
 	board_init_r(NULL, 0);
 }
 
-#if 0 
-/* XXX: Unsure if we need this long term, keeping it here as reference */
-#ifdef CONFIG_SPL_LOAD_FIT
 int board_fit_config_name_match(const char *name)
 {
 	if (is_mx6dq()) {
-		if (!strcmp(name, "imx6q-sabresd"))
+		if (!strcmp(name, "imx6q-ts4900"))
 			return 0;
-	} else if (is_mx6dqp()) {
-		if (!strcmp(name, "imx6qp-sabresd"))
-			return 0;
-	} else if (is_mx6dl()) {
-		if (!strcmp(name, "imx6dl-sabresd"))
+	} else if (is_mx6sdl()) {
+		if (!strcmp(name, "imx6dl-ts4900"))
 			return 0;
 	}
 
 	return -1;
 }
-#endif
-#endif
