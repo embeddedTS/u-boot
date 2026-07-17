@@ -257,16 +257,7 @@ static void ccgr_init(void)
 	writel(0x000003FF, &ccm->CCGR6);
 }
 
-/* XXX: Future note before finalizing this file:
- * https://github.com/u-boot/u-boot/commit/3b30eece271cfc4096c2d20048c89e8bed0bbbfd
- * The order of this table is based on the TS-4900 from the original 2014 U-Boot
- * which used a handful of .cfg files and included them together to get generic
- * imx6q setup and then RAM layout specific setup. This ultimately differed
- * in ordering than the mx6sabersd dcd tables, and it would appear from the
- * above commit that the order did change for SPL to resolve some potential bugs.
- * Bear this in mind and consider re-testing RAM calibration.
- */
-static int ts4900_1000mhz_4x256mx16_dcd_table[] = {
+static int ts4900q_1000mhz_4x256mx16_dcd_table[] = {
 #if 1 // Set to 0 to enable 400 MHz RAM clk
 	0x020e0798, 0x000C0000,
 	0x020e0758, 0x00000000,
@@ -443,7 +434,7 @@ static int ts4900_1000mhz_4x256mx16_dcd_table[] = {
 #endif
 };
 
-static int ts4900_800mhz_2x512mx16_dcd_table[] = {
+static int ts4900s_800mhz_2x512mx16_dcd_table[] = {
 	0x020e0774, 0x000C0000,
 	0x020e0754, 0x00000000,
 	0x020e04ac, 0x00000030,
@@ -529,7 +520,15 @@ static int ts4900_800mhz_2x512mx16_dcd_table[] = {
 	0x021b001c, 0x00000000,
 };
 
-static int ts4900_1000mhz_2x256mx16_dcd_table[] = {
+/* NOTE:
+ * In theory, there should be no difference between the s-1g-800 and s-1g-1000
+ * configurations. Both are for the i.MX6S, the same RAM ICs, and both are run
+ * at 400 MHz clock. There does end up being some differences between the
+ * calibrated offsets for read and write paths, however. This may be significant
+ * enough to cause issues if these two CPU variants were using the same RAM
+ * configuration tables.
+ */
+static int ts4900s_1000mhz_2x256mx16_dcd_table[] = {
 	0x020e0774, 0x000C0000,
 	0x020e0754, 0x00000000,
 	0x020e04ac, 0x00000030,
@@ -615,7 +614,7 @@ static int ts4900_1000mhz_2x256mx16_dcd_table[] = {
 	0x021b001c, 0x00000000,
 };
 
-static int ts4900_800mhz_2x256mx16_dcd_table[] = {
+static int ts4900s_800mhz_2x256mx16_dcd_table[] = {
 	0x020e0774, 0x000C0000,
 	0x020e0754, 0x00000000,
 	0x020e04ac, 0x00000030,
@@ -712,21 +711,21 @@ static void ddr_init(int *table, int size)
 static void spl_dram_init(enum ram_configs config)
 {
 	switch (config) {
-	case s_1g_800mhz:
-		ddr_init(ts4900_800mhz_2x256mx16_dcd_table,
-			 ARRAY_SIZE(ts4900_800mhz_2x256mx16_dcd_table));
-		break;
-	case s_1g_1000mhz:
-		ddr_init(ts4900_1000mhz_2x256mx16_dcd_table,
-			 ARRAY_SIZE(ts4900_1000mhz_2x256mx16_dcd_table));
-		break;
 	case q_2g_1000mhz:
-		ddr_init(ts4900_1000mhz_4x256mx16_dcd_table,
-			 ARRAY_SIZE(ts4900_1000mhz_4x256mx16_dcd_table));
+		ddr_init(ts4900q_1000mhz_4x256mx16_dcd_table,
+			 ARRAY_SIZE(ts4900q_1000mhz_4x256mx16_dcd_table));
 		break;
 	case s_2g_800mhz:
-		ddr_init(ts4900_800mhz_2x512mx16_dcd_table,
-			 ARRAY_SIZE(ts4900_800mhz_2x512mx16_dcd_table));
+		ddr_init(ts4900s_800mhz_2x512mx16_dcd_table,
+			 ARRAY_SIZE(ts4900s_800mhz_2x512mx16_dcd_table));
+		break;
+	case s_1g_1000mhz:
+		ddr_init(ts4900s_1000mhz_2x256mx16_dcd_table,
+			 ARRAY_SIZE(ts4900s_1000mhz_2x256mx16_dcd_table));
+		break;
+	case s_1g_800mhz:
+		ddr_init(ts4900s_800mhz_2x256mx16_dcd_table,
+			 ARRAY_SIZE(ts4900s_800mhz_2x256mx16_dcd_table));
 		break;
 	default:
 		printf("KRIS: UNSUPPORTED MEMORY TYPE!\n");
