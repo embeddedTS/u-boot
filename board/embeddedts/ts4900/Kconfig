@@ -9,4 +9,11 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "ts4900"
 
+config SYS_SPI_SPL_OFFS
+	hex "SPL offset in SPI NOR flash"
+	default 0x400
+	help
+	  Offset of SPL in SPI NOR flash. NOTE WELL! This should never need
+	  to change and is provided for completeness.
+
 endif
