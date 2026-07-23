@@ -15,14 +15,12 @@
 
 		spl: blob-ext@1 {
 			filename = "SPL";
-			/* XXX: TODO: Verify this offset is needed */
-			offset = <0x400>;
+			offset = <CONFIG_SYS_SPI_SPL_OFFS>;
 		};
 
 		uboot: blob-ext@2 {
 			filename = "u-boot-dtb.img";
-			// Must match CONFIG_SYS_SPI_U_BOOT_OFFS!
-			offset = <0x00040000>; // XXX: TODO: Better align this
+			offset = <CONFIG_SYS_SPI_U_BOOT_OFFS>;
 		};
 
 /*
