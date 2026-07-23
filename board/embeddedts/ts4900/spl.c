@@ -257,7 +257,7 @@ static void ccgr_init(void)
 	writel(0x000003FF, &ccm->CCGR6);
 }
 
-static int ts4900q_1000mhz_4x256mx16_dcd_table[] = {
+static const int ts4900q_1000mhz_4x256mx16_dcd_table[] = {
 #if 1 // Set to 0 to enable 400 MHz RAM clk
 	0x020e0798, 0x000C0000,
 	0x020e0758, 0x00000000,
@@ -434,7 +434,7 @@ static int ts4900q_1000mhz_4x256mx16_dcd_table[] = {
 #endif
 };
 
-static int ts4900s_800mhz_2x512mx16_dcd_table[] = {
+static const int ts4900s_800mhz_2x512mx16_dcd_table[] = {
 	0x020e0774, 0x000C0000,
 	0x020e0754, 0x00000000,
 	0x020e04ac, 0x00000030,
@@ -528,7 +528,7 @@ static int ts4900s_800mhz_2x512mx16_dcd_table[] = {
  * enough to cause issues if these two CPU variants were using the same RAM
  * configuration tables.
  */
-static int ts4900s_1000mhz_2x256mx16_dcd_table[] = {
+static const int ts4900s_1000mhz_2x256mx16_dcd_table[] = {
 	0x020e0774, 0x000C0000,
 	0x020e0754, 0x00000000,
 	0x020e04ac, 0x00000030,
@@ -614,7 +614,7 @@ static int ts4900s_1000mhz_2x256mx16_dcd_table[] = {
 	0x021b001c, 0x00000000,
 };
 
-static int ts4900s_800mhz_2x256mx16_dcd_table[] = {
+static const int ts4900s_800mhz_2x256mx16_dcd_table[] = {
 	0x020e0774, 0x000C0000,
 	0x020e0754, 0x00000000,
 	0x020e04ac, 0x00000030,
@@ -700,7 +700,7 @@ static int ts4900s_800mhz_2x256mx16_dcd_table[] = {
 	0x021b001c, 0x00000000,
 };
 
-static void ddr_init(int *table, int size)
+static void ddr_init(const int *table, int size)
 {
 	int i;
 
