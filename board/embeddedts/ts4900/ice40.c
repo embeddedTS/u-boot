@@ -23,9 +23,7 @@ int do_ice40_load(void)
 	struct spi_slave *fpga_dev;
 	struct spi_flash *nor_dev;
 	int ret_val;
-	u8 *buf = NULL;
-
-	buf = malloc(ICE40_BLK_SZ);
+	u8 buf[ICE40_BLK_SZ];
 
 	gpio_request(CFG_ICE40_FPGA_DONE, "ice40");
 	gpio_request(CFG_ICE40_FPGA_RESET, "ice40");
@@ -34,14 +32,14 @@ int do_ice40_load(void)
 	fpga_dev = spi_setup_slave(1, CFG_ICE40_BUS, 25000000, SPI_MODE_3);
 	ret_val = spi_claim_bus(fpga_dev);
 	if (ret_val)
-		goto malloc_out;
+		goto out;
 
 	nor_dev = spi_flash_probe(CONFIG_SF_DEFAULT_BUS, CONFIG_SF_DEFAULT_CS,
 				  CONFIG_SF_DEFAULT_SPEED, CONFIG_SF_DEFAULT_MODE);
 	if (!nor_dev) {
 		ret_val = -ENODEV;
 		printf("Failed to probe bus\n");
-		goto out;
+		goto spi_out;
 	}
 
 	gpio_direction_input(CFG_ICE40_FPGA_DONE); // fpga_done
@@ -64,13 +62,13 @@ int do_ice40_load(void)
 		ret_val = spi_flash_read(nor_dev, data, ICE40_BLK_SZ, buf);
 		if (ret_val < 0) {
 			printf("SPI flash read failed\n");
-			goto out;
+			goto spi_out;
 		} 
 
 		ret_val = spi_xfer(fpga_dev, len * 8, buf, NULL, 0);
 		if (ret_val) {
 			printf("SPI xfer to FPGA failed @ byte %x\n", data);
-			goto out;
+			goto spi_out;
 		}
 		data += len;
 
@@ -81,7 +79,7 @@ int do_ice40_load(void)
 	ret_val = spi_xfer(fpga_dev, 100 * 8, buf, NULL, 0);
 	if (ret_val) {
 		printf("SPI xfer to FPGA failed @ clocks\n");
-		goto out;
+		goto spi_out;
 	}
 
 	gpio_set_value(CFG_ICE40_CS, 1); // spi cs# high
@@ -99,11 +97,9 @@ int do_ice40_load(void)
 		udelay(1000);
 	}
 
-out:
+spi_out:
 	spi_release_bus(fpga_dev);
 
-malloc_out:
-	free(buf);
-
+out:
 	return ret_val;
 }
