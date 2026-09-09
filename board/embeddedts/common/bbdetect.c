@@ -35,18 +35,18 @@ int bbdetect(const struct bbdetect_pins pins, unsigned long delay)
 	/* Shift in data */
 	for (i = 0; i < 8; i++) {
 		for (bit = 0; bit < BBID_MUX_BITS; bit++) {
-			if (dm_gpio_set_value(&desc_bit[bit], !!(i & (1 << bit))) < 0)
+			if (dm_gpio_set_value(&desc_bit[bit], !!(i & (BIT(bit)))) < 0)
 				return -1;
 		}
 
 		udelay(delay);
 
-		bbid >>= 1;
 		rc = dm_gpio_get_value(&desc_in);
 		if (rc < 0)
 			return -1;
-		else if (rc > 0)
-			bbid |= 0x80;
+
+		if (rc > 0)
+			bbid |= BIT(i);
 	}
 
 	/* Parse out strap segments from whole bbid */
@@ -57,11 +57,6 @@ int bbdetect(const struct bbdetect_pins pins, unsigned long delay)
 	env_set_hex("baseboard_rev", rev);
 
 	/* Release pins */
-	/* BUG!!
-	 * dm_gpio_free() dereferences the first arg, which we don't
-	 * have a struct udevice due to how we obtained the GPIO, so,
-	 * this could be a problem, but is the "right thing" to do.
-	 */
 	dm_gpio_free(NULL, &desc_in);
 	for (i = 0; i < BBID_MUX_BITS; i++)
 		dm_gpio_free(NULL, &desc_bit[i]);
