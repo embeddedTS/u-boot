@@ -246,11 +246,6 @@ static int offbd_reset(void)
 	else
 		env_set("jpsdboot", "on");
 
-	/* BUG!!
-	 * dm_gpio_free() dereferences the first arg, which we don't have a
-	 * struct udevice due to how we obtained the GPIO, so, this could be
-	 * a problem, but is the "right thing" to do.
-	 */
 	dm_gpio_free(NULL, &jpsdboot);
 #endif
 
