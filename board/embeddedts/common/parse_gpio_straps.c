@@ -23,8 +23,10 @@ s32 parse_gpio_straps(unsigned gpio[], size_t cnt)
 		rc = gpio_get_value(gpio[i]);
 		if (rc < 0)
 			return -1;
-		ret <<= 1;
-		ret |= !!rc;
+
+		if (rc > 0)
+			ret |= BIT(i);
+
 		gpio_free(gpio[i]);
 	}
 
@@ -50,8 +52,10 @@ s32 parse_gpio_straps(const char *pins[], size_t cnt)
 		rc = dm_gpio_get_value(&desc);
 		if (rc < 0)
 			return -1;
-		ret <<= 1;
-		ret |= !!rc;
+
+		if (rc > 0)
+			ret |= BIT(i);
+
 		dm_gpio_free(NULL, &desc);
 	}
 
