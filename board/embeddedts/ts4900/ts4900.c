@@ -189,11 +189,6 @@ static int early_phy_strap_reset(void)
 
 	/* It is safe to free all of the pins at this point */
 	for (i = 0; i < ARRAY_SIZE(names); i++) {
-		/* BUG!!
-		 * dm_gpio_free() dereferences the first arg, which we don't
-		 * have a struct udevice due to how we obtained the GPIO, so,
-		 * this could be a problem, but is the "right thing" to do.
-		 */
 		dm_gpio_free(NULL, &descs[i]);
 	}
 
