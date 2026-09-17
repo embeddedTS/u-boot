@@ -68,7 +68,7 @@ struct efi_capsule_update_info update_info = {
 
 void board_flexspi_start(void)
 {
-	#if !defined(CONFIG_SPL_BUILD)
+	#if !defined(CONFIG_XPL_BUILD)
 	fpga_update_from_flash();
 
 	if (!env_get("skip_fpga_reconfig")) {

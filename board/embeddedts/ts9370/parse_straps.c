@@ -8,6 +8,7 @@
 #include <asm/arch-imx9/imx93_pins.h>
 #include <asm/arch/sys_proto.h>
 #include <asm-generic/gpio.h>
+#include <dm/device.h>
 #include <linux/delay.h>
 
 #include "parse_straps.h"
@@ -65,14 +66,14 @@ u16 read_bom_straps(void)
 
 	imx_iomux_v3_setup_multiple_pads(strap_pads, ARRAY_SIZE(strap_pads));
 
-	alloc_strap_gpio_desc("GPIO2_04", &desc[7]); /* R131 */
-	alloc_strap_gpio_desc("GPIO2_10", &desc[6]); /* R132 */
-	alloc_strap_gpio_desc("GPIO2_14", &desc[5]); /* R133 */
-	alloc_strap_gpio_desc("GPIO2_00", &desc[4]); /* R134 */
-	alloc_strap_gpio_desc("GPIO2_12", &desc[3]); /* R127 */
-	alloc_strap_gpio_desc("GPIO2_08", &desc[2]); /* R128 */
-	alloc_strap_gpio_desc("GPIO2_18", &desc[1]); /* R129 */
-	alloc_strap_gpio_desc("GPIO2_20", &desc[0]); /* R130 */
+	alloc_strap_gpio_desc("GPIO1_04", &desc[7]); /* R131 */
+	alloc_strap_gpio_desc("GPIO1_10", &desc[6]); /* R132 */
+	alloc_strap_gpio_desc("GPIO1_14", &desc[5]); /* R133 */
+	alloc_strap_gpio_desc("GPIO1_00", &desc[4]); /* R134 */
+	alloc_strap_gpio_desc("GPIO1_12", &desc[3]); /* R127 */
+	alloc_strap_gpio_desc("GPIO1_08", &desc[2]); /* R128 */
+	alloc_strap_gpio_desc("GPIO1_18", &desc[1]); /* R129 */
+	alloc_strap_gpio_desc("GPIO1_20", &desc[0]); /* R130 */
 
 	cpu_straps = dm_gpio_get_values_as_int(desc, 8);
 
