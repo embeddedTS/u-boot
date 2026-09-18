@@ -11,7 +11,9 @@ ifdef CONFIG_XPL_BUILD
 obj-y += spl.o
 obj-y += lpddr4x-16gb.o
 obj-y += lpddr4x-8gb.o
-
+else
+obj-y += ../common/ts-macs.o
 endif
-obj-y += ../ts-common/
+
 obj-y += parse_straps.o
+obj-y += ../common/fpga_bootloader.o ../common/wizard.o

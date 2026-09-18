@@ -25,9 +25,9 @@
 #include "parse_straps.h"
 
 #include <dm/root.h>
-#include "../ts-common/fpga_bootloader.h"
-#include "../ts-common/ts-macs.h"
-#include "../ts-common/wizard.h"
+#include "../common/fpga_bootloader.h"
+#include "../common/ts-macs.h"
+#include "../common/wizard.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 

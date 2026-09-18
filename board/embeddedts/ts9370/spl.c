@@ -36,7 +36,7 @@
 #include <asm/gpio.h>
 #include "parse_straps.h"
 #include "lpddr4x.h"
-#include "../ts-common/wizard.h"
+#include "../common/wizard.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
