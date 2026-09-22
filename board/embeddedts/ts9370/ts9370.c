@@ -1,0 +1,234 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright 2022 NXP
+ * Copyright 2023-2024 Technologic Systems, Inc. (dba embeddedTS)
+ */
+
+#include <env.h>
+#include <efi_loader.h>
+#include <init.h>
+#include <miiphy.h>
+#include <netdev.h>
+#include <asm/global_data.h>
+#include <asm/arch-imx9/ccm_regs.h>
+#include <asm/arch-imx9/clock.h>
+#include <asm/arch/sys_proto.h>
+#include <asm/arch-imx9/imx93_pins.h>
+#include <asm/arch/clock.h>
+#include <asm/mach-imx/boot_mode.h>
+#include <dm/device.h>
+#include <dm/uclass.h>
+#include <usb.h>
+#include <dwc3-uboot.h>
+#include <asm/gpio.h>
+#include <linux/delay.h>
+
+#include <dm/root.h>
+#include "../common/fpga_bootloader.h"
+#include "../common/ts-macs.h"
+#include "../common/wizard.h"
+
+DECLARE_GLOBAL_DATA_PTR;
+
+#define UART_PAD_CTRL	(PAD_CTL_DSE(6) | PAD_CTL_FSEL2)
+#define FPGA_PAD_CTRL	(PAD_CTL_DSE(6) | PAD_CTL_ODE | PAD_CTL_PUE)
+
+static const iomux_v3_cfg_t uart_pads[] = {
+	MX93_PAD_UART1_RXD__LPUART1_RX | MUX_PAD_CTRL(UART_PAD_CTRL),
+	MX93_PAD_UART1_TXD__LPUART1_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
+};
+
+static const iomux_v3_cfg_t fpga_pads[] = {
+	MX93_PAD_GPIO_IO02__GPIO2_IO02 | MUX_PAD_CTRL(FPGA_PAD_CTRL), // DEV_CLRN
+	MX93_PAD_GPIO_IO11__GPIO2_IO11 | MUX_PAD_CTRL(FPGA_PAD_CTRL), // NSTATUS
+	MX93_PAD_GPIO_IO10__GPIO2_IO10 | MUX_PAD_CTRL(FPGA_PAD_CTRL), // CONF_DONE
+};
+
+#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
+#define IMX_BOOT_IMAGE_GUID \
+	EFI_GUID(0xbc550d86, 0xda26, 0x4b70, 0xac, 0x05, \
+		 0x2a, 0x44, 0x8e, 0xda, 0x6f, 0x21)
+
+struct efi_fw_image fw_images[] = {
+	{
+		.image_type_id = IMX_BOOT_IMAGE_GUID,
+		.fw_name = u"IMX93-TS-9370",
+		.image_index = 1,
+	},
+};
+
+struct efi_capsule_update_info update_info = {
+	.dfu_string = "mmc 0=flash-bin raw 0 0x2000 mmcpart 1",
+	.num_images = ARRAY_SIZE(fw_images),
+	.images = fw_images,
+};
+
+#endif /* EFI_HAVE_CAPSULE_SUPPORT */
+
+void board_flexspi_start(void)
+{
+	#if !defined(CONFIG_XPL_BUILD)
+	fpga_update_from_flash();
+
+	if (!env_get("skip_fpga_reconfig")) {
+		print_fpga_version();
+		fpga_reconfig();
+	} else {
+		printf("Skipping FPGA reconfig\n");
+	}
+	print_fpga_version();
+	#endif
+}
+
+int board_early_init_f(void)
+{
+	imx_iomux_v3_setup_multiple_pads(uart_pads, ARRAY_SIZE(uart_pads));
+	init_uart_clk(LPUART1_CLK_ROOT);
+
+	// Emit a clock for the onboard USB hub
+	ccm_clk_root_cfg(CCM_CKO1_CLK_ROOT, OSC_24M_CLK, 1);
+
+	print_fpga_version();
+
+	return 0;
+}
+
+static int setup_fec(void)
+{
+	return set_clk_enet(ENET_125MHZ);
+}
+
+int board_phy_config(struct phy_device *phydev)
+{
+	if (phydev->drv->config)
+		phydev->drv->config(phydev);
+
+	return 0;
+}
+
+static int setup_eqos(void)
+{
+	struct blk_ctrl_wakeupmix_regs *bctrl =
+		(struct blk_ctrl_wakeupmix_regs *)BLK_CTRL_WAKEUPMIX_BASE_ADDR;
+
+	imx_iomux_v3_setup_multiple_pads(fpga_pads, ARRAY_SIZE(fpga_pads));
+	/* set INTF as RGMII, enable RGMII TXC clock */
+	clrsetbits_le32(&bctrl->eqos_gpr,
+			BCTRL_GPR_ENET_QOS_INTF_MODE_MASK,
+			BCTRL_GPR_ENET_QOS_INTF_SEL_RGMII | BCTRL_GPR_ENET_QOS_CLK_GEN_EN);
+
+	return 0;
+}
+
+int board_init(void)
+{
+	if (CONFIG_IS_ENABLED(FEC_MXC))
+		setup_fec();
+
+	if (CONFIG_IS_ENABLED(DWC_ETH_QOS))
+		setup_eqos();
+
+	return 0;
+}
+
+int board_late_init(void)
+{
+	struct ets_device_config *devcfg;
+
+
+	setup_mac_addresses(2);
+
+	if (IS_ENABLED(CONFIG_ENV_IS_IN_MMC))
+		board_late_mmc_env_init();
+
+	if (IS_ENABLED(CONFIG_AHAB_BOOT))
+		env_set("sec_boot", "yes");
+	else
+		env_set("sec_boot", "no");
+
+	if (IS_ENABLED(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG)) {
+		env_set("board_name", "TS-9370");
+		devcfg = wizard_read_config();
+		if (devcfg) {
+			env_set("board_rev", devcfg->pcb_rev);
+		} else {
+			env_set("board_rev", "UNKNOWN");
+		}
+	}
+
+	if (get_boot_device() == USB_BOOT) {
+		printf("USB boot detected. Will enter fasboot mode\n");
+		env_set_ulong("dofastboot", 1);
+	}
+
+	return 0;
+}
+
+#ifdef CONFIG_FSL_FASTBOOT
+#ifdef CONFIG_ANDROID_RECOVERY
+int is_recovery_key_pressing(void)
+{
+	return 0;
+}
+#endif /*CONFIG_ANDROID_RECOVERY*/
+#endif /*CONFIG_FSL_FASTBOOT*/
+
+int fdt_update_config(void *fdt)
+{
+	struct ets_device_config *devcfg;
+	int root_node;
+	int ret;
+
+	devcfg = wizard_read_config();
+	if (!devcfg) {
+		printf("Failed to read device config\n");
+		return -1;
+	}
+
+	root_node = fdt_path_offset(fdt, "/");
+	if (root_node < 0) {
+		printf("Failed to find root '/' node: %d\n", root_node);
+		return -1;
+	}
+
+	ret = fdt_setprop_string(fdt, root_node, "technologic,product-string",
+			devcfg->product_string);
+	if (ret < 0) {
+		printf("Failed to set property product-string: %d\n", ret);
+		return -1;
+	}
+
+	ret = fdt_setprop_string(fdt, root_node, "technologic,pcb-revision",
+			devcfg->pcb_rev);
+	if (ret < 0) {
+		printf("Failed to set property pcb-revision: %d\n", ret);
+		return -1;
+	}
+
+	ret = fdt_setprop_string(fdt, root_node, "technologic,bom-revision",
+			devcfg->bom_rev);
+	if (ret < 0) {
+		printf("Failed to set property bom-revision: %d\n", ret);
+		return -1;
+	}
+
+	ret = fdt_setprop_u32(fdt, root_node, "technologic,ram-timing",
+			devcfg->ram_timing);
+	if (ret < 0) {
+		printf("Failed to set property ram-timing: %d\n", ret);
+		return -1;
+	}
+
+	return 0;
+}
+
+int ft_board_setup(void *fdt, struct bd_info *bd)
+{
+	int ret;
+
+	ret = fdt_update_config(fdt);
+	if (ret)
+		return ret;
+
+	return 0;
+}
