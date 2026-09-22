@@ -34,7 +34,6 @@
 #include <asm/arch/trdc.h>
 
 #include <asm/gpio.h>
-#include "parse_straps.h"
 #include "lpddr4x.h"
 #include "../common/wizard.h"
 
@@ -69,14 +68,22 @@ void spl_board_init(void)
 void spl_dram_init(void)
 {
 	struct dram_timing_info *ptiming;
-	u16 resistor_straps = read_bom_straps();
+	struct ets_device_config *devcfg = wizard_read_config();
 
-	/* R131 = 0 1GB, 1 = 2GB */
-	if (resistor_straps & (1 << 7)) {
-		printf("DDR: 2 GB, resistor_straps=%04x\n", resistor_straps);
-		ptiming = &dram_timing_16gb;
+	if (devcfg) {
+		/* R131 = 0 1GB, 1 = 2GB */
+		switch (devcfg->ram_timing) {
+		case 0:
+			printf("DDR: 1 GB, ram_timing=0\n");
+			ptiming = &dram_timing_8gb;
+			break;
+		case 1:
+			printf("DDR: 2 GB, ram_timing=1\n");
+			ptiming = &dram_timing_16gb;
+			break;
+		}
 	} else {
-		printf("DDR: 1 GB, resistor_straps=%04x\n", resistor_straps);
+		printf("Error: Unable to read ram_timing device config, default to 1GB\n");
 		ptiming = &dram_timing_8gb;
 	}
 

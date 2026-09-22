@@ -12,6 +12,23 @@
 #include "wizard.h"
 
 /*
+ * u-boot crc16_ccitt() uses the CRC-16/CCITT-FALSE variant, zephyr crc16_ccitt()
+ * uses CRC-16/CCITT-TRUE variant:
+ */
+static uint16_t crc16_ccitt_true(uint16_t crc, const uint8_t *buf, size_t len)
+{
+	uint8_t e, f;
+
+	for (; len > 0; len--) {
+		e = crc ^ *buf++;
+		f = e ^ (e << 4);
+		crc = (crc >> 8) ^ ((uint16_t)f << 8) ^ ((uint16_t)f << 3) ^ ((uint16_t)f >> 4);
+	}
+
+	return crc;
+}
+
+/*
  * wizard_get_i2c_chip - Locate the Wizard
  *
  * On early prototypes the wizard is on bus 0, on new designs
@@ -76,22 +93,52 @@ int wizard_read(u16 addr, u16 *value)
 
 int wizard_read_mac(uint8_t *mac_buffer)
 {
-	u16 reg_addr = WIZARD_SERIAL;
-	int n_words = 3;
-	u16 word;
 	int ret;
 
-	while (n_words--) {
-		ret = wizard_read(reg_addr, &word);
-		if (ret) {
-			printf("i2c read failed at addr %04x, rc=%d (-ve)\n",
-			       reg_addr, ret);
-			break;
-		}
-		mac_buffer[2 * (2 - n_words)] = word & 0xff;
-		mac_buffer[2 * (2 - n_words) + 1] = (word >> 8) & 0xff;
-		reg_addr += 1;
+	struct ets_device_config *devcfg = wizard_read_config();
+	if (devcfg) {
+		memcpy(mac_buffer, devcfg->serial, sizeof(devcfg->serial));
+		ret = 0;
+	} else {
+		printf("Error: failed to read mac\n");
+		ret = -EINVAL;
+	}
+	return ret;
+}
+
+struct ets_device_config *wizard_read_config(void)
+{
+	/* device config is large and doesn't change, only read it once */
+	static struct ets_device_config devcfg;
+	static bool devcfg_valid;
+
+	struct udevice *chip;
+	u16 reg_addr = WIZARD_DEVICE_CONFIG;
+	int err;
+
+	if (devcfg_valid) {
+		return &devcfg;
 	}
 
-	return ret;
+	chip = wizard_get_i2c_chip();
+	if (!chip) {
+		printf("Error: No I2C chip found\n");
+		return NULL;
+	}
+
+	err = dm_i2c_read(chip, cpu_to_be16(reg_addr), (uint8_t *)&devcfg, sizeof(devcfg));
+	if (err) {
+		printf("Error: dm_i2c_read failed, err=%d\n", err);
+		return NULL;
+	}
+
+	/* Device Config should have "eTS0" in the hdr and validate with crc16 */
+	if (strncmp(devcfg.hdr, "eTS0", 4) != 0 ||
+			crc16_ccitt_true(0, (const uint8_t *)&devcfg, sizeof(devcfg) - 2) != devcfg.crc) {
+		printf("Error: ets_device_config from wizard contains corrupt data\n");
+		return NULL;
+	}
+
+	devcfg_valid = true;
+	return &devcfg;
 }

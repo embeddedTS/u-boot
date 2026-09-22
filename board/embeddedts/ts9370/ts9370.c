@@ -22,8 +22,6 @@
 #include <asm/gpio.h>
 #include <linux/delay.h>
 
-#include "parse_straps.h"
-
 #include <dm/root.h>
 #include "../common/fpga_bootloader.h"
 #include "../common/ts-macs.h"
@@ -134,7 +132,8 @@ int board_init(void)
 
 int board_late_init(void)
 {
-	u32 bom_straps;
+	struct ets_device_config *devcfg;
+
 
 	setup_mac_addresses(2);
 
@@ -146,12 +145,14 @@ int board_late_init(void)
 	else
 		env_set("sec_boot", "no");
 
-	bom_straps = read_bom_straps();
-	env_set_hex("bom_straps", bom_straps);
-
 	if (IS_ENABLED(CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG)) {
 		env_set("board_name", "TS-9370");
-		env_set("board_rev", get_board_version_str());
+		devcfg = wizard_read_config();
+		if (devcfg) {
+			env_set("board_rev", devcfg->pcb_rev);
+		} else {
+			env_set("board_rev", "UNKNOWN");
+		}
 	}
 
 	return 0;
@@ -166,24 +167,52 @@ int is_recovery_key_pressing(void)
 #endif /*CONFIG_ANDROID_RECOVERY*/
 #endif /*CONFIG_FSL_FASTBOOT*/
 
-int fdt_update_straps(void *fdt)
+int fdt_update_config(void *fdt)
 {
-	u32 bom_options;
-	int chosen_node;
+	struct ets_device_config *devcfg;
+	int root_node;
 	int ret;
 
-	bom_options = (u32)read_bom_straps();
+	devcfg = wizard_read_config();
+	if (!devcfg) {
+		printf("Failed to read device config\n");
+		return -1;
+	}
 
-	chosen_node = fdt_path_offset(fdt, "/chosen");
-	if (chosen_node < 0) {
-		printf("Failed to find /chosen node: %d\n", chosen_node);
+	root_node = fdt_path_offset(fdt, "/");
+	if (root_node < 0) {
+		printf("Failed to find root '/' node: %d\n", root_node);
 		return -1;
 	}
-	ret = fdt_setprop(fdt, chosen_node, "bom-options", &bom_options, sizeof(bom_options));
+
+	ret = fdt_setprop_string(fdt, root_node, "technologic,product-string",
+			devcfg->product_string);
 	if (ret < 0) {
-		printf("Failed to set property bom-straps: %d\n", ret);
+		printf("Failed to set property product-string: %d\n", ret);
 		return -1;
 	}
+
+	ret = fdt_setprop_string(fdt, root_node, "technologic,pcb-revision",
+			devcfg->pcb_rev);
+	if (ret < 0) {
+		printf("Failed to set property pcb-revision: %d\n", ret);
+		return -1;
+	}
+
+	ret = fdt_setprop_string(fdt, root_node, "technologic,bom-revision",
+			devcfg->bom_rev);
+	if (ret < 0) {
+		printf("Failed to set property bom-revision: %d\n", ret);
+		return -1;
+	}
+
+	ret = fdt_setprop_u32(fdt, root_node, "technologic,ram-timing",
+			devcfg->ram_timing);
+	if (ret < 0) {
+		printf("Failed to set property ram-timing: %d\n", ret);
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -191,7 +220,7 @@ int ft_board_setup(void *fdt, struct bd_info *bd)
 {
 	int ret;
 
-	ret = fdt_update_straps(fdt);
+	ret = fdt_update_config(fdt);
 	if (ret)
 		return ret;
 
