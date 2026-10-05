@@ -3,8 +3,8 @@
  * Copyright 2022 NXP
  */
 
-#ifndef __IMX93_EVK_H
-#define __IMX93_EVK_H
+#ifndef TS9370_H
+#define TS9370_H
 
 #include <linux/sizes.h>
 #include <linux/stringify.h>
@@ -35,4 +35,4 @@
 #include "imx93_evk_android.h"
 #endif
 
-#endif
+#endif // TS9370_H

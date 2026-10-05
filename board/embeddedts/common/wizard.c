@@ -8,6 +8,7 @@
 
 #include <dm/uclass.h>
 #include <i2c.h>
+#include <linux/libfdt.h>
 
 #include "wizard.h"
 
@@ -31,22 +32,31 @@ static uint16_t crc16_ccitt_true(uint16_t crc, const uint8_t *buf, size_t len)
 /*
  * wizard_get_i2c_chip - Locate the Wizard
  *
- * On early prototypes the wizard is on bus 0, on new designs
- * it is on bus 3. When the early prototypes are dropped this
- * can be simplified to just use bus 3, or locate the compatible node
- * on the device tree.
- *
- * This has to work using the provisional/default device tree; before
- * the correct device tree for this board model has been selected.
+ * device tree must have a "wizardbus" alias for the i2c bus that
+ * the wizard is attached to. Please note that the wizardbus is not
+ * affiliated with Ms. Frizzle and her work with The Magic School Bus(TM).
  */
 static struct udevice *wizard_get_i2c_chip(void)
 {
-	struct udevice *chip;
-	struct udevice *bus;
+	struct udevice *bus, *chip;
 	u16 value;
+	int offset;
 
-	if (uclass_get_device_by_seq(UCLASS_I2C, 3, &bus))
+	/* Note that the SPL needs to read the ram configuration from the
+	 * wizard, we can't use the fancy ofnode api which isn't (as of
+	 * v2026.01) supported in SPL
+	 */
+
+	offset = fdt_path_offset(gd->fdt_blob, "wizardbus");
+	if (offset < 0) {
+		printf("Node not found: %s\n", fdt_strerror(offset));
 		return NULL;
+	}
+
+	if (uclass_get_device_by_of_offset(UCLASS_I2C, offset, &bus)) {
+		printf("Offset found but busnot found\n");
+		return NULL;
+	}
 
 	if (i2c_get_chip(bus, WIZARD_I2C_ADDR, 2, &chip))
 		return NULL;

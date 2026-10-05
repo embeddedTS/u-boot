@@ -12,6 +12,8 @@
 #include <command.h>
 #include <asm/io.h>
 #include <rand.h>
+#include <linux/bitfield.h>
+#include <linux/bitrev.h>
 #include <linux/delay.h>
 #include <dm/uclass.h>
 #include <dm/device.h>
@@ -175,17 +177,6 @@ int fpga_update_from_flash(void)
 	return 0;
 }
 
-u32 swap_bitstream_order(u32 x)
-{
-	/* Reverse all bits to match order on raw flash */
-	x = (x >> 16) | (x << 16);
-	x = ((x & 0xFF00FF00) >> 8) | ((x & 0x00FF00FF) << 8);
-	x = ((x & 0xF0F0F0F0) >> 4) | ((x & 0x0F0F0F0F) << 4);
-	x = ((x & 0xCCCCCCCC) >> 2) | ((x & 0x33333333) << 2);
-	x = ((x & 0xAAAAAAAA) >> 1) | ((x & 0x55555555) << 1);
-	return x;
-}
-
 int flash_wait_until_idle(u32 timeout_ms, u32 *reg)
 {
 	int timeout = 1;
@@ -209,7 +200,7 @@ int flash_wait_until_idle(u32 timeout_ms, u32 *reg)
 
 bool fpga_is_bootloader(void)
 {
-	u32 model = readl((void *)FPGA_MODEL);
+	u32 model = readl(FPGA_MODEL);
 
 	return (model == 0xc0de);
 }
@@ -243,7 +234,7 @@ int flash_write(u32 flash_addr, u32 data_addr, u32 len)
 
 		flash_show_progress(i, len);
 		data = *(u32 *)(uintptr_t)(data_addr + i);
-		data = swap_bitstream_order(data);
+		data = bitrev32(data);
 		writel(WORD_ADDRESS(flash_addr + i), UPDATER_ADDR);
 		writel(data, UPDATER_FLASHDATA);
 		/* UFM Programming max time is 305 us */
@@ -288,7 +279,7 @@ int flash_read(u32 flash_addr, u32 data_addr, u32 len)
 
 		/* Read the data from UPDATER_FLASHDATA and store it in system RAM */
 		data = readl(UPDATER_FLASHDATA);
-		data = swap_bitstream_order(data);
+		data = bitrev32(data);
 		*(u32 *)(uintptr_t)(data_addr + i) = data;
 
 		if (ctrlc()) {
@@ -399,8 +390,6 @@ int fpga_reconfig(void)
 static int fpga_scratch_test(void)
 {
 	int ret = 0;
-	u32 *scratch0_addr = (u32 *)FPGA_SCRATCH0;
-	u32 *scratch1_addr = (u32 *)FPGA_SCRATCH1;
 	u32 read_value;
 	u32 random_value;
 	int total_tests = 0;
@@ -410,8 +399,8 @@ static int fpga_scratch_test(void)
 
 	for (int i = 0; i < sizeof(test_values) / sizeof(test_values[0]); i++) {
 		// Test FPGA_SCRATCH0
-		writel(test_values[i], scratch0_addr);
-		read_value = readl(scratch0_addr);
+		writel(test_values[i], FPGA_SCRATCH0);
+		read_value = readl(FPGA_SCRATCH0);
 		total_tests++;
 		if (read_value != test_values[i]) {
 			if (failed_tests < 10)
@@ -422,8 +411,8 @@ static int fpga_scratch_test(void)
 		}
 
 		// Test FPGA_SCRATCH1
-		writel(test_values[i], scratch1_addr);
-		read_value = readl(scratch1_addr);
+		writel(test_values[i], FPGA_SCRATCH1);
+		read_value = readl(FPGA_SCRATCH1);
 		total_tests++;
 		if (read_value != test_values[i]) {
 			if (failed_tests < 10)
@@ -439,8 +428,8 @@ static int fpga_scratch_test(void)
 		random_value = rand();
 
 		// Write and verify FPGA_SCRATCH0
-		writel(random_value, scratch0_addr);
-		read_value = readl(scratch0_addr);
+		writel(random_value, FPGA_SCRATCH0);
+		read_value = readl(FPGA_SCRATCH0);
 		total_tests++;
 		if (read_value != random_value) {
 			if (failed_tests < 10)
@@ -451,8 +440,8 @@ static int fpga_scratch_test(void)
 		}
 
 		// Write and verify FPGA_SCRATCH1
-		writel(random_value, scratch1_addr);
-		read_value = readl(scratch1_addr);
+		writel(random_value, FPGA_SCRATCH1);
+		read_value = readl(FPGA_SCRATCH1);
 		total_tests++;
 		if (read_value != random_value) {
 			if (failed_tests < 10)
@@ -476,13 +465,13 @@ static int fpga_scratch_test(void)
 
 void print_fpga_version(void)
 {
-	u32 model = readl((void *)FPGA_MODEL);
-	u32 tag_version = readl((void *)FPGA_TAG_VERSION);
-	u8 git_dirty = (tag_version >> 31) & 0x1;
-	u8 major = (tag_version >> 24) & 0x7F;
-	u8 minor = (tag_version >> 16) & 0xFF;
-	u8 patch = (tag_version >> 8) & 0xFF;
-	u8 extra = tag_version & 0xFF;
+	u32 model = readl(FPGA_MODEL);
+	u32 tag_version = readl(FPGA_TAG_VERSION);
+	u8 git_dirty = FIELD_GET(BIT(31), tag_version);
+	u8 major = FIELD_GET(GENMASK(30, 24), tag_version);
+	u8 minor = FIELD_GET(GENMASK(23, 16), tag_version);
+	u8 patch = FIELD_GET(GENMASK(15, 8), tag_version);
+	u8 extra = FIELD_GET(GENMASK(7, 0), tag_version);
 
 	if (fpga_is_bootloader())
 		printf("FPGA Bootloader: v%d.%d.%d",
@@ -548,10 +537,10 @@ static int do_fpgaboot(struct cmd_tbl *cmdtp, int flag, int argc,
 
 U_BOOT_CMD(fpgaboot, 5, 1, do_fpgaboot, "fpga bootloader command",
 	   "info\n"
-	   "write addr len\n"
-	   "read addr len\n"
-	   "unsafe_update_bootloader addr len\n"
-	   "read_bootloader addr len\n"
+	   "write <addr> <len>\n"
+	   "read <addr> <len>\n"
+	   "unsafe_update_bootloader <addr> <len>\n"
+	   "read_bootloader <addr> <len>\n"
 	   "test\n"
 	   "update\n"
 	   "is_bootloader\n"

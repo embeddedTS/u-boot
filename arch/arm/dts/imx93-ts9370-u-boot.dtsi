@@ -17,6 +17,7 @@
 		ethernet0 = &eqos;
 		ethernet1 = &fec;
 		usbgadget0 = &usbg1;
+		wizardbus = &lpi2c4;
 	};
 
 	usbg1: usbg1 {

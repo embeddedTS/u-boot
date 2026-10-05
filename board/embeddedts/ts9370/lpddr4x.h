@@ -1,8 +1,8 @@
 
-#ifndef __LPDDR4X_H__
-#define __LPDDR4X_H__
+#ifndef LPDDR4X_H
+#define LPDDR4X_H
 
 extern struct dram_timing_info dram_timing_16gb;
 extern struct dram_timing_info dram_timing_8gb;
 
-#endif //__LPDDR4X_H__
+#endif // LPDDR4X_H

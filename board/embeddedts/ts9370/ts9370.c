@@ -157,7 +157,7 @@ int board_late_init(void)
 	}
 
 	if (get_boot_device() == USB_BOOT) {
-		printf("USB boot detected. Will enter fasboot mode\n");
+		printf("USB boot detected. Will enter fastboot mode\n");
 		env_set_ulong("dofastboot", 1);
 	}
 

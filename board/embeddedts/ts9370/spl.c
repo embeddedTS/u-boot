@@ -67,7 +67,7 @@ void spl_board_init(void)
 
 void spl_dram_init(void)
 {
-	struct dram_timing_info *ptiming;
+	struct dram_timing_info *ptiming = NULL;
 	struct ets_device_config *devcfg = wizard_read_config();
 
 	if (devcfg) {
@@ -81,14 +81,18 @@ void spl_dram_init(void)
 			printf("DDR: 2 GB, ram_timing=1\n");
 			ptiming = &dram_timing_16gb;
 			break;
+		default:
+			printf("DDR: Unsupported ram_timing value %d, you probably need a newer u-boot\n",
+					devcfg->ram_timing);
 		}
-	} else {
-		printf("Error: Unable to read ram_timing device config, default to 1GB\n");
-		ptiming = &dram_timing_8gb;
 	}
 
-	printf("DDR: %uMTS\n", ptiming->fsp_msg[0].drate);
-	ddr_init(ptiming);
+	if (ptiming) {
+		printf("DDR: %uMTS\n", ptiming->fsp_msg[0].drate);
+		ddr_init(ptiming);
+	} else {
+		panic("Could not read ram configuration from the wizard\n");
+	}
 }
 
 int power_init_board(void)

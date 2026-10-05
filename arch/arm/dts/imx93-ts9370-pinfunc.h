@@ -1,5 +1,5 @@
-#ifndef __DTS_TS9370_PINFUNC_H
-#define __DTS_TS9370_PINFUNC_H
+#ifndef DTS_TS9370_PINFUNC_H
+#define DTS_TS9370_PINFUNC_H
 
 /*
  * Tuple layout per pin-function:
@@ -68,4 +68,4 @@
 #define TS9370_PAD_LPSPI4_MISO_MUX_2__DC_3            0x03A 0x1 0x011 0x1
 #define TS9370_PAD_EN_BLUE_LED__GPIO0_IO3             0x03B 0x0 0x000 0x0
 
-#endif /* __DTS_TS9370_PINFUNC_H */
+#endif /* DTS_TS9370_PINFUNC_H */
