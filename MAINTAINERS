@@ -1504,6 +1504,15 @@ F:	configs/ev-imx280-nano-x-mb_defconfig
 F:	configs/o4-imx6ull-nano_defconfig
 F:	include/configs/o4-imx6ull-nano.h
 
+TECHNOLOGIC SYSTEMS TS-7180 BOARD
+M:	Mark Featherston <mark@embeddedts.com>
+S:	Maintained
+F:	arch/arm/dts/imx6ul-ts7180*
+F:	board/embeddedts/common/micro/
+F:	board/embeddedts/ts7180/
+F:	configs/ts7180_defconfig
+F:	include/configs/ts7180.h
+
 PATMAN
 M:	Simon Glass <sjg@chromium.org>
 S:	Maintained
