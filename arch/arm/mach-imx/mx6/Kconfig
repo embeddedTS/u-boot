@@ -263,6 +263,9 @@ config TARGET_EMBEDDEDTS_TS4100
 	select DM_SERIAL
 	select DM_THERMAL
 	select SYS_I2C_MXC
+	select SYS_I2C_MXC_I2C3
+	select SUPPORT_SPL
+	select SPL_SYS_I2C_LEGACY
 	select MXC_UART
 	select BOARD_EARLY_INIT_F
 	select BOARD_LATE_INIT
