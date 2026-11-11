@@ -1,0 +1,15 @@
+if TARGET_EMBEDDEDTS_TS4100
+
+config SYS_BOARD
+	default "ts4100"
+
+config SYS_VENDOR
+	default "embeddedts"
+
+config SYS_SOC
+	default "mx6"
+
+config SYS_CONFIG_NAME
+	default "ts4100"
+
+endif
