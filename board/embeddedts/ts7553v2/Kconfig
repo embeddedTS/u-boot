@@ -1,0 +1,15 @@
+if TARGET_EMBEDDEDTS_TS7553V2
+
+config SYS_BOARD
+	default "ts7553v2"
+
+config SYS_VENDOR
+	default "embeddedts"
+
+config SYS_SOC
+	default "mx6"
+
+config SYS_CONFIG_NAME
+	default "ts7553v2"
+
+endif

@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: GPL-2.0+
+
+&{/soc} {
+	bootph-pre-ram;
+};
+
+&aips1 {
+	bootph-pre-ram;
+};
+
+&aips2 {
+	bootph-pre-ram;
+};
+
+&{/soc/bus@2000000/spba-bus@2000000} {
+	bootph-pre-ram;
+};
+
+&gpio5 {
+	bootph-pre-ram;
+};
+
+&iomuxc {
+	bootph-pre-ram;
+};
+
+&uart1 {
+	bootph-pre-ram;
+};
+
+&usdhc2 {
+	bootph-pre-ram;
+};
+
+/ {
+	bootstd {
+		bootph-verify;
+		compatible = "u-boot,boot-std";
+		bootdev-order = "mmc1", "mmc0", "usb", "ethernet";
+	};
+};
