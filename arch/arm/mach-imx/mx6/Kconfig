@@ -225,6 +225,20 @@ config TARGET_EMBEDDEDTS_TS7180
 	select SUPPORT_SPL
 	select BOARD_LATE_INIT
 
+config TARGET_EMBEDDEDTS_TS7100
+	bool "embeddedTS TS-7100"
+	depends on MX6UL
+	select DM
+	select DM_ETH
+	select DM_GPIO
+	select DM_I2C
+	select DM_MMC
+	select DM_SERIAL
+	select DM_THERMAL
+	select MXC_UART
+	select SUPPORT_SPL
+	select BOARD_LATE_INIT
+
 config TARGET_GE_BX50V3
 	bool "General Electric Bx50v3"
 	depends on MX6Q
@@ -725,6 +739,7 @@ source "board/compulab/cm_fx6/Kconfig"
 source "board/comvetia/lxr2/Kconfig"
 source "board/dhelectronics/dh_imx6/Kconfig"
 source "board/embeddedts/ts7180/Kconfig"
+source "board/embeddedts/ts7100/Kconfig"
 source "board/embest/mx6boards/Kconfig"
 source "board/engicam/imx6q/Kconfig"
 source "board/engicam/imx6ul/Kconfig"

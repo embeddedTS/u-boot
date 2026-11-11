@@ -1,0 +1,14 @@
+if TARGET_EMBEDDEDTS_TS7100
+
+config SYS_BOARD
+	default "ts7100"
+
+config SYS_VENDOR
+	default "embeddedts"
+
+config SYS_CONFIG_NAME
+	default "ts7100"
+	help
+	  This board uses an i.MX6UL SoC and boots from eMMC using SPL.
+
+endif

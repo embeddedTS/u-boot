@@ -821,6 +821,7 @@ dtb-$(CONFIG_MX6SX) += \
 	imx6sx-softing-vining-2000.dtb
 
 dtb-$(CONFIG_MX6UL) += \
+	imx6ul-ts7100.dtb \
 	imx6ul-ts7180.dtb \
 	imx6ul-geam.dtb \
 	imx6ul-isiot-emmc.dtb \
