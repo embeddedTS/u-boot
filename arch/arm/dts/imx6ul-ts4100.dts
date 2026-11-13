@@ -6,7 +6,6 @@
 /dts-v1/;
 
 #include "imx6ul-ts4100.dtsi"
-#include "imx6ul-ts4100-u-boot.dtsi"
 
 / {
 	model = "embeddedTS i.MX6UL TS-4100 (Default Device Tree)";

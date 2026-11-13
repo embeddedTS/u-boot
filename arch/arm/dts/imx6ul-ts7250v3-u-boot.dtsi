@@ -22,7 +22,3 @@
 &usdhc1 {
 	u-boot,dm-spl;
 };
-
-&usdhc2 {
-	non-removable;
-};

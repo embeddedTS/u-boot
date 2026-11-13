@@ -38,6 +38,7 @@
 
 &usdhc2 {
 	bootph-pre-ram;
+	/* U-Boot needs the eMMC to be available even without card-detect. */
 	non-removable;
 };
 
