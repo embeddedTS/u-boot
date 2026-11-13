@@ -3,7 +3,9 @@
  * Copyright (C) 2017-2022 Technologic Systems, Inc. dba embeddedTS
  */
 
+#include <dm.h>
 #include <init.h>
+#include <wdt.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/crm_regs.h>
 #include <asm/arch/imx-regs.h>
@@ -154,6 +156,21 @@ int board_phy_config(struct phy_device *phydev)
 	phydev->bus->write(phydev->bus, 2, MDIO_DEVAD_NONE, 0x1f, 0x8180);
 
 	return 0;
+}
+
+void reset_cpu(void)
+{
+	struct udevice *wdt;
+	int ret;
+
+	ret = uclass_get_device_by_name(UCLASS_WDT, "silabs@2a", &wdt);
+	if (!ret)
+		ret = wdt_expire_now(wdt, 0);
+	if (ret)
+		printf("Failed to request supervisory watchdog reset: %d\n", ret);
+
+	while (1)
+		;
 }
 
 u32 get_board_rev(void)

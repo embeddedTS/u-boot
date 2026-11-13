@@ -485,4 +485,13 @@ config WDT_FTWDT010
 	help
 	  Faraday Technology ftwdt010 watchdog is an architecture independent
 	  watchdog. It is usually used in SoC chip design.
+
+config WDT_TS_MICRO
+	bool "embeddedTS supervisory microcontroller watchdog"
+	depends on WDT && DM_I2C
+	imply WATCHDOG
+	select DM_I2C_GPIO
+	help
+	  Support the watchdog implemented by the embeddedTS supervisory
+	  microcontroller over I2C.
 endmenu
