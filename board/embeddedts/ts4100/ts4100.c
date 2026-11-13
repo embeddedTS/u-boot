@@ -31,6 +31,8 @@ DECLARE_GLOBAL_DATA_PTR;
 			 PAD_CTL_SRE_FAST)
 #define ENET_CLK_PAD_CTRL (PAD_CTL_SPEED_MED | PAD_CTL_DSE_120ohm | \
 			      PAD_CTL_SRE_FAST)
+#define I2C_PAD_CTRL	(PAD_CTL_PKE | PAD_CTL_PUE | PAD_CTL_PUS_100K_UP | \
+			 PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_SRE_FAST)
 
 #define EN_ETH_PHY_PWR	IMX_GPIO_NR(1, 10)
 #define PHY1_DUPLEX	IMX_GPIO_NR(2, 0)
@@ -52,6 +54,11 @@ static const iomux_v3_cfg_t uart1_pads[] = {
 
 static const iomux_v3_cfg_t emmc_power_pads[] = {
 	MX6_PAD_SNVS_TAMPER2__GPIO5_IO02 | MUX_PAD_CTRL(GPIO_PAD_CTRL),
+};
+
+static const iomux_v3_cfg_t fpga_i2c_pads[] = {
+	MX6_PAD_LCD_DATA01__I2C3_SCL | MUX_PAD_CTRL(I2C_PAD_CTRL),
+	MX6_PAD_LCD_DATA00__I2C3_SDA | MUX_PAD_CTRL(I2C_PAD_CTRL),
 };
 
 static const iomux_v3_cfg_t fec_strap_pads[] = {
@@ -151,6 +158,9 @@ static void setup_phys(void)
 {
 	int ret;
 
+	/* The MXC I2C driver does not configure pinmux from the device tree. */
+	imx_iomux_v3_setup_multiple_pads(fpga_i2c_pads,
+					 ARRAY_SIZE(fpga_i2c_pads));
 	imx_iomux_v3_setup_multiple_pads(fec_strap_pads,
 					 ARRAY_SIZE(fec_strap_pads));
 	gpio_request(EN_ETH_PHY_PWR, "EN_ETH_PHY_PWR");
@@ -172,13 +182,14 @@ static void setup_phys(void)
 	gpio_direction_output(PHY2_CONFIG_2, 0);
 	gpio_direction_output(PHY1_ISOLATE, 0);
 	gpio_direction_output(PHY2_ISOLATE, 0);
-	ret = ts4100_fpga_gpio_output(ETH_PHY_RESET, 1);
+	/* ETH_PHY_RESET# is active low: hold the PHY in reset while powering it. */
+	ret = ts4100_fpga_gpio_output(ETH_PHY_RESET, 0);
 	if (ret)
 		printf("Warning: could not assert Ethernet PHY reset (%d)\n", ret);
 	mdelay(5);
 	gpio_direction_output(EN_ETH_PHY_PWR, 1);
 	mdelay(15);
-	ret = ts4100_fpga_gpio_output(ETH_PHY_RESET, 0);
+	ret = ts4100_fpga_gpio_output(ETH_PHY_RESET, 1);
 	if (ret)
 		printf("Warning: could not release Ethernet PHY reset (%d)\n", ret);
 	imx_iomux_v3_setup_multiple_pads(fec_pads, ARRAY_SIZE(fec_pads));
