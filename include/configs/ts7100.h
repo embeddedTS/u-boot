@@ -9,6 +9,7 @@
 #include <linux/sizes.h>
 #include "mx6_common.h"
 #include <asm/mach-imx/gpio.h>
+#include "ts_imx6ul_env.h"
 
 #define CFG_SYS_MALLOC_LEN		(16 * SZ_1M)
 
@@ -27,13 +28,14 @@
 	"board=ts7100\0" \
 	"autoload=no\0" \
 	"loadaddr=" __stringify(CONFIG_LOADADDR) "\0" \
-	"kernel_addr_r=" __stringify(CONFIG_LOADADDR) "\0" \
+	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
 	"fdt_addr_r=" __stringify(FDT_ADDR_R) "\0" \
 	"ramdisk_addr_r=" __stringify(RAMDISK_ADDR_R) "\0" \
 	"scriptaddr=" __stringify(CONFIG_LOADADDR) "\0" \
 	"pxefile_addr_r=" __stringify(CONFIG_LOADADDR) "\0" \
 	"console=ttymxc0,115200\0" \
-	"silo_chrg_pct=0\0"
+	"silo_chrg_pct=0\0" \
+	TS_IMX6UL_NFSBOOT_ENV
 
 #define CFG_SYS_MEMTEST_START		0x80000000
 #define CFG_SYS_MEMTEST_END		(CFG_SYS_MEMTEST_START + 0x20000000)

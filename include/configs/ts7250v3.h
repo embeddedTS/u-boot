@@ -7,6 +7,7 @@
 #include <linux/sizes.h>
 #include "mx6_common.h"
 #include <asm/mach-imx/gpio.h>
+#include "ts_imx6ul_env.h"
 
 #define CFG_SYS_MALLOC_LEN		(16 * SZ_1M)
 #define CFG_MXC_UART
@@ -40,7 +41,7 @@
 	"netretry=once\0" \
 	"loadaddr=" __stringify(CONFIG_LOADADDR) "\0" \
 	"fdtaddr=0x83000000\0" \
-	"kernel_addr_r=" __stringify(CONFIG_LOADADDR) "\0" \
+	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
 	"fdt_addr_r=0x83000000\0" \
 	"ramdisk_addr_r=0x90000000\0" \
 	"scriptaddr=" __stringify(CONFIG_LOADADDR) "\0" \
@@ -48,6 +49,7 @@
 	"fdtfile=imx6ul-ts7250v3.dtb\0" \
 	"console=ttymxc0,115200\0" \
 	"boot_targets=usb0 mmc1 mmc0 dhcp pxe\0" \
-	"clearenv=mmc dev 0 1; mmc erase 800 2000; mmc erase C00 2000;\0"
+	"clearenv=mmc dev 0 1; mmc erase 800 2000; mmc erase C00 2000;\0" \
+	TS_IMX6UL_NFSBOOT_ENV
 
 #endif /* __TS7250V3_CONFIG_H */
