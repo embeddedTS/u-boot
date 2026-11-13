@@ -158,21 +158,6 @@ int board_phy_config(struct phy_device *phydev)
 	return 0;
 }
 
-void reset_cpu(void)
-{
-	struct udevice *wdt;
-	int ret;
-
-	ret = uclass_get_device_by_name(UCLASS_WDT, "silabs@2a", &wdt);
-	if (!ret)
-		ret = wdt_expire_now(wdt, 0);
-	if (ret)
-		printf("Failed to request supervisory watchdog reset: %d\n", ret);
-
-	while (1)
-		;
-}
-
 u32 get_board_rev(void)
 {
 	return get_cpu_rev();
