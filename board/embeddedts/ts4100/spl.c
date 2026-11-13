@@ -30,6 +30,7 @@
 #define FPGA_I2C_ADDR	0x28
 #define FPGA_STRAP_REG	308
 #define MMDC_BASE	0x021b0000
+#define EN_EMMC_PWR	IMX_GPIO_NR(5, 2)
 
 static const iomux_v3_cfg_t uart1_pads[] = {
 	MX6_PAD_UART1_TX_DATA__UART1_DCE_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
@@ -69,6 +70,12 @@ static const iomux_v3_cfg_t usdhc2_pads[] = {
 	MX6_PAD_NAND_DATA01__USDHC2_DATA1 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_NAND_DATA02__USDHC2_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_NAND_DATA03__USDHC2_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+};
+
+static const iomux_v3_cfg_t emmc_power_pad[] = {
+	MX6_PAD_SNVS_TAMPER2__GPIO5_IO02 | MUX_PAD_CTRL(PAD_CTL_PKE |
+		PAD_CTL_PUE | PAD_CTL_PUS_100K_UP | PAD_CTL_DSE_48ohm |
+		PAD_CTL_SRE_FAST),
 };
 
 struct reg_value {
@@ -229,6 +236,10 @@ void board_init_f(ulong dummy)
 
 int board_mmc_init(struct bd_info *bis)
 {
+	imx_iomux_v3_setup_multiple_pads(emmc_power_pad,
+					 ARRAY_SIZE(emmc_power_pad));
+	gpio_direction_output(EN_EMMC_PWR, 1);
+
 	imx_iomux_v3_setup_multiple_pads(usdhc2_pads,
 					 ARRAY_SIZE(usdhc2_pads));
 	usdhc_cfg.sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
