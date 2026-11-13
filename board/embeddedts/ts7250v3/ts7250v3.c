@@ -16,7 +16,6 @@
 #include <asm/mach-imx/boot_mode.h>
 #include <asm/mach-imx/mxc_i2c.h>
 #include <asm/mach-imx/video.h>
-#include <fsl_wdog.h>
 #include <asm/io.h>
 #include <linux/delay.h>
 #include <linux/kernel.h>
@@ -314,26 +313,6 @@ int ft_board_setup(void *blob, struct bd_info *bd)
 }
 
 #ifndef CONFIG_SPL_BUILD
-void reset_cpu(ulong addr)
-{
-	struct watchdog_regs *wdog = (struct watchdog_regs *)WDOG1_BASE_ADDR;
-	char rev = detect_pcb_rev();
-
-	if (rev >= 'C') {
-		super_write(SUPER_CMDS, I2C_REBOOT);
-	} else {
-		u16 wcr = WCR_WDE;
-		wcr |= WCR_SRS; /* do not assert internal reset */
-
-		/* Write 3 times to ensure it works, due to IMX6Q errata ERR004346 */
-		writew(wcr, &wdog->wcr);
-		writew(wcr, &wdog->wcr);
-		writew(wcr, &wdog->wcr);
-	}
-
-	while (1) {}
-}
-
 int do_poweroff(struct cmd_tbl *cmdtp, int flag, int argc,
 		char *const argv[])
 {

@@ -242,6 +242,7 @@ config TARGET_EMBEDDEDTS_TS7100
 config TARGET_EMBEDDEDTS_TS7553V2
 	bool "embeddedTS TS-7553-V2"
 	depends on MX6UL
+	select SUPPORT_SPL
 	select DM
 	select DM_ETH
 	select DM_GPIO

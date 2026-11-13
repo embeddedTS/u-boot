@@ -17,6 +17,11 @@
 
 #define CFG_SYS_MMC_ENV_DEV		1
 
+#ifdef CONFIG_FSL_USDHC
+#define CFG_SYS_FSL_ESDHC_ADDR		USDHC2_BASE_ADDR
+#define CFG_SYS_FSL_USDHC_NUM		2
+#endif
+
 #define CFG_EXTRA_ENV_SETTINGS \
 	"board=ts7553v2\0" \
 	"boot_targets=mmc1 mmc0 usb0 pxe dhcp\0" \
