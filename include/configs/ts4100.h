@@ -8,6 +8,7 @@
 #include <asm/arch/imx-regs.h>
 #include <linux/sizes.h>
 #include "mx6_common.h"
+#include "ts_imx6ul_env.h"
 
 #define CFG_SYS_MALLOC_LEN		(16 * SZ_1M)
 
@@ -19,7 +20,12 @@
 
 #define CFG_EXTRA_ENV_SETTINGS \
 	"board=ts4100\0" \
-	"boot_targets=mmc1 mmc0 usb0 pxe dhcp\0"
+	"boot_targets=mmc1 mmc0 usb0 pxe dhcp\0" \
+	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
+	"fdt_addr_r=0x83000000\0" \
+	"fdtfile=imx6ul-ts4100.dtb\0" \
+	"console=ttymxc0,115200\0" \
+	TS_IMX6UL_NFSBOOT_ENV
 
 #define CFG_SYS_LOAD_ADDR		CONFIG_LOADADDR
 #define CFG_SYS_HZ			1000

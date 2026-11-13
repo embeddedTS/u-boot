@@ -59,6 +59,12 @@ static struct fsl_esdhc_cfg usdhc_cfg = {
 	.max_bus_width = 4,
 };
 
+int board_mmc_getcd(struct mmc *mmc)
+{
+	/* The eMMC is soldered down and SPL has no card-detect signal. */
+	return 1;
+}
+
 #define USDHC_PAD_CTRL	(PAD_CTL_PKE | PAD_CTL_PUE | PAD_CTL_PUS_22K_UP | \
 			 PAD_CTL_SPEED_LOW | PAD_CTL_DSE_80ohm | \
 			 PAD_CTL_SRE_FAST | PAD_CTL_HYS)
@@ -236,13 +242,21 @@ void board_init_f(ulong dummy)
 
 int board_mmc_init(struct bd_info *bis)
 {
+	int ret;
+
 	imx_iomux_v3_setup_multiple_pads(emmc_power_pad,
 					 ARRAY_SIZE(emmc_power_pad));
-	gpio_direction_output(EN_EMMC_PWR, 1);
+	ret = gpio_request(EN_EMMC_PWR, "EN_EMMC_PWR");
+	if (ret)
+		return ret;
+	ret = gpio_direction_output(EN_EMMC_PWR, 1);
+	if (ret)
+		return ret;
 
 	imx_iomux_v3_setup_multiple_pads(usdhc2_pads,
 					 ARRAY_SIZE(usdhc2_pads));
 	usdhc_cfg.sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
 
-	return fsl_esdhc_initialize(bis, &usdhc_cfg);
+	ret = fsl_esdhc_initialize(bis, &usdhc_cfg);
+	return ret;
 }
