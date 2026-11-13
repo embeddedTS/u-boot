@@ -1,0 +1,12 @@
+if TARGET_EMBEDDEDTS_TS7250V3
+
+config SYS_BOARD
+	default "ts7250v3"
+
+config SYS_VENDOR
+	default "embeddedts"
+
+config SYS_CONFIG_NAME
+	default "ts7250v3"
+
+endif

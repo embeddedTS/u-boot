@@ -270,6 +270,20 @@ config TARGET_EMBEDDEDTS_TS4100
 	select BOARD_EARLY_INIT_F
 	select BOARD_LATE_INIT
 
+config TARGET_EMBEDDEDTS_TS7250V3
+	bool "embeddedTS TS-7250-V3"
+	depends on MX6UL
+	select DM
+	select DM_ETH
+	select DM_GPIO
+	select DM_I2C
+	select DM_MMC
+	select DM_SERIAL
+	select DM_THERMAL
+	select MXC_UART
+	select SUPPORT_SPL
+	select BOARD_LATE_INIT
+
 config TARGET_GE_BX50V3
 	bool "General Electric Bx50v3"
 	depends on MX6Q
@@ -773,6 +787,7 @@ source "board/embeddedts/ts7180/Kconfig"
 source "board/embeddedts/ts7100/Kconfig"
 source "board/embeddedts/ts7553v2/Kconfig"
 source "board/embeddedts/ts4100/Kconfig"
+source "board/embeddedts/ts7250v3/Kconfig"
 source "board/embest/mx6boards/Kconfig"
 source "board/engicam/imx6q/Kconfig"
 source "board/engicam/imx6ul/Kconfig"

@@ -825,6 +825,7 @@ dtb-$(CONFIG_MX6UL) += \
 	imx6ul-ts4100.dtb \
 	imx6ul-ts7553v2.dtb \
 	imx6ul-ts7180.dtb \
+	imx6ul-ts7250v3.dtb \
 	imx6ul-geam.dtb \
 	imx6ul-isiot-emmc.dtb \
 	imx6ul-isiot-nand.dtb \
