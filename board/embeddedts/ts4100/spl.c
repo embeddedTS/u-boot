@@ -119,7 +119,8 @@ static int read_ram_option(u8 *option)
 	if (ret)
 		return ret;
 
-	ret = i2c_set_bus_num(FPGA_I2C_BUS);
+	/* SPL registers only I2C3, so it is adapter 0 in the legacy list. */
+	ret = i2c_set_bus_num(0);
 	if (ret)
 		return ret;
 
