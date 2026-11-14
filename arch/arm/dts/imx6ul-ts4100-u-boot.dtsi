@@ -36,6 +36,11 @@
 	bootph-pre-ram;
 };
 
+&i2c3 {
+	/* The FPGA I2C bridge only responds reliably at 100 kHz. */
+	clock-frequency = <100000>;
+};
+
 &usdhc2 {
 	bootph-pre-ram;
 	/* U-Boot needs the eMMC to be available even without card-detect. */
