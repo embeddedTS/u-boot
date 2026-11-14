@@ -340,7 +340,7 @@ int checkboard(void)
 	uint16_t reason;
 	int ret;
 
-	printf("Board: TS-7250-V3 REV %c\n", rev);
+	printf("Board revision: %c\n", rev);
 	printf("FPGA: Rev %d ", fpga_rev & 0x7fffffff);
 	if(fpga_rev & (1 << 31))
 		printf("(%x-dirty)\n", fpga_hash);

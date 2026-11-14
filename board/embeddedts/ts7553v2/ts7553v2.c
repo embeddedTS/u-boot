@@ -162,10 +162,3 @@ u32 get_board_rev(void)
 {
 	return get_cpu_rev();
 }
-
-int checkboard(void)
-{
-	puts("Board: embeddedTS TS-7553-V2\n");
-
-	return 0;
-}
