@@ -3,22 +3,38 @@
  * Copyright 2020-2022 Technologic Systems, Inc. dba embeddedTS
  */
 
-&{/aliases} {
-	u-boot,dm-pre-reloc;
+&{/soc} {
+	bootph-pre-ram;
 };
 
-&{/soc} {
-	u-boot,dm-pre-reloc;
+&aips1 {
+	bootph-pre-ram;
 };
 
 &aips2 {
-	u-boot,dm-pre-reloc;
+	bootph-pre-ram;
+};
+
+&{/soc/bus@2000000/spba-bus@2000000} {
+	bootph-pre-ram;
+};
+
+&uart1 {
+	bootph-pre-ram;
 };
 
 &iomuxc {
-	u-boot,dm-pre-reloc;
+	bootph-pre-ram;
 };
 
 &usdhc1 {
-	u-boot,dm-spl;
+	bootph-pre-ram;
+};
+
+&{/} {
+	bootstd {
+		bootph-verify;
+		compatible = "u-boot,boot-std";
+		bootdev-order = "mmc0", "usb", "ethernet";
+	};
 };
