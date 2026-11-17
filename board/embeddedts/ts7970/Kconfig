@@ -1,0 +1,19 @@
+if TARGET_EMBEDDEDTS_TS7970
+
+config SYS_BOARD
+	default "ts7970"
+
+config SYS_VENDOR
+	default "embeddedts"
+
+config SYS_CONFIG_NAME
+	default "ts7970"
+
+config SYS_SPI_SPL_OFFS
+	hex "SPL offset in SPI NOR flash"
+	default 0x400
+	help
+	  Offset of SPL in SPI NOR flash. NOTE WELL! This should never need
+	  to change and is provided for completeness.
+
+endif
