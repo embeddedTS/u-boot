@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+/*
+ * Copyright 2015 Technologic Systems, Inc. dba embeddedTS
+ * Copyright 2017 Savoir-Faire Linux
+ */
+
+/dts-v1/;
+#include "imx6q.dtsi"
+#include "imx6qdl-ts7970.dtsi"
+
+/ {
+	model = "embeddedTS i.MX6 Quad TS-7970 (Default Device Tree)";
+	compatible = "technologic,imx6q-ts7970", "fsl,imx6q";
+
+	/* Will be filled by the bootloader */
+	memory@10000000 {
+		device_type = "memory";
+		reg = <0x10000000 0>;
+	};
+};
+
+&sata {
+	status = "okay";
+};
