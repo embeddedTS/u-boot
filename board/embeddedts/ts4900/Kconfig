@@ -1,0 +1,49 @@
+if TARGET_EMBEDDEDTS_TS4900
+
+config SYS_BOARD
+	default "ts4900"
+
+config SYS_VENDOR
+	default "embeddedts"
+
+config SYS_CONFIG_NAME
+	default "ts4900"
+
+config SYS_SPI_SPL_OFFS
+	hex "SPL offset in SPI NOR flash"
+	default 0x400
+	help
+	  Offset of SPL in SPI NOR flash. NOTE WELL! This should never need
+	  to change and is provided for completeness.
+
+config SYS_SPI_FPGA_OFFS
+	hex "FPGA bitstream offset in NOR flash"
+	default 0xc0000
+	help
+	  Offset of the FPGA bitstream in SPI NOR flash. Normally, one would
+	  want to use binman runtime symbols. However there is an incompatibility
+	  in getting these symbols patched in to the runtime SPL due to the build
+	  process. Binman patches u-boot-spl, but does not regenerate the i.MX
+	  format SPL file. So the final binman packed image uses the SPL file
+	  with invalid binman symbol references.
+
+	  This option helps us place the FPGA bitstream in a way that SPL can
+	  still have this information while also letting binman be able to raise
+	  alarms if the file is encroached on.
+
+config SYS_SPI_FPGA_LEN
+	hex "FPGA bitstream length in NOR flash"
+	default 0x1cf72
+	help
+	  Length of the FPGA bitstream in SPI NOR flash. As with the OFFS above,
+	  binman is the correct way to do this but that has its own issues.
+
+	  Instead, the default length here should always be correct and never
+	  need to change.
+
+	  The binman output is set up such that this will always align to the
+	  same sector alignment as the environment (which is always assumed to
+	  be some multiple of the erase block size of SPI) to ensure proper
+	  alignment of all binaries no matter where they end up.
+
+endif
